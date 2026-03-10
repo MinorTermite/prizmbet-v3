@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.env
+.env.local
+credentials.json
+service_account.json
+*.log
+logs/
+.pytest_cache/
+.coverage
+node_modules/
+
+# Android build artifacts
+mobile/android/.gradle/
+prizmbet_android/.gradle/
+prizmbet_android/.idea/
+prizmbet_android/build/
+prizmbet_android/app/build/
+prizmbet_android/local.properties
+
+# Generated/local project artifacts
+*.backup
+.idea/
+# Runtime launcher artifacts
+*.pid
+*.out.log
+*.err.log

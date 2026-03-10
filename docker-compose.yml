@@ -1,0 +1,21 @@
+version: '3.8'  
+  
+services:  
+  parser:  
+    build: .  
+    env_file:  
+      - .env  
+    volumes:  
+      - ./logs:/app/logs  
+    restart: unless-stopped  
+  
+  # Optional: Redis for local development  
+  redis:  
+    image: redis:7-alpine  
+    ports:  
+      - "6379:6379"  
+    volumes:  
+      - redis_data:/data  
+  
+volumes:  
+  redis_data: 

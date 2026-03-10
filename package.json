@@ -1,0 +1,24 @@
+{
+    "name":  "prizmbet-v3",
+    "version":  "3.0.0",
+    "description":  "PRIZMBET v3 - isolated next-generation site with intent coupon and wallet cabinet prototype",
+    "scripts":  {
+                    "build":  "echo \u0027Static site - no build needed\u0027",
+                    "start":  "python3 -m http.server 8000 -d frontend",
+                    "parse":  "python3 -m backend.run_parsers"
+                },
+    "keywords":  [
+                     "betting",
+                     "prizm",
+                     "crypto",
+                     "bookmaker"
+                 ],
+    "author":  "PRIZMBET",
+    "license":  "UNLICENSED",
+    "dependencies":  {
+
+                     },
+    "devDependencies":  {
+
+                        }
+}

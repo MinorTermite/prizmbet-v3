@@ -1,0 +1,64 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.prizmbet.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.prizmbet.app"
+        minSdk 24
+        targetSdk 35
+        versionCode 2
+        versionName "1.1"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            versionNameSuffix "-debug"
+        }
+    }
+
+    // Выходной файл: prizmbet_1.1.apk (release) / prizmbet_1.1-debug.apk (debug)
+    // versionNameSuffix уже добавляет "-debug" к variant.versionName, дублировать не нужно
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            outputFileName = "prizmbet_${variant.versionName}.apk"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+// Принудительно исключаем старые модули Kotlin, которые теперь встроены в основной stdlib
+configurations.all {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
+dependencies {
+    // Явно указываем современную версию stdlib
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.activity:activity:1.9.3'
+    implementation 'androidx.webkit:webkit:1.12.1'
+
+    // Pull-to-refresh
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+
+    // Native Splash Screen (Android 12+ и backward-compat до API 23)
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+
+    // GIF-заставка (воспроизводит prizmbet-logo.gif нативно)
+    implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.28'
+}

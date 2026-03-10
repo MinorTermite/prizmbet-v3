@@ -1,0 +1,50 @@
+[
+  {
+    "id": "BET17725500001",
+    "tx_id": "7817452398471928374",
+    "match_id": "3649514",
+    "team1": "Манчестер Юнайтед",
+    "team2": "Челси",
+    "league": "Англия. Премьер-лига",
+    "bet_type": "П1",
+    "coef": 2.45,
+    "amount": 25000,
+    "payout": 61250,
+    "sender": "PRIZM-4N7T-L2A7-RQZA-5BETW",
+    "tg_id": "984705599",
+    "status": "pending",
+    "time": "02.03.2026 00:05"
+  },
+  {
+    "id": "BET17725500002",
+    "tx_id": "6283746283746283746",
+    "match_id": "3649515",
+    "team1": "Реал Мадрид",
+    "team2": "Барселона",
+    "league": "Испания. Ла Лига",
+    "bet_type": "X",
+    "coef": 3.60,
+    "amount": 10000,
+    "payout": 36000,
+    "sender": "PRIZM-TEST-USER-WALLET",
+    "tg_id": "123456789",
+    "status": "win",
+    "time": "01.03.2026 15:30"
+  },
+  {
+    "id": "BET17725500003",
+    "tx_id": "1928374656473829102",
+    "match_id": "3649516",
+    "team1": "Ювентус",
+    "team2": "Милан",
+    "league": "Италия. Серия А",
+    "bet_type": "П2",
+    "coef": 2.80,
+    "amount": 15000,
+    "payout": 0,
+    "sender": "PRIZM-TEST-USER-WALLET",
+    "tg_id": "123456789",
+    "status": "loss",
+    "time": "01.03.2026 16:45"
+  }
+]

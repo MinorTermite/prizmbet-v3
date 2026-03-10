@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Refresh shortcut icon -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background circle -->
+    <path
+        android:fillColor="#10b981"
+        android:pathData="M54,54m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+    <!-- Refresh arrow arc (top-right, clockwise) -->
+    <path
+        android:fillColor="#ffffff"
+        android:strokeColor="#ffffff"
+        android:strokeWidth="0"
+        android:pathData="M54,30 A24,24 0,0,1 78,54 L74,54 A20,20 0,0,0 54,34 Z" />
+    <!-- Refresh arrow arc (bottom-left, clockwise) -->
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M54,78 A24,24 0,0,1 30,54 L34,54 A20,20 0,0,0 54,74 Z" />
+    <!-- Arrow head top-right -->
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M74,46 L82,54 L74,58 Z" />
+    <!-- Arrow head bottom-left -->
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M34,62 L26,54 L34,50 Z" />
+</vector>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRIZMBET — Администратор</title>
+<style>
+  :root {
+    --bg: #0d0d0d; --bg2: #161616; --bg3: #1e1e1e;
+    --border: #2a2a2a; --text: #e8e8e8; --text2: #888;
+    --gold: #f5c842; --green: #4caf50; --red: #e53935;
+    --blue: #2196f3; --orange: #ff9800;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; }
+
+  /* ===== LOGIN ===== */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg);
+  }
+  .login-box {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 40px; width: 320px; text-align: center;
+  }
+  .login-box h1 { color: var(--gold); font-size: 22px; margin-bottom: 8px; }
+  .login-box p { color: var(--text2); margin-bottom: 24px; font-size: 13px; }
+  .login-box input {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); font-size: 15px; margin-bottom: 14px; outline: none;
+  }
+  .login-box input:focus { border-color: var(--gold); }
+  .login-box button {
+    width: 100%; padding: 11px; border-radius: 8px; border: none;
+    background: var(--gold); color: #000; font-size: 15px;
+    font-weight: 700; cursor: pointer;
+  }
+  .login-box button:hover { opacity: .9; }
+  #login-err { color: var(--red); font-size: 12px; margin-top: 10px; min-height: 18px; }
+
+  /* ===== ADMIN ===== */
+  #admin-screen { display: none; }
+  header {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { color: var(--gold); font-size: 18px; flex: 1; }
+  .stat-chip {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--text2);
+  }
+  .stat-chip span { color: var(--text); font-weight: 700; }
+
+  .toolbar {
+    padding: 12px 20px; display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap; background: var(--bg2); border-bottom: 1px solid var(--border);
+  }
+  .toolbar input, .toolbar select {
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 7px 10px; font-size: 13px; outline: none;
+  }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--gold); }
+  .btn {
+    padding: 7px 14px; border-radius: 6px; border: none;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .btn-gold  { background: var(--gold); color: #000; }
+  .btn-gray  { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-red   { background: var(--red); color: #fff; }
+  .ml-auto   { margin-left: auto; }
+
+  /* ===== TABLE ===== */
+  .table-wrap { overflow-x: auto; padding: 16px 20px; }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  thead th {
+    background: var(--bg3); color: var(--text2); font-size: 12px;
+    text-transform: uppercase; letter-spacing: .5px;
+    padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  thead th:hover { color: var(--gold); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:hover { background: var(--bg3); }
+  tbody td { padding: 10px 12px; vertical-align: middle; }
+
+  .wallet-cell { font-family: monospace; font-size: 12px; color: var(--text2); }
+  .outcome-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-weight: 700; font-size: 12px;
+  }
+  .outcome-1  { background: #1a3a4a; color: #64b5f6; }
+  .outcome-2  { background: #3a1a1a; color: #ef9a9a; }
+  .outcome-x  { background: #2a2a1a; color: #fff176; }
+  .outcome-other { background: var(--bg3); color: var(--text2); }
+
+  .status-badge {
+    display: inline-block; padding: 3px 9px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+  }
+  .s-pending  { background: #332a00; color: var(--orange); }
+  .s-win      { background: #0a2a0a; color: var(--green); }
+  .s-loss     { background: #2a0a0a; color: var(--red); }
+  .s-cancelled { background: var(--bg3); color: var(--text2); }
+
+  .status-select {
+    background: transparent; border: none; color: inherit;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    cursor: pointer; outline: none;
+  }
+
+  /* ===== EMPTY ===== */
+  .empty { text-align: center; padding: 60px 20px; color: var(--text2); }
+  .empty big { font-size: 40px; display: block; margin-bottom: 12px; }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--green); color: #fff; padding: 10px 20px; border-radius: 8px;
+    font-weight: 600; transition: transform .3s; z-index: 999; pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ===== TOTALS ===== */
+  .totals-bar {
+    padding: 10px 20px; background: var(--bg2); border-bottom: 1px solid var(--border);
+    display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px;
+  }
+  .total-item { color: var(--text2); }
+  .total-item b { color: var(--text); }
+
+  @media (max-width: 600px) {
+    header { flex-wrap: wrap; }
+    .toolbar { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== ЛОГИН ===== -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>🏆 PRIZMBET</h1>
+    <p>Панель администратора</p>
+    <input type="password" id="pwd-input" placeholder="Пароль" autocomplete="current-password">
+    <button onclick="doLogin()">Войти</button>
+    <div id="login-err"></div>
+  </div>
+</div>
+
+<!-- ===== АДМИНКА ===== -->
+<div id="admin-screen">
+  <header>
+    <h1>⚡ PRIZMBET — Ставки</h1>
+    <div class="stat-chip">Всего: <span id="stat-total">0</span></div>
+    <div class="stat-chip">Pending: <span id="stat-pending">0</span></div>
+    <div class="stat-chip">Выплатить: <span id="stat-payout" style="color:var(--orange)">0 PZM</span></div>
+    <div class="stat-chip" id="chip-balance" style="color:var(--green);cursor:pointer;" onclick="checkWalletBalance()" title="Нажмите для проверки баланса">💰 Баланс: <span id="stat-balance">—</span></div>
+    <button class="btn btn-gold ml-auto" onclick="reloadBets()">🔄 Обновить</button>
+    <button class="btn btn-gray" onclick="checkWalletBalance()">💰 Баланс</button>
+    <button class="btn btn-gray" onclick="doLogout()">Выйти</button>
+  </header>
+
+  <div class="totals-bar">
+    <div class="total-item">Принято: <b id="t-in">0 PZM</b></div>
+    <div class="total-item">Выигрышей (ожид.): <b id="t-win-exp">0 PZM</b></div>
+    <div class="total-item">Фактически выплачено: <b id="t-paid">0 PZM</b></div>
+    <div class="total-item">Прибыль: <b id="t-profit">0 PZM</b></div>
+    <div class="total-item" style="margin-left:auto;font-size:11px;color:var(--text2)">
+      Обновлено: <span id="last-upd">—</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="search-inp" placeholder="🔍 Поиск по кошельку, матчу..." oninput="applyFilters()" style="width:220px;">
+    <select id="filter-sport" onchange="applyFilters()">
+      <option value="">Все виды спорта</option>
+    </select>
+    <select id="filter-status" onchange="applyFilters()">
+      <option value="">Все статусы</option>
+      <option value="pending">Pending</option>
+      <option value="win">Win</option>
+      <option value="loss">Loss</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <select id="filter-outcome" onchange="applyFilters()">
+      <option value="">Все исходы</option>
+      <option value="П1">П1</option>
+      <option value="П2">П2</option>
+      <option value="X">X</option>
+    </select>
+    <button class="btn btn-gray" onclick="clearFilters()">✕ Сбросить</button>
+    <button class="btn btn-green ml-auto" onclick="exportCSV()">⬇ CSV</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('time')">Время ↕</th>
+          <th>Кошелёк</th>
+          <th onclick="sortBy('match_name')">Матч ↕</th>
+          <th>Спорт</th>
+          <th>Исход</th>
+          <th onclick="sortBy('coefficient')">Коэф ↕</th>
+          <th onclick="sortBy('amount')">Ставка ↕</th>
+          <th onclick="sortBy('potential_win')">Выигрыш ↕</th>
+          <th>Статус</th>
+          <th>TX</th>
+        </tr>
+      </thead>
+      <tbody id="bets-tbody"></tbody>
+    </table>
+    <div id="empty-msg" class="empty" style="display:none;">
+      <big>📭</big>Ставок нет
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ===== КОНФИГ =====
+const BETS_URL    = 'bets.json';
+const ADMIN_PASS  = 'prizm2025';   // ← смените пароль!
+const SESSION_KEY = 'pzm_admin_ok';
+
+// ===== ДАННЫЕ =====
+let allBets      = [];
+let filtered     = [];
+let sortField    = 'time';
+let sortAsc      = false;
+let localChanges = {};   // tx_id → новый статус
+
+// ===== НОРМАЛИЗАЦИЯ ПОЛЕЙ (бот пишет bet_type/coef/payout/sender, парсер — outcome/coefficient/potential_win/from_wallet) =====
+function normBet(b) {
+  return {
+    ...b,
+    outcome:       b.outcome      || b.bet_type   || '—',
+    coefficient:   b.coefficient  != null ? b.coefficient : (b.coef != null ? b.coef : '—'),
+    potential_win: b.potential_win != null ? b.potential_win : (b.payout != null ? b.payout : 0),
+    from_wallet:   b.from_wallet  || b.sender     || '—',
+    match_name:    b.match_name   || ((b.team1 && b.team2) ? `${b.team1} — ${b.team2}` : (b.match_id || '—')),
+  };
+}
+
+// ===== ЛОГИН =====
+function doLogin() {
+  const v = document.getElementById('pwd-input').value;
+  if (v === ADMIN_PASS) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    reloadBets();
+  } else {
+    document.getElementById('login-err').textContent = 'Неверный пароль';
+  }
+}
+document.getElementById('pwd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+function doLogout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+}
+
+// ===== ЗАГРУЗКА =====
+async function reloadBets() {
+  try {
+    const r = await fetch(BETS_URL + '?t=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    allBets = data.bets || [];
+    document.getElementById('last-upd').textContent = data.last_update || '—';
+
+    // Применяем локальные изменения статусов
+    allBets.forEach(b => {
+      if (localChanges[b.tx_id]) b.status = localChanges[b.tx_id];
+    });
+
+    buildSportFilter();
+    applyFilters();
+    updateStats();
+    showToast('Ставки загружены (' + allBets.length + ')');
+  } catch(e) {
+    showToast('Ошибка загрузки: ' + e.message, true);
+  }
+}
+
+// ===== ФИЛЬТРЫ =====
+function buildSportFilter() {
+  const sel = document.getElementById('filter-sport');
+  const cur = sel.value;
+  const sports = [...new Set(allBets.map(b => b.sport).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Все виды спорта</option>' +
+    sports.map(s => `<option value="${s}"${s===cur?' selected':''}>${s}</option>`).join('');
+}
+
+function applyFilters() {
+  const q       = document.getElementById('search-inp').value.toLowerCase();
+  const sport   = document.getElementById('filter-sport').value;
+  const status  = document.getElementById('filter-status').value;
+  const outcome = document.getElementById('filter-outcome').value;
+
+  filtered = allBets.filter(b => {
+    const betOutcome = b.outcome || b.bet_type || '';
+    if (sport   && b.sport  !== sport)    return false;
+    if (status  && b.status !== status)   return false;
+    if (outcome && betOutcome !== outcome) return false;
+    if (q && !JSON.stringify(b).toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  sortData();
+  renderTable();
+  updateStats();
+}
+
+function clearFilters() {
+  document.getElementById('search-inp').value = '';
+  document.getElementById('filter-sport').value = '';
+  document.getElementById('filter-status').value = '';
+  document.getElementById('filter-outcome').value = '';
+  applyFilters();
+}
+
+// ===== СОРТИРОВКА =====
+function sortBy(field) {
+  if (sortField === field) sortAsc = !sortAsc;
+  else { sortField = field; sortAsc = false; }
+  sortData();
+  renderTable();
+}
+function sortData() {
+  filtered.sort((a, b) => {
+    let va = a[sortField], vb = b[sortField];
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return sortAsc ? -1 :  1;
+    if (va > vb) return sortAsc ?  1 : -1;
+    return 0;
+  });
+}
+
+// ===== ТАБЛИЦА =====
+function renderTable() {
+  const tbody = document.getElementById('bets-tbody');
+  const empty = document.getElementById('empty-msg');
+
+  if (!filtered.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = filtered.map(raw => {
+    const b = normBet(raw);
+    const outcomeClass = {
+      'П1': 'outcome-1', 'П2': 'outcome-2', 'X': 'outcome-x'
+    }[b.outcome] || 'outcome-other';
+
+    const statusClass = {
+      'pending': 's-pending', 'win': 's-win',
+      'loss': 's-loss', 'cancelled': 's-cancelled'
+    }[b.status] || 's-pending';
+
+    const txShort = (b.tx_id || '').substring(0, 12) + '...';
+    const walletShort = (b.from_wallet || '').substring(0, 18) + '...';
+    const coefDisplay = b.coefficient !== '—' ? Number(b.coefficient).toFixed(2) : '—';
+    const payoutDisplay = typeof b.potential_win === 'number' ? b.potential_win.toFixed(2) : b.potential_win;
+
+    return `<tr>
+      <td style="white-space:nowrap;font-size:12px;color:var(--text2)">${b.time || '—'}</td>
+      <td class="wallet-cell" title="${b.from_wallet}">${walletShort}</td>
+      <td title="${b.match_name || ''}">${b.match_name || '—'}</td>
+      <td style="color:var(--text2);font-size:12px">${b.sport || '—'}</td>
+      <td><span class="outcome-pill ${outcomeClass}">${b.outcome}</span></td>
+      <td style="font-weight:700">${coefDisplay}</td>
+      <td style="color:var(--gold);font-weight:700">${b.amount != null ? Number(b.amount).toFixed(2) : '—'} <small>PZM</small></td>
+      <td style="color:var(--green)">${payoutDisplay} <small>PZM</small></td>
+      <td>
+        <span class="status-badge ${statusClass}">
+          <select class="status-select" onchange="changeStatus('${b.tx_id}', this.value)"
+            style="background:transparent;color:inherit;border:none;font:inherit;cursor:pointer;outline:none">
+            <option value="pending"  ${b.status==='pending'  ?'selected':''}>⏳ Ожидание</option>
+            <option value="win"      ${b.status==='win'      ?'selected':''}>✅ Победа</option>
+            <option value="loss"     ${b.status==='loss'     ?'selected':''}>❌ Проигрыш</option>
+            <option value="cancelled"${b.status==='cancelled'?'selected':''}>🚫 Отмена</option>
+          </select>
+        </span>
+      </td>
+      <td class="wallet-cell" title="${b.tx_id}">${txShort}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== СМЕНА СТАТУСА =====
+function changeStatus(txId, newStatus) {
+  localChanges[txId] = newStatus;
+  const bet = allBets.find(b => b.tx_id === txId);
+  if (bet) bet.status = newStatus;
+  applyFilters();
+  showToast('Статус обновлён — сохраните вручную в bets.json');
+}
+
+// ===== СТАТИСТИКА =====
+function updateStats() {
+  const pending = allBets.filter(b => b.status === 'pending');
+  const wins    = allBets.filter(b => b.status === 'win');
+
+  const getPayout = b => b.potential_win != null ? b.potential_win : (b.payout || 0);
+  const totalIn    = allBets.reduce((s, b) => s + (b.amount || 0), 0);
+  const winExpect  = pending.reduce((s, b) => s + getPayout(b), 0);
+  const paid       = wins.reduce((s, b) => s + getPayout(b), 0);
+  const profit     = totalIn - paid;
+
+  document.getElementById('stat-total').textContent   = allBets.length;
+  document.getElementById('stat-pending').textContent = pending.length;
+  document.getElementById('stat-payout').textContent  = round2(winExpect) + ' PZM';
+  document.getElementById('t-in').textContent         = round2(totalIn) + ' PZM';
+  document.getElementById('t-win-exp').textContent    = round2(winExpect) + ' PZM';
+  document.getElementById('t-paid').textContent       = round2(paid) + ' PZM';
+  document.getElementById('t-profit').textContent     = round2(profit) + ' PZM';
+}
+
+function round2(v) { return Math.round(v * 100) / 100; }
+
+// ===== CSV =====
+function exportCSV() {
+  const rows = [
+    ['Время','Кошелёк','Матч','Спорт','Исход','Коэф','Ставка PZM','Выигрыш PZM','Статус','TX ID'],
+    ...filtered.map(raw => {
+      const b = normBet(raw);
+      return [b.time, b.from_wallet, b.match_name, b.sport, b.outcome, b.coefficient, b.amount, b.potential_win, b.status, b.tx_id];
+    })
+  ];
+  const csv = rows.map(r => r.map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'prizmbet_bets_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// ===== БАЛАНС КОШЕЛЬКА =====
+const PRIZM_WALLET  = 'PRIZM-4N7T-L2A7-RQZA-5BETW';
+const PRIZM_NODES   = [
+  'https://blockchain.prizm.space',
+  'https://node1.prizm.space',
+  'https://node2.prizm.space',
+];
+
+async function checkWalletBalance() {
+  document.getElementById('stat-balance').textContent = '...';
+  for (const node of PRIZM_NODES) {
+    try {
+      const r = await fetch(`${node}/prizm?requestType=getAccount&account=${PRIZM_WALLET}`, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (data.errorCode) continue;
+      const bal = (parseInt(data.balanceNQT || 0) / 100).toFixed(2);
+      const unconf = (parseInt(data.unconfirmedBalanceNQT || 0) / 100).toFixed(2);
+      document.getElementById('stat-balance').textContent = bal + ' PZM';
+      showToast(`💰 Баланс: ${bal} PZM (неподтв.: ${unconf} PZM) | Нода: ${node}`);
+      return;
+    } catch { continue; }
+  }
+  document.getElementById('stat-balance').textContent = 'ошибка';
+  showToast('Не удалось получить баланс — все ноды недоступны', true);
+}
+
+// ===== ТОСТ =====
+function showToast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = err ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ===== INIT =====
+if (sessionStorage.getItem(SESSION_KEY)) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  reloadBets();
+}
+</script>
+</body>
+</html>
