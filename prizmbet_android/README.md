@@ -1,6 +1,6 @@
 # PRIZMBET Android
 
-Android WebView wrapper for [PRIZMBET](https://minortermite.github.io/prizmbet-v2/).
+Android WebView wrapper for [PRIZMBET](https://minortermite.github.io/prizmbet-v3/).
 
 ## Current mode: WebView (TWA-ready)
 

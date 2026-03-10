@@ -42,7 +42,7 @@ import java.io.InputStream;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String SITE_URL     = "https://minortermite.github.io/prizmbet-v2/";
+    private static final String SITE_URL     = "https://minortermite.github.io/prizmbet-v3/";
     public  static final String EXTRA_SHORTCUT = "shortcut_action";
 
     private static final String[] ALLOWED_HOSTS = {
@@ -181,18 +181,18 @@ public class MainActivity extends AppCompatActivity {
     // ── Asset Loader ───────────────────────────────────────────────────────────
 
     /**
-     * Статические файлы (HTML/JS/CSS/картинки) отдаются из APK assets/prizmbet-v2/.
+     * Статические файлы (HTML/JS/CSS/картинки) отдаются из APK assets/prizmbet-v3/.
      * matches.json и matches-today.json — всегда с сети (живые данные).
      */
     private void buildAssetLoader() {
         assetLoader = new WebViewAssetLoader.Builder()
                 .setDomain("minortermite.github.io")
-                .addPathHandler("/prizmbet-v2/", path -> {
+                .addPathHandler("/prizmbet-v3/", path -> {
                     if (path.endsWith("matches.json") || path.endsWith("matches-today.json")) {
                         return null; // → network
                     }
                     try {
-                        InputStream is = getAssets().open("prizmbet-v2/" + path);
+                        InputStream is = getAssets().open("prizmbet-v3/" + path);
                         String ext = path.contains(".")
                                 ? path.substring(path.lastIndexOf('.') + 1).toLowerCase()
                                 : "";

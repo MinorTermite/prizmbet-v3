@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRIZMBET Operator Console</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/smart-flow.css">
+<link rel="stylesheet" href="css/operator.css">
+</head>
+<body>
+<div class="bg-canvas"></div>
+
+<main class="container operator-shell">
+  <section class="section operator-hero">
+    <div class="operator-hero-card">
+      <div>
+        <div class="smart-banner-eyebrow">Operator Console</div>
+        <h1 class="operator-title">Входящие ставки и расшифровка купонов</h1>
+        <p class="operator-copy">Здесь intent-код превращается в понятную карточку: матч, исход, коэффициент, сумма, кошелёк отправителя, TX и текущий статус.</p>
+      </div>
+      <a class="operator-back" href="./index.html">На сайт</a>
+    </div>
+  </section>
+
+  <section class="section operator-access">
+    <div class="operator-access-card">
+      <div class="operator-access-grid">
+        <label class="operator-field">
+          <span class="operator-label">API Base</span>
+          <input id="apiBaseInput" class="operator-input" type="text" placeholder="http://127.0.0.1:8081">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Admin Key</span>
+          <input id="adminKeyInput" class="operator-input" type="password" placeholder="Если включён в .env">
+        </label>
+      </div>
+      <div class="operator-actions">
+        <button id="connectBtn" class="operator-btn operator-btn--primary" type="button">Подключить</button>
+        <button id="refreshBtn" class="operator-btn" type="button">Обновить ленту</button>
+        <label class="operator-toggle">
+          <input id="autoRefreshToggle" type="checkbox" checked>
+          <span>Автообновление</span>
+        </label>
+      </div>
+      <div id="operatorStatus" class="operator-status-line">Укажите API base и нажмите «Подключить».</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div id="statsGrid" class="operator-stats"></div>
+  </section>
+
+  <section class="section operator-feed-section">
+    <div class="operator-feed-toolbar">
+      <input id="queryInput" class="operator-input operator-input--search" type="search" placeholder="Поиск по коду, TX, кошельку, матчу или лиге">
+      <select id="statusFilter" class="operator-select">
+        <option value="">Все статусы</option>
+        <option value="accepted">Принятые</option>
+        <option value="rejected">Отклонённые</option>
+        <option value="won">Выигравшие</option>
+        <option value="lost">Проигравшие</option>
+        <option value="refund_pending">Ждут возврат</option>
+        <option value="paid">Выплаченные</option>
+      </select>
+      <div id="feedMeta" class="operator-feed-meta">Лента ещё не загружена.</div>
+    </div>
+    <div id="feedList" class="operator-feed-list"></div>
+  </section>
+</main>
+
+<script src="js/operator.js"></script>
+</body>
+</html>

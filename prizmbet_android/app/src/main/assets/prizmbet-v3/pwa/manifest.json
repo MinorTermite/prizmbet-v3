@@ -1,0 +1,16 @@
+{
+  "name": "PrizmBet - Crypto Betting",
+  "short_name": "PrizmBet",
+  "description": "Betting with PRIZM cryptocurrency",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "/prizmbet-logo.gif",
+      "sizes": "192x192",
+      "type": "image/gif"
+    }
+  ]
+}

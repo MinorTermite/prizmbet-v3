@@ -96,7 +96,7 @@
 5. **Option A: Bubblewrap (recommended)**
    ```bash
    npm install -g @nickersoft/bubblewrap-cli
-   bubblewrap init --manifest https://minortermite.github.io/prizmbet-v2/manifest.json
+   bubblewrap init --manifest https://minortermite.github.io/prizmbet-v3/manifest.json
    bubblewrap build
    ```
 
