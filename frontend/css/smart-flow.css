@@ -597,3 +597,152 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+/* v3 desktop market layout */
+.market-layout {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.market-feed {
+    min-width: 0;
+}
+
+.market-sidebar {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+}
+
+.market-sidebar .wallet-section {
+    margin: 0;
+    padding: 22px 18px;
+}
+
+.market-sidebar .qr-code {
+    width: 156px;
+    height: 156px;
+    margin: 14px auto;
+}
+
+.rules-section {
+    margin-bottom: 0;
+}
+
+.rules-compact-card {
+    display: grid;
+    gap: 16px;
+}
+
+.rules-chip-row,
+.rules-limit-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.rules-chip,
+.rules-limit-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(129, 140, 248, 0.26);
+    background: rgba(8, 12, 28, 0.72);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.rules-limit-pill {
+    border-color: rgba(45, 212, 191, 0.22);
+    color: rgba(216, 255, 250, 0.92);
+}
+
+.rules-mini-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.rules-mini-point {
+    padding: 14px 15px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+        rgba(6, 10, 24, 0.76);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.rules-mini-title {
+    margin: 0 0 6px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.rules-mini-copy {
+    margin: 0;
+    color: rgba(226, 232, 240, 0.74);
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.rules-poster-row {
+    display: grid;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(45, 212, 191, 0.16);
+    background: rgba(45, 212, 191, 0.07);
+}
+
+.rules-poster-btn {
+    justify-content: center;
+}
+
+@media (min-width: 1180px) {
+    .container {
+        max-width: 1320px;
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .hero-section {
+        padding-top: 28px;
+    }
+
+    .market-layout {
+        grid-template-columns: minmax(0, 1.55fr) 360px;
+        align-items: start;
+        gap: 20px;
+    }
+
+    .market-sidebar {
+        position: sticky;
+        top: 92px;
+    }
+
+    .quick-start-card {
+        padding: 24px 26px;
+    }
+
+    .filters-bar,
+    .search-container {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+@media (min-width: 1440px) {
+    .container {
+        max-width: 1400px;
+    }
+
+    .market-layout {
+        grid-template-columns: minmax(0, 1.7fr) 380px;
+    }
+}
