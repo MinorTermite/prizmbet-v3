@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """PRIZM Tx Listener + Anti-fraud."""
 import asyncio
@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 from backend.config import config
 from backend.db.supabase_client import db
 from backend.bot import prizm_api
+from backend.utils.operator_alerts import notify_bet_processed
 WALLET = prizm_api.WALLET
 SAFETY_WINDOW_SECONDS = 120
 POLL_INTERVAL_SECONDS = 30
@@ -77,6 +78,7 @@ async def _process_tx(tx: dict):
     }
 
     intent = None
+    match = None
     if intent_hash:
         intent = await db.get_bet_intent(intent_hash)
 
@@ -115,6 +117,14 @@ async def _process_tx(tx: dict):
             log.info("[ACCEPTED] Tx %s amount=%.2f intent=%s", tx_id[:16], amount, intent_hash)
         else:
             log.info("[REJECTED] Tx %s Reason: %s", tx_id[:16], bet_row["reject_reason"])
+
+        asyncio.create_task(
+            notify_bet_processed(
+                dict(bet_row),
+                intent=dict(intent) if intent else None,
+                match=dict(match) if match else None,
+            )
+        )
     except Exception as e:
         if "duplicate key" in str(e).lower() or "unique" in str(e).lower():
             return

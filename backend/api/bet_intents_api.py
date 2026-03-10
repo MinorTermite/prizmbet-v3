@@ -1,13 +1,16 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Bet Intent API (Hash-Coupon + Prototype Dashboard)."""
 import json
 import random
+import secrets
 import string
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from aiohttp import web
 
+from backend.config import config
 from backend.db.supabase_client import db
+from backend.utils.bet_views import ACCEPTED_STATUSES, build_bet_view, search_blob
 
 
 OUTCOME_MAP = {
@@ -26,7 +29,7 @@ OUTCOME_MAP = {
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
 }
 
 
@@ -111,6 +114,14 @@ def _rank_preview(turnover: float, accepted_count: int) -> dict:
         },
         "progress_percent": progress,
     }
+
+
+def _admin_authorized(request: web.Request) -> bool:
+    required_key = str(config.ADMIN_VIEW_KEY or "").strip()
+    if not required_key:
+        return True
+    provided_key = str(request.headers.get("X-Admin-Key") or request.query.get("admin_key") or "").strip()
+    return bool(provided_key) and secrets.compare_digest(provided_key, required_key)
 
 
 async def _ensure_db_ready():
@@ -251,7 +262,7 @@ async def wallet_dashboard(request: web.Request):
         status = str(bet.get("status", "")).lower()
         amount = float(bet.get("amount_prizm") or 0)
         odds_fixed = float(bet.get("odds_fixed") or 0)
-        if status in accepted_statuses:
+        if status in ACCEPTED_STATUSES:
             turnover += amount
             potential_payout += amount * odds_fixed
         if status in counts:
@@ -275,6 +286,95 @@ async def wallet_dashboard(request: web.Request):
     })
 
 
+async def operator_feed(request: web.Request):
+    db_ready = await _ensure_db_ready()
+    if not _admin_authorized(request):
+        return _json_response({"error": "Admin key is invalid or missing"}, status=401)
+    if not db_ready:
+        return _json_response({
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "stats": {
+                "total_items": 0,
+                "accepted_count": 0,
+                "rejected_count": 0,
+                "won_count": 0,
+                "lost_count": 0,
+                "refund_count": 0,
+                "turnover_prizm": 0,
+                "potential_payout_prizm": 0,
+            },
+            "items": [],
+            "meta": {
+                "admin_key_required": bool(config.ADMIN_VIEW_KEY),
+                "db_configured": False,
+                "message": "Supabase не подключён: лента пока пустая.",
+            },
+        })
+
+    try:
+        limit = int(request.query.get("limit", "60"))
+    except ValueError:
+        limit = 60
+    limit = min(max(limit, 1), 200)
+    fetch_limit = min(max(limit * 4, 80), 500)
+    status_filter = str(request.query.get("status", "")).strip().lower()
+    query = str(request.query.get("q", "")).strip().casefold()
+
+    bets = await db.get_recent_bets(fetch_limit)
+    intent_map = await db.get_bet_intents_map([str(b.get("intent_hash") or "") for b in bets])
+
+    match_ids = []
+    for bet in bets:
+        match_id = str(bet.get("match_id") or "").strip()
+        if match_id:
+            match_ids.append(match_id)
+    for intent in intent_map.values():
+        match_id = str(intent.get("match_id") or "").strip()
+        if match_id:
+            match_ids.append(match_id)
+
+    match_map = await db.get_matches_map(match_ids)
+    items = []
+    for bet in bets:
+        intent_hash = str(bet.get("intent_hash") or "").strip().upper()
+        intent = intent_map.get(intent_hash)
+        match_id = str(bet.get("match_id") or (intent or {}).get("match_id") or "").strip()
+        match = match_map.get(match_id) or _load_matches_cache().get(match_id)
+        view = build_bet_view(bet, intent=intent, match=match, match_cache=_load_matches_cache())
+        if status_filter and view["status"] != status_filter:
+            continue
+        if query and query not in search_blob(view):
+            continue
+        items.append(view)
+        if len(items) >= limit:
+            break
+
+    turnover = round(sum(item["amount_prizm"] for item in items if item["status"] in ACCEPTED_STATUSES), 2)
+    potential = round(sum(item["potential_payout_prizm"] for item in items if item["status"] in ACCEPTED_STATUSES), 2)
+
+    stats = {
+        "total_items": len(items),
+        "accepted_count": sum(1 for item in items if item["status"] == "accepted"),
+        "rejected_count": sum(1 for item in items if item["status"] == "rejected"),
+        "won_count": sum(1 for item in items if item["status"] == "won"),
+        "lost_count": sum(1 for item in items if item["status"] == "lost"),
+        "refund_count": sum(1 for item in items if item["status"] in {"refund_pending", "refunded"}),
+        "turnover_prizm": turnover,
+        "potential_payout_prizm": potential,
+    }
+
+    return _json_response({
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "stats": stats,
+        "items": items,
+        "meta": {
+            "admin_key_required": bool(config.ADMIN_VIEW_KEY),
+            "query": query,
+            "status_filter": status_filter,
+        },
+    })
+
+
 async def health(_: web.Request):
     return _json_response({"ok": True})
 
@@ -290,6 +390,7 @@ def create_app() -> web.Application:
     app.router.add_post("/api/intents", create_intent)
     app.router.add_get("/api/intents/{intent_hash}", get_intent_status)
     app.router.add_get("/api/wallets/{wallet}/dashboard", wallet_dashboard)
+    app.router.add_get("/api/admin/feed", operator_feed)
     return app
 
 
