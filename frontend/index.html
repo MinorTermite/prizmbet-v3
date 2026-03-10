@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 
 <head>
@@ -196,19 +196,44 @@
         </div>
 
         <!-- ПРАВИЛА -->
-        <div class="section">
-            <h2 class="section-title">📋 Правила PRIZMBET</h2>
-            <div class="rule-images">
-                <div class="rule-image-wrapper" onclick="openImage(this.querySelector('img').src)">
-                    <img src="prizmbet-info-2.webp" alt="Правила PRIZMBET" class="rule-image" loading="lazy"
-                        decoding="async">
+        <section class="section" aria-label="Правила PRIZMBET">
+            <div class="rules-card">
+                <div>
+                    <div class="smart-banner-eyebrow">Правила PRIZMBET</div>
+                    <h2 class="smart-banner-title">Неоновый контур правил под новый купон</h2>
+                    <p class="smart-banner-copy">Ставка оформляется через intent-код, а сайт сам фиксирует коэффициент,
+                        связывает перевод с купоном и показывает статус в кабинете.</p>
+                    <div class="rules-grid">
+                        <article class="rules-point">
+                            <div class="rules-point-title">Intent вместо длинного комментария</div>
+                            <p class="rules-point-copy">После выбора исхода сайт выпускает короткий код ставки. Именно он
+                                указывается в переводе PRIZM.</p>
+                        </article>
+                        <article class="rules-point">
+                            <div class="rules-point-title">Коэффициент фиксируется в купоне</div>
+                            <p class="rules-point-copy">Купон сохраняет ожидаемый исход и коэффициент до истечения срока
+                                жизни intent-кода.</p>
+                        </article>
+                        <article class="rules-point">
+                            <div class="rules-point-title">Опоздавшие ставки не принимаются</div>
+                            <p class="rules-point-copy">Переводы после старта события или с ошибочным кодом получают
+                                отклонение и не попадают в расчёт матча.</p>
+                        </article>
+                        <article class="rules-point">
+                            <div class="rules-point-title">Статус виден в кабинете</div>
+                            <p class="rules-point-copy">После перевода можно открыть кабинет кошелька и увидеть стадии:
+                                ожидание, принятие, отклонение или расчёт.</p>
+                        </article>
+                    </div>
                 </div>
-                <div class="rule-image-wrapper" onclick="openImage(this.querySelector('img').src)">
-                    <img src="prizmbet-info-1.webp" alt="Правила PRIZMBET 2" class="rule-image" loading="lazy"
+                <div class="rules-image-frame" onclick="openImage(this.querySelector('img').src)">
+                    <img src="prizmbet-info-1.webp" alt="Правила PRIZMBET" class="rule-image" loading="lazy"
                         decoding="async">
+                    <p class="rules-caption">Публичная версия показывает только пользовательские правила. Операторские
+                        сценарии вынесены в отдельную админ-панель.</p>
                 </div>
             </div>
-        </div>
+        </section>
 
         <!-- КОШЕЛЁК -->
         <div class="wallet-section">
@@ -232,21 +257,36 @@
         </div>
 
         <!-- ЛИМИТЫ -->
-        <div class="section">
-            <h3 class="section-title">📊 Правила и Лимиты</h3>
-            <ul class="limits-list">
-                <li>Минимальная ставка: <strong>1 500 PRIZM</strong></li>
-                <li>Максимальная ставка: <strong>200 000 PRIZM</strong></li>
-                <li>Ставки принимаются только до начала события</li>
-                <li>В случае проигрыша ставка не возвращается.</li>
-                <li>При выигрыше — выплата по коэффициенту.</li>
-                <li>Выплаты в течении 24 часов.</li>
-            </ul>
-            <p style="color: var(--text-tertiary); font-size: 0.85rem; margin-top: 12px; line-height: 1.4;">
-                Количество ставок ограничено. PRIZMBET оставляет за собой право до начала события отказать в принятии
-                ставки и вернуть средства без объяснения причин.
-            </p>
-        </div>
+        <section class="section" aria-label="Лимиты ставок">
+            <div class="rules-limits-card">
+                <div class="smart-banner-eyebrow">Правила и лимиты</div>
+                <h3 class="smart-banner-title">Что важно перед переводом</h3>
+                <div class="rules-grid">
+                    <article class="rules-point">
+                        <div class="rules-point-title">Диапазон суммы</div>
+                        <p class="rules-point-copy">Минимальная ставка: <strong>1 500 PRIZM</strong>. Максимальная:
+                            <strong>200 000 PRIZM</strong>.</p>
+                    </article>
+                    <article class="rules-point">
+                        <div class="rules-point-title">Только до старта матча</div>
+                        <p class="rules-point-copy">Intent и перевод должны прийти до начала события. После старта ставка
+                            отклоняется.</p>
+                    </article>
+                    <article class="rules-point">
+                        <div class="rules-point-title">Расчёт и выплаты</div>
+                        <p class="rules-point-copy">Проигрышные ставки не возвращаются. Выигрышные рассчитываются по
+                            зафиксированному коэффициенту.</p>
+                    </article>
+                    <article class="rules-point">
+                        <div class="rules-point-title">Решение по приёму</div>
+                        <p class="rules-point-copy">До старта события PRIZMBET может отказать в приёме ставки и вернуть
+                            средства без дополнительного объяснения.</p>
+                    </article>
+                </div>
+                <p class="rules-note">Количество ставок ограничено. Статус каждого перевода и результат расчёта доступны
+                    в кабинете кошелька.</p>
+            </div>
+        </section>
 
         <footer style="padding: 24px 16px; text-align: center;">
             <div class="footer-brand" style="font-size: 1rem; margin-bottom: 10px;">2026 &copy; PrizmBet</div>
