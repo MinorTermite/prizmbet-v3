@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PrizmBet v3 - Wallet Cabinet UI
  */
 import { clearIntentRecords, getWalletAddress, saveWalletAddress } from './storage.js';
@@ -91,7 +91,7 @@ async function renderCabinet() {
 
 function renderStats(data) {
     if (dom.modeBadge) {
-        dom.modeBadge.textContent = data.mode === 'live' ? 'LIVE API' : 'LOCAL CACHE';
+        dom.modeBadge.textContent = data.mode === 'live' ? 'Онлайн API' : 'Локальный режим';
         dom.modeBadge.className = `coupon-badge ${data.mode === 'live' ? 'coupon-badge--live' : 'coupon-badge--local'}`;
     }
     if (dom.rankTitle) {
@@ -100,7 +100,7 @@ function renderStats(data) {
     if (dom.rankHint) {
         dom.rankHint.textContent = data.rank?.next
             ? `До ${data.rank.next.name} осталось ${formatNumber(data.rank.next.remaining_prizm)} PRIZM turnover.`
-            : 'Максимальный preview rank уже достигнут.';
+            : 'Максимальный ранг уже достигнут.';
     }
     if (dom.stats) {
         dom.stats.innerHTML = `
@@ -135,7 +135,7 @@ function renderFeed(items) {
 
 function renderEmptyCabinet(message) {
     if (dom.modeBadge) {
-        dom.modeBadge.textContent = 'LOCAL CACHE';
+        dom.modeBadge.textContent = 'Локальный режим';
         dom.modeBadge.className = 'coupon-badge coupon-badge--local';
     }
     if (dom.rankTitle) dom.rankTitle.textContent = 'Observer';

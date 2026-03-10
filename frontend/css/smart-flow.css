@@ -412,3 +412,72 @@
 .btn-outline:hover {
     border-color: rgba(79, 209, 197, 0.28);
 }
+.quick-start-card {
+    display: grid;
+    gap: 18px;
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+}
+
+.quick-start-head {
+    display: grid;
+    gap: 6px;
+}
+
+.quick-start-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.quick-step-card {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    background: rgba(0, 0, 0, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.quick-step-number {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(79, 209, 197, 0.22), rgba(99, 102, 241, 0.22));
+    border: 1px solid rgba(79, 209, 197, 0.28);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.quick-step-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.quick-step-copy {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.quick-start-note {
+    padding: 14px 16px;
+    border-radius: var(--radius-lg);
+    background: rgba(79, 209, 197, 0.08);
+    border: 1px solid rgba(79, 209, 197, 0.14);
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+    .quick-start-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}

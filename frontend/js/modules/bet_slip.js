@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PrizmBet v3 - Smart Coupon Module
  */
 import { showToast } from './notifications.js';
@@ -311,7 +311,7 @@ async function issueIntent(form) {
             pushTimeline(intent, 'Код записан в backend', 'Intent сохранён в bet_intents и может быть проверен listener-ом.');
         } catch (_) {
             intent.mode = 'local';
-            pushTimeline(intent, 'Fallback в локальный режим', 'Backend intent API недоступен, поэтому купон работает через локальный preview.');
+            pushTimeline(intent, 'Переход в локальный режим', 'Backend intent API недоступен, поэтому купон временно работает локально.');
         }
     }
 
@@ -365,7 +365,7 @@ function renderCoupon() {
     }
 
     if (dom.apiBadge) {
-        dom.apiBadge.textContent = apiLive ? 'LIVE API' : 'LOCAL CACHE';
+        dom.apiBadge.textContent = apiLive ? 'Онлайн API' : 'Локальный режим';
         dom.apiBadge.className = `coupon-badge ${apiLive ? 'coupon-badge--live' : 'coupon-badge--local'}`;
     }
     if (dom.statusPill) {
