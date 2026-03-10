@@ -87,45 +87,34 @@ function _compactDate(dt) {
     return `${d}.${mo} ${m[3]}`;
 }
 
+function _mapOutcomeToApiOutcome(outcome) {
+    const normalized = String(outcome || '').trim().toUpperCase();
+    if (normalized === 'П1') return 'P1';
+    if (normalized === 'П2') return 'P2';
+    if (normalized === 'X') return 'X';
+    return normalized;
+}
+
 export function copyBetSlipData() {
     if (!currentBet) return;
+
     const amtInput = document.getElementById('bsInput');
-    const amt = amtInput ? amtInput.value.trim() : '0';
-
-    // Сокращаем названия команд до 20 символов каждое,
-    // чтобы укложиться в лимит PRIZM-сети (~160 байт для зашифр. сообщения).
-    const parts = (currentBet.teams || '').split(' vs ');
-    const shortTeams = parts.length === 2
-        ? `${_trunc(parts[0], 20)} vs ${_trunc(parts[1], 20)}`
-        : _trunc(currentBet.teams, 40);
-
-    const amtPart = amt && amt !== '0' ? `|${amt}PZM` : '';
-    const dt = _compactDate(currentBet.datetime);
-    const id  = currentBet.id || '';
-
-    // Итоговый формат ≤ 160 байт:
-    // "Erzurum BB vs Manisa B…, П1@1.49|1500PZM 07.03 10:30 #leon_123"
-    const msg = `${shortTeams}, ${currentBet.betType}@${currentBet.coef}${amtPart ? ' ' + amtPart : ''} ${dt} #${id}`;
-
-    // Show feedback on button, then close
-    const btn = document.querySelector('#betSlip .bet-action-btn');
-    if (btn) {
-        const orig = btn.innerHTML;
-        btn.innerHTML = '✅ Скопировано!';
-        btn.disabled = true;
-        setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1200);
-    }
-
-    _copyText(msg).then(() => {
-        showToast('✅ Данные скопированы!');
-        setTimeout(() => {
-            closeBetSlip();
-            // Notify app for history saving
-            window.dispatchEvent(new CustomEvent('betPlaced', {
-                detail: { ...currentBet, amount: amt, timestamp: Date.now() }
-            }));
-        }, 900);
+    const amount = amtInput ? amtInput.value.trim() : '';
+    const params = new URLSearchParams({
+        from: 'main-coupon',
+        match_id: String(currentBet.id || ''),
+        teams: currentBet.teams || '',
+        outcome: currentBet.betType || '',
+        api_outcome: _mapOutcomeToApiOutcome(currentBet.betType),
+        coef: String(currentBet.coef || ''),
+        league: currentBet.league || '',
+        datetime: currentBet.datetime || ''
     });
+
+    if (amount && amount !== '0') params.set('amount', amount);
+
+    closeBetSlip();
+    window.location.href = `intent-lab.html?${params.toString()}`;
 }
 
 export function toggleMyBets() {

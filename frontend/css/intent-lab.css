@@ -180,3 +180,30 @@ h1 {
     .action-row { flex-direction: column; }
     .primary-btn, .ghost-btn { width: 100%; }
 }
+.match-card--linked {
+    border-color: rgba(79, 209, 197, 0.42);
+    box-shadow: 0 0 0 1px rgba(79, 209, 197, 0.16), 0 18px 40px rgba(4, 38, 37, 0.22);
+}
+
+.market-btn--recommended {
+    border-color: rgba(79, 209, 197, 0.52);
+    background: rgba(79, 209, 197, 0.14);
+    color: #f8fffe;
+}
+
+.prefill-box {
+    display: grid;
+    gap: 14px;
+    text-align: left;
+}
+
+.prefill-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.prefill-caption {
+    color: var(--muted);
+    line-height: 1.6;
+}

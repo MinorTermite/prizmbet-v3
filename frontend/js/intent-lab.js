@@ -137,6 +137,62 @@ function persistState() {
     }));
 }
 
+function restorePrefillFromQuery() {
+    const params = new URLSearchParams(window.location.search);
+    const rawOutcome = params.get('outcome') || '';
+    const rawApiOutcome = params.get('api_outcome') || mapOutcomeToApiOutcome(rawOutcome);
+    const teams = params.get('teams') || '';
+    const matchId = params.get('match_id') || '';
+    const coef = params.get('coef') || '';
+    const amount = Number(params.get('amount') || 0);
+    const league = params.get('league') || 'Переход из основного купона';
+    const matchTime = params.get('datetime') || '';
+    const parts = splitTeams(teams);
+    const outcome = OUTCOMES.find((item) => item.apiOutcome === rawApiOutcome) || {
+        label: rawOutcome || rawApiOutcome || 'P1',
+        apiOutcome: rawApiOutcome || 'P1',
+        keys: [],
+    };
+
+    if (!matchId && !teams && !rawOutcome) return;
+    if (amount > 0) state.amount = amount;
+
+    state.activeIntent = null;
+    state.prefillSelection = {
+        match: {
+            id: matchId || 'prefill',
+            team1: parts[0] || teams,
+            team2: parts[1] || '',
+            league,
+            match_time: matchTime,
+        },
+        teams,
+        odd: coef,
+        outcome,
+    };
+}
+
+function splitTeams(teams) {
+    const raw = String(teams || '').trim();
+    if (!raw) return ['', ''];
+    const patterns = [' — ', ' - ', ' vs ', ' VS ', ' v '];
+    for (const pattern of patterns) {
+        if (raw.includes(pattern)) {
+            const parts = raw.split(pattern).map((item) => item.trim());
+            return [parts[0] || '', parts.slice(1).join(pattern).trim() || ''];
+        }
+    }
+    return [raw, ''];
+}
+
+function mapOutcomeToApiOutcome(label) {
+    const normalized = String(label || '').trim().toUpperCase();
+    if (normalized === 'П1') return 'P1';
+    if (normalized === 'П2') return 'P2';
+    if (normalized === 'X') return 'X';
+    return normalized;
+}
+
 function syncInputs() {
     el.walletInput.value = state.wallet;
     el.amountInput.value = String(state.amount || 1500);
@@ -328,7 +384,25 @@ function renderIntentCard() {
     if (!intent) {
         el.intentEmpty.classList.remove('hidden');
         el.intentCard.classList.add('hidden');
+
+        if (state.prefillSelection) {
+            const matchLabel = state.prefillSelection.teams || [state.prefillSelection.match.team1, state.prefillSelection.match.team2].filter(Boolean).join(' — ');
+            el.selectedSource.textContent = 'Переход из основного купона';
+            el.intentEmpty.innerHTML = `
+                <div class="prefill-box">
+                    <div class="summary-label">Исход уже выбран на основном сайте</div>
+                    <div class="prefill-title">${escapeHtml(matchLabel)}</div>
+                    <div class="prefill-caption">${escapeHtml(state.prefillSelection.outcome.label)} @ ${escapeHtml(state.prefillSelection.odd || '—')} • ${escapeHtml(state.prefillSelection.match.league || 'Без лиги')}</div>
+                    <div class="prefill-caption">Теперь старый комментарий больше не нужен: сайт выпустит короткий intent-код и покажет следующий шаг для перевода.</div>
+                    <button id="launchPrefillIntentBtn" class="primary-btn" type="button">Выпустить intent по этому купону</button>
+                </div>
+            `;
+            document.getElementById('launchPrefillIntentBtn')?.addEventListener('click', launchPrefillIntent);
+            return;
+        }
+
         el.selectedSource.textContent = 'Ожидает выбора';
+        el.intentEmpty.innerHTML = 'Выберите исход слева. После этого прототип выпустит одноразовый код ставки, зафиксирует коэффициент и покажет, что именно игрок должен отправить в сеть.';
         return;
     }
 
@@ -577,6 +651,16 @@ function renderStat(label, value, hint) {
             <div class="rank-hint">${hint}</div>
         </div>
     `;
+}
+
+async function launchPrefillIntent() {
+    if (!state.prefillSelection) return;
+    if (!state.wallet) {
+        el.walletInput.focus();
+        showToast('Введите кошелек игрока, чтобы выпустить intent по выбранному купону.');
+        return;
+    }
+    await handleOutcomeSelect(state.prefillSelection.match, state.prefillSelection.outcome, state.prefillSelection.odd);
 }
 
 function copyIntentCode() {
