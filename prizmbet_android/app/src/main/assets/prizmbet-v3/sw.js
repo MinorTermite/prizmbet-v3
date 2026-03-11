@@ -1,5 +1,5 @@
-// ── PrizmBet Service Worker ───────────────────────────────────────────────────
-const VERSION     = 'v24';
+﻿// ── PrizmBet Service Worker ───────────────────────────────────────────────────
+const VERSION     = 'v25';
 const SHELL_CACHE = `prizmbet-shell-${VERSION}`;
 const DATA_CACHE  = 'prizmbet-data';   // вечный, обновляется по контенту
 

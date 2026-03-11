@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PrizmBet v2 - Notifications Module
  */
 import { getFavDetails, saveFavDetails } from './storage.js';

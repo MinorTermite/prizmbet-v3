@@ -1,4 +1,4 @@
-// ===== КОНФИГУРАЦИЯ =====
+﻿// ===== КОНФИГУРАЦИЯ =====
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 const LS_CACHE_KEY = 'prizmbet_matches_cache';
 const LS_FULL_KEY  = 'prizmbet_matches_full_cache';

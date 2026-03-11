@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PrizmBet v3 - Smart Coupon Module
  */
 import { showToast } from './notifications.js';

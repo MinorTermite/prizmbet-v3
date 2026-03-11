@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PrizmBet v3 - Main Entry Point
  */
 import * as utils from './modules/utils.js';

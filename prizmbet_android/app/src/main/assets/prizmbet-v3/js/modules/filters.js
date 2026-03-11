@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PrizmBet v2 - Filters Module
  */
 import { parseMatchDateTime } from './utils.js';
