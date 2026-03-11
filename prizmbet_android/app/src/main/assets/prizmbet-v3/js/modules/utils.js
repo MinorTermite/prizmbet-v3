@@ -1,5 +1,5 @@
-/**
- * PrizmBet v2 - Utils Module
+﻿/**
+ * PrizmBet v3 - Utils Module
  */
 
 export function escapeHtml(text) {
@@ -8,51 +8,74 @@ export function escapeHtml(text) {
     return div.innerHTML;
 }
 
-const _RU_MON = { 'янв':0,'фев':1,'мар':2,'апр':3,'май':4,'июн':5,'июл':6,'авг':7,'сен':8,'окт':9,'ноя':10,'дек':11 };
+const RU_MONTHS = {
+    'янв': 0,
+    'фев': 1,
+    'мар': 2,
+    'апр': 3,
+    'май': 4,
+    'июн': 5,
+    'июл': 6,
+    'авг': 7,
+    'сен': 8,
+    'окт': 9,
+    'ноя': 10,
+    'дек': 11,
+};
 
 export function parseMatchDateTime(match) {
-    // Priority 1: ISO match_time field
     if (match.match_time) {
-        const d = new Date(match.match_time);
-        if (!isNaN(d)) return d;
+        const date = new Date(match.match_time);
+        if (!Number.isNaN(date.getTime())) return date;
     }
-    // Priority 2: date + time string fields (e.g. "6 мар" + "15:30")
-    const dateStr = (match.date || '').trim();
-    const timeStr = (match.time || '').trim();
+
+    const dateStr = String(match.date || '').trim();
+    const timeStr = String(match.time || '').trim();
     if (!dateStr) return new Date(0);
 
     const parts = dateStr.split(/\s+/);
-    const day = parseInt(parts[0], 10);
-    if (!isNaN(day) && parts[1]) {
-        const mon = _RU_MON[parts[1].toLowerCase()];
-        if (mon !== undefined) {
-            const year = parts[2] ? parseInt(parts[2], 10) : new Date().getFullYear();
-            const [h = 0, m = 0] = timeStr.includes(':') ? timeStr.split(':').map(Number) : [];
-            return new Date(year, mon, day, h, m);
+    const day = Number.parseInt(parts[0], 10);
+    if (!Number.isNaN(day) && parts[1]) {
+        const month = RU_MONTHS[String(parts[1]).toLowerCase()];
+        if (month !== undefined) {
+            const year = parts[2] ? Number.parseInt(parts[2], 10) : new Date().getFullYear();
+            const [hours = 0, minutes = 0] = timeStr.includes(':') ? timeStr.split(':').map(Number) : [];
+            return new Date(year, month, day, hours, minutes);
         }
     }
-    // Priority 3: "06.03.2026" format
-    const dot = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-    if (dot) {
-        const [h = 0, m = 0] = timeStr.includes(':') ? timeStr.split(':').map(Number) : [];
-        return new Date(+dot[3], +dot[2] - 1, +dot[1], h, m);
+
+    const dotMatch = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (dotMatch) {
+        const [hours = 0, minutes = 0] = timeStr.includes(':') ? timeStr.split(':').map(Number) : [];
+        return new Date(Number(dotMatch[3]), Number(dotMatch[2]) - 1, Number(dotMatch[1]), hours, minutes);
     }
+
     return new Date(0);
+}
+
+export function getMinutesToStart(match) {
+    const start = parseMatchDateTime(match).getTime();
+    if (!start) return null;
+    return Math.floor((start - Date.now()) / 60000);
 }
 
 export function isMatchLive(match) {
     const start = parseMatchDateTime(match);
-    const now = new Date();
-    const diffHours = (now - start) / (1000 * 60 * 60);
+    const diffHours = (Date.now() - start.getTime()) / (1000 * 60 * 60);
     return diffHours >= 0 && diffHours < 2;
+}
+
+export function isMatchImminent(match, windowMinutes = 15) {
+    if (isMatchLive(match)) return false;
+    const minutes = getMinutesToStart(match);
+    return minutes !== null && minutes > 0 && minutes <= windowMinutes;
 }
 
 export function getCountdownText(match) {
     const start = parseMatchDateTime(match);
-    const now = new Date();
-    const diff = start - now;
-    if (diff <= 0) return isMatchLive(match) ? "LIVE" : "Завершен";
-    
+    const diff = start.getTime() - Date.now();
+    if (diff <= 0) return isMatchLive(match) ? 'LIVE' : 'Завершён';
+
     const minutes = Math.floor(diff / 60000);
     if (minutes < 60) return `${minutes} м`;
     const hours = Math.floor(minutes / 60);
@@ -60,13 +83,12 @@ export function getCountdownText(match) {
     return `${Math.floor(hours / 24)} д`;
 }
 
-// Global UI helpers
 export function initScrollProgress() {
     window.addEventListener('scroll', () => {
-        const h = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        const fullHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
         const bar = document.getElementById('scrollProgress');
-        if (h > 0 && bar) {
-            bar.style.width = ((document.documentElement.scrollTop / h) * 100) + '%';
+        if (fullHeight > 0 && bar) {
+            bar.style.width = `${(document.documentElement.scrollTop / fullHeight) * 100}%`;
         }
     });
 }
@@ -84,25 +106,28 @@ export function initTabsHint() {
 
 export function shareMatch(id, showToast) {
     const url = `${window.location.origin}${window.location.pathname}#match-${id}`;
-    const _fallback = () => {
-        const ta = document.createElement('textarea');
-        ta.value = url;
-        ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
-        document.body.appendChild(ta);
-        ta.focus(); ta.select();
+    const fallbackCopy = () => {
+        const area = document.createElement('textarea');
+        area.value = url;
+        area.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+        document.body.appendChild(area);
+        area.focus();
+        area.select();
         try { document.execCommand('copy'); } catch (_) {}
-        document.body.removeChild(ta);
+        document.body.removeChild(area);
     };
-    const p = (navigator.clipboard && navigator.clipboard.writeText)
-        ? navigator.clipboard.writeText(url).catch(_fallback)
-        : Promise.resolve(_fallback());
-    p.then(() => {
-        if (showToast) showToast('Ссылка на матч скопирована!');
-        const el = document.getElementById('match-' + id);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.classList.add('highlight-pulse');
-            setTimeout(() => el.classList.remove('highlight-pulse'), 1500);
+
+    const promise = (navigator.clipboard && navigator.clipboard.writeText)
+        ? navigator.clipboard.writeText(url).catch(fallbackCopy)
+        : Promise.resolve(fallbackCopy());
+
+    promise.then(() => {
+        if (showToast) showToast('Ссылка на матч скопирована.');
+        const element = document.getElementById(`match-${id}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('highlight-pulse');
+            setTimeout(() => element.classList.remove('highlight-pulse'), 1500);
         }
     });
 }

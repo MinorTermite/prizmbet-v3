@@ -15,8 +15,8 @@ const MIN_BET = 1500;
 const MAX_BET = 200000;
 const INTENT_TTL_MS = 15 * 60 * 1000;
 const STATUS_LABELS = {
-    draft: 'Черновик',
-    awaiting_payment: 'Ожидает перевод',
+    draft: 'Подготовка',
+    awaiting_payment: 'Ждём перевод',
     accepted: 'Принята',
     rejected: 'Отклонена',
     expired: 'Истёк',
@@ -203,7 +203,15 @@ export async function copyIntentCode() {
 
 export async function refreshSlipStatus() {
     if (!activeIntent?.intent_hash) {
-        showToast('Сначала выпустите код ставки.');
+        dom.issuedBlock?.classList.add('hidden');
+        if (dom.timeline) {
+            dom.timeline.innerHTML = `
+                <div class="coupon-timeline-item">
+                    <strong>Следующий шаг</strong>
+                    <div>Укажите кошелёк и сумму, затем выпустите короткий код. После этого в переводе нужен только этот код, без длинного комментария.</div>
+                </div>
+            `;
+        }
         return;
     }
 
@@ -212,7 +220,7 @@ export async function refreshSlipStatus() {
         upsertIntentRecord(activeIntent);
         renderCoupon();
         dispatchIntentUpdate();
-        showToast('Онлайн API недоступен. Купон работает в локальном режиме.');
+        showToast('Онлайн-проверка временно недоступна. Код и история остаются на этом устройстве.');
         return;
     }
 
@@ -319,7 +327,7 @@ async function issueIntent(form) {
     upsertIntentRecord(activeIntent);
     renderCoupon();
     dispatchIntentUpdate();
-    showToast(activeIntent.mode === 'live' ? 'Код ставки выпущен через API.' : 'Код ставки выпущен в локальном режиме.');
+    showToast(activeIntent.mode === 'live' ? 'Код ставки выпущен.' : 'Код ставки сохранён на этом устройстве.');
 }
 
 function buildLocalIntent(form) {
@@ -365,8 +373,13 @@ function renderCoupon() {
     }
 
     if (dom.apiBadge) {
-        dom.apiBadge.textContent = apiLive ? 'Онлайн API' : 'Локальный режим';
-        dom.apiBadge.className = `coupon-badge ${apiLive ? 'coupon-badge--live' : 'coupon-badge--local'}`;
+        if (activeIntent?.intent_hash) {
+            dom.apiBadge.textContent = apiLive ? 'Статус обновляется онлайн' : 'Код сохранён на этом устройстве';
+            dom.apiBadge.className = `coupon-badge ${apiLive ? 'coupon-badge--live' : 'coupon-badge--local'}`;
+        } else {
+            dom.apiBadge.textContent = 'Купон готов к выпуску';
+            dom.apiBadge.className = 'coupon-badge coupon-badge--info';
+        }
     }
     if (dom.statusPill) {
         dom.statusPill.textContent = statusMeta.label;
@@ -397,6 +410,16 @@ function renderCoupon() {
     if (dom.transferInstructions) dom.transferInstructions.textContent = buildTransferInstructions(activeIntent);
     dom.issuedBlock?.classList.remove('hidden');
     renderTimeline(activeIntent);
+}
+
+function renderLockedSummary(form) {
+    if (!activeIntent) return;
+    if (dom.lockedMatch) dom.lockedMatch.textContent = activeIntent.match_label || currentBet?.teams || form.matchLabel || '—';
+    if (dom.lockedOutcome) dom.lockedOutcome.textContent = activeIntent.outcome || currentBet?.betType || '—';
+    if (dom.lockedOdds) dom.lockedOdds.textContent = formatOdd(activeIntent.odds_fixed || form.coef);
+    if (dom.lockedAmount) dom.lockedAmount.textContent = `${formatNumber(activeIntent.amount_prizm || form.amount)} PRIZM`;
+    if (dom.lockedPayout) dom.lockedPayout.textContent = `${formatNumber((Number(activeIntent.amount_prizm || form.amount) || 0) * (Number(activeIntent.odds_fixed || form.coef) || 0))} PRIZM`;
+    if (dom.lockedExpiry) dom.lockedExpiry.textContent = formatDateTime(activeIntent.expires_at);
 }
 
 function renderTimeline(intent) {
@@ -539,13 +562,13 @@ function getPrimaryActionLabel(form) {
 
 function getFlowHint(form, statusMeta) {
     if (!activeIntent?.intent_hash) {
-        return 'Введите кошелёк и сумму. Сайт выпустит короткий код ставки и зафиксирует коэффициент.';
+        return 'Укажите кошелёк и сумму. Купон зафиксирует коэффициент и выпустит короткий код для перевода.';
     }
     if (activeIntent.status === 'awaiting_payment') {
         if (isIntentInSync(activeIntent, form)) {
-            return 'Код уже выпущен. Отправьте перевод и вставьте в сообщение только этот intent-код.';
+            return 'Код уже выпущен. Отправьте перевод с этого же кошелька и вставьте в сообщение только этот код.';
         }
-        return 'Параметры купона изменились. Выпустите новый код, чтобы зафиксировать обновлённую ставку.';
+        return 'Параметры ставки изменились. Выпустите новый код, чтобы заново зафиксировать купон.';
     }
     return statusMeta.hint;
 }
@@ -555,14 +578,14 @@ function getStatusMeta(status) {
         return {
             label: STATUS_LABELS.awaiting_payment,
             className: 'coupon-status--waiting',
-            hint: 'Купон ожидает перевод с указанным кодом и кошельком.',
+            hint: 'Код выпущен. Система ждёт перевод с указанным кодом и тем же кошельком.',
         };
     }
     if (status === 'accepted') {
         return {
             label: STATUS_LABELS.accepted,
             className: 'coupon-status--accepted',
-            hint: 'Listener увидел перевод и принял ставку. Дальше следите за расчётом в кабинете.',
+            hint: 'Перевод найден и ставка принята. Дальше следите за расчётом в кабинете.',
         };
     }
     if (status === 'rejected') {
@@ -576,7 +599,7 @@ function getStatusMeta(status) {
         return {
             label: STATUS_LABELS.expired,
             className: 'coupon-status--expired',
-            hint: 'Окно intent завершилось. Для новой попытки выпустите новый код.',
+            hint: 'Окно купона завершилось. Для новой попытки выпустите новый код.',
         };
     }
     if (status === 'won' || status === 'lost') {
@@ -594,7 +617,10 @@ function getStatusMeta(status) {
 }
 
 function buildTransferInstructions(intent) {
-    return `Отправьте ${formatNumber(intent.amount_prizm)} PRIZM на ${MASTER_WALLET}. В сообщение перевода вставьте только код ${intent.intent_hash}. ${apiLive ? 'Статус подтянется автоматически.' : 'Пока API недоступен, купон сохранится локально и поможет пройти весь сценарий.'}`;
+    const base = `Отправьте ${formatNumber(intent.amount_prizm)} PRIZM на ${MASTER_WALLET}. В сообщение перевода вставьте только код ${intent.intent_hash}.`;
+    return apiLive
+        ? `${base} После перевода откройте кабинет, чтобы увидеть статус.`
+        : `${base} Код и история уже сохранены на этом устройстве.`;
 }
 
 function buildLocalCabinet(wallet) {
@@ -681,11 +707,11 @@ function mapDashboardToCabinet(wallet, payload) {
 
 function deriveRank(turnover, acceptedCount) {
     const tiers = [
-        { name: 'Observer', threshold: 0 },
-        { name: 'Runner', threshold: 1500 },
-        { name: 'Operator', threshold: 5000 },
-        { name: 'Strategist', threshold: 15000 },
-        { name: 'Imperator', threshold: 50000 },
+        { name: 'Старт', threshold: 0 },
+        { name: 'Игрок', threshold: 1500 },
+        { name: 'Тактик', threshold: 5000 },
+        { name: 'Профи', threshold: 15000 },
+        { name: 'Император', threshold: 50000 },
     ];
 
     let current = tiers[0];
