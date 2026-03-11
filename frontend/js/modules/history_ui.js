@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PrizmBet v3 - Wallet Cabinet UI
  */
 import { clearIntentRecords, getWalletAddress, saveWalletAddress } from './storage.js';
@@ -99,17 +99,17 @@ function renderStats(data) {
     }
     if (dom.rankHint) {
         dom.rankHint.textContent = data.rank?.next
-            ? `До ${data.rank.next.name} осталось ${formatNumber(data.rank.next.remaining_prizm)} PRIZM turnover.`
+            ? `До ${data.rank.next.name} осталось ${formatNumber(data.rank.next.remaining_prizm)} PRIZM оборота.`
             : 'Максимальный ранг уже достигнут.';
     }
     if (dom.stats) {
         dom.stats.innerHTML = `
-            ${renderStatCard('Intent', data.stats?.total_intents || 0, 'Выпущено кодов')}
-            ${renderStatCard('Waiting', data.stats?.waiting_payment || 0, 'Ждут перевод')}
-            ${renderStatCard('Accepted', data.stats?.accepted || 0, 'Приняты listener-ом')}
-            ${renderStatCard('Rejected', data.stats?.rejected || 0, 'Отклонены или истекли')}
-            ${renderStatCard('Won', data.stats?.won || 0, 'Выигранные ставки')}
-            ${renderStatCard('Turnover', `${formatNumber(data.stats?.turnover_prizm || 0)} PZM`, 'Учтённый объём')}
+            ${renderStatCard('Купоны', data.stats?.total_intents || 0, 'Выпущено кодов')}
+            ${renderStatCard('Ожидают', data.stats?.waiting_payment || 0, 'Ждут перевод')}
+            ${renderStatCard('Приняты', data.stats?.accepted || 0, 'Приняты listener-ом')}
+            ${renderStatCard('Отклонены', data.stats?.rejected || 0, 'Отклонены или истекли')}
+            ${renderStatCard('Выиграли', data.stats?.won || 0, 'Выигранные ставки')}
+            ${renderStatCard('Оборот', `${formatNumber(data.stats?.turnover_prizm || 0)} PZM`, 'Учтённый объём')}
         `;
     }
 }

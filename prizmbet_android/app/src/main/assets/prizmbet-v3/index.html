@@ -72,74 +72,82 @@
                 <button class="btn-icon" onclick="refreshData()" aria-label="Обновить" title="Обновить">↻</button>
             </div>
         </header>
-
-        <!-- HERO SECTION -->
-        <div class="hero-section">
-            <h1 class="hero-title">THE FUTURE OF<br><span class="hero-highlight">CRYPTO BETTING</span></h1>
-            <p class="hero-subtitle">Быстрые, прозрачные и децентрализованные ставки в сети PRIZM.</p>
-        </div>
-
-        <!-- СТАТИСТИКА -->
-        <div class="stats-bar">
-            <div class="stat-card">
-                <div class="stat-number" id="totalMatches">0</div>
-                <div class="stat-label">Матчей</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalLeagues">0</div>
-                <div class="stat-label">Лиг</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="avgOdds">0.00</div>
-                <div class="stat-label">Ср. коэф.</div>
-            </div>
-        </div>
-
-        <!-- TELEGRAM BOT BANNER -->
-        <a href="https://t.me/PrizmBet2bot" target="_blank" rel="noopener" class="tg-bot-banner">
-            <span class="tg-bot-icon">🤖</span>
-            <div class="tg-bot-text">
-                <strong>Telegram-бот</strong>
-                <span>Уведомления о ставках • Правила • Статистика</span>
-            </div>
-            <span class="tg-bot-arrow">→</span>
-        </a>
-
-
-                <section class="section quick-start" aria-label="Как сделать ставку">
-            <div class="quick-start-card">
-                <div class="quick-start-head">
-                    <div class="smart-banner-eyebrow">Как сделать ставку</div>
-                    <h3 class="smart-banner-title">4 коротких шага прямо на главной</h3>
-                    <p class="smart-banner-copy">Весь путь теперь проходит в одном интерфейсе: выбрали исход, выпустили код, отправили перевод, открыли кабинет.</p>
+        <section class="top-stage" aria-label="Новая версия PRIZMBET">
+            <div class="hero-panel">
+                <div class="hero-section">
+                    <div class="smart-banner-eyebrow">PRIZMBET V3</div>
+                    <h1 class="hero-title">THE FUTURE OF<br><span class="hero-highlight">CRYPTO BETTING</span></h1>
+                    <p class="hero-subtitle">Быстрые, прозрачные и децентрализованные ставки в сети PRIZM. Новый intent-купон, кабинет кошелька и единый поток от выбора матча до статуса ставки.</p>
                 </div>
-                <div class="quick-start-grid">
-                    <article class="quick-step-card">
-                        <div class="quick-step-number">1</div>
-                        <div class="quick-step-title">Выберите коэффициент</div>
-                        <p class="quick-step-copy">Нажмите на нужный исход в линии матчей, чтобы открыть умный купон.</p>
-                    </article>
-                    <article class="quick-step-card">
-                        <div class="quick-step-number">2</div>
-                        <div class="quick-step-title">Введите кошелёк и сумму</div>
-                        <p class="quick-step-copy">Купон зафиксирует коэффициент и выпустит короткий intent-код ставки.</p>
-                    </article>
-                    <article class="quick-step-card">
-                        <div class="quick-step-number">3</div>
-                        <div class="quick-step-title">Отправьте PRIZM</div>
-                        <p class="quick-step-copy">Переведите монеты на кошелёк проекта и вставьте в сообщение только intent-код.</p>
-                    </article>
-                    <article class="quick-step-card">
-                        <div class="quick-step-number">4</div>
-                        <div class="quick-step-title">Следите за статусом</div>
-                        <p class="quick-step-copy">Из купона или кабинета кошелька вы увидите accepted, rejected, win или loss.</p>
-                    </article>
+
+                <div class="hero-chip-row">
+                    <span class="hero-chip">Один сайт</span>
+                    <span class="hero-chip">Короткий код ставки</span>
+                    <span class="hero-chip">Фиксированный коэффициент</span>
+                    <span class="hero-chip">Кабинет кошелька</span>
                 </div>
-                <div class="quick-start-note">
-                    Минимальная ставка: <strong>1 500 PRIZM</strong>. Максимальная: <strong>200 000 PRIZM</strong>. Старый длинный комментарий больше не нужен.
+
+                <div class="stats-bar stats-bar--hero">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalMatches">0</div>
+                        <div class="stat-label">Матчей</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalLeagues">0</div>
+                        <div class="stat-label">Лиг</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="avgOdds">0.00</div>
+                        <div class="stat-label">Ср. коэф.</div>
+                    </div>
                 </div>
+
+                <a href="https://t.me/PrizmBet2bot" target="_blank" rel="noopener" class="tg-bot-banner tg-bot-banner--panel">
+                    <span class="tg-bot-icon">🤖</span>
+                    <div class="tg-bot-text">
+                        <strong>Telegram-бот</strong>
+                        <span>Уведомления о ставках, правила и быстрый вход в экосистему проекта</span>
+                    </div>
+                    <span class="tg-bot-arrow">→</span>
+                </a>
             </div>
+
+            <section class="section quick-start quick-start--aside" aria-label="Как сделать ставку">
+                <div class="quick-start-card">
+                    <div class="quick-start-head">
+                        <div class="smart-banner-eyebrow">Как сделать ставку</div>
+                        <h3 class="smart-banner-title">4 шага без ручного комментария</h3>
+                        <p class="smart-banner-copy">Главный экран теперь ведёт по одному сценарию: выбрали матч, выпустили код, отправили перевод, открыли кабинет.</p>
+                    </div>
+                    <div class="quick-start-grid">
+                        <article class="quick-step-card">
+                            <div class="quick-step-number">1</div>
+                            <div class="quick-step-title">Выберите исход</div>
+                            <p class="quick-step-copy">Нажмите на коэффициент в линии, чтобы открыть умный купон.</p>
+                        </article>
+                        <article class="quick-step-card">
+                            <div class="quick-step-number">2</div>
+                            <div class="quick-step-title">Введите кошелёк и сумму</div>
+                            <p class="quick-step-copy">Купон зафиксирует коэффициент и выпустит короткий код ставки.</p>
+                        </article>
+                        <article class="quick-step-card">
+                            <div class="quick-step-number">3</div>
+                            <div class="quick-step-title">Отправьте PRIZM</div>
+                            <p class="quick-step-copy">Переведите монеты на кошелёк проекта и вставьте в сообщение только код ставки.</p>
+                        </article>
+                        <article class="quick-step-card">
+                            <div class="quick-step-number">4</div>
+                            <div class="quick-step-title">Проверьте статус</div>
+                            <p class="quick-step-copy">Кабинет кошелька покажет ожидание, принятие, отклонение или расчёт ставки.</p>
+                        </article>
+                    </div>
+                    <div class="quick-start-note">
+                        Минимальная ставка: <strong>1 500 PRIZM</strong>. Максимальная: <strong>200 000 PRIZM</strong>. Старый длинный комментарий больше не нужен.
+                    </div>
+                </div>
+            </section>
         </section>
+
         <!-- SEARCH & FILTERS -->
         <div class="search-container">
             <input id="searchInput" class="search-premium" placeholder="Поиск команды, лиги или ID матча..." oninput="onSearchInput()"/>
@@ -194,99 +202,70 @@
                 </div>
             </div>
         </div>
+        <!-- МАТЧИ И БОКОВАЯ КОЛОНКА -->
+        <div class="market-layout">
+            <div id="content" class="market-feed">
+                <div style="text-align: center; padding: 48px 16px;">
+                    <div class="loading" style="width: 40px; height: 40px; margin: 0 auto;"></div>
+                    <p style="color: var(--text-tertiary); margin-top: 16px; font-weight: 500;">Загрузка линии...</p>
+                </div>
+            </div>
 
-        <!-- ПРАВИЛА -->
-        <section class="section" aria-label="Правила PRIZMBET">
-            <div class="rules-card">
-                <div>
-                    <div class="smart-banner-eyebrow">Правила PRIZMBET</div>
-                    <h2 class="smart-banner-title">Неоновый контур правил под новый купон</h2>
-                    <p class="smart-banner-copy">Ставка оформляется через intent-код, а сайт сам фиксирует коэффициент,
-                        связывает перевод с купоном и показывает статус в кабинете.</p>
-                    <div class="rules-grid">
-                        <article class="rules-point">
-                            <div class="rules-point-title">Intent вместо длинного комментария</div>
-                            <p class="rules-point-copy">После выбора исхода сайт выпускает короткий код ставки. Именно он
-                                указывается в переводе PRIZM.</p>
-                        </article>
-                        <article class="rules-point">
-                            <div class="rules-point-title">Коэффициент фиксируется в купоне</div>
-                            <p class="rules-point-copy">Купон сохраняет ожидаемый исход и коэффициент до истечения срока
-                                жизни intent-кода.</p>
-                        </article>
-                        <article class="rules-point">
-                            <div class="rules-point-title">Опоздавшие ставки не принимаются</div>
-                            <p class="rules-point-copy">Переводы после старта события или с ошибочным кодом получают
-                                отклонение и не попадают в расчёт матча.</p>
-                        </article>
-                        <article class="rules-point">
-                            <div class="rules-point-title">Статус виден в кабинете</div>
-                            <p class="rules-point-copy">После перевода можно открыть кабинет кошелька и увидеть стадии:
-                                ожидание, принятие, отклонение или расчёт.</p>
-                        </article>
+            <aside class="market-sidebar">
+                <div class="wallet-section">
+                    <h2 class="section-title" style="justify-content:center;">💎 Кошелёк для ставок</h2>
+                    <img src="qr_wallet.webp" alt="QR-код кошелька" class="qr-code" loading="lazy" decoding="async" width="300"
+                        height="300">
+                    <div class="wallet-box">
+                        <div class="wallet-label">Адрес кошелька</div>
+                        <div class="wallet-address" id="walletAddress">PRIZM-4N7T-L2A7-RQZA-5BETW</div>
                     </div>
+                    <button class="btn btn-primary" onclick="copyWallet(this)">📋 Скопировать адрес</button>
+                    <p class="wallet-note">Для нового сценария используйте intent-купон: сайт сам выпустит код ставки и зафиксирует коэффициент.</p>
                 </div>
-                <div class="rules-image-frame" onclick="openImage(this.querySelector('img').src)">
-                    <img src="prizmbet-info-1.webp" alt="Правила PRIZMBET" class="rule-image" loading="lazy"
-                        decoding="async">
-                    <p class="rules-caption">Публичная версия показывает только пользовательские правила. Операторские
-                        сценарии вынесены в отдельную админ-панель.</p>
-                </div>
-            </div>
-        </section>
 
-        <!-- КОШЕЛЁК -->
-        <div class="wallet-section">
-            <h2 class="section-title" style="justify-content:center;">💎 Кошелёк для ставок</h2>
-            <img src="qr_wallet.webp" alt="QR-код кошелька" class="qr-code" loading="lazy" decoding="async" width="300"
-                height="300">
-            <div class="wallet-box">
-                <div class="wallet-label">Адрес кошелька</div>
-                <div class="wallet-address" id="walletAddress">PRIZM-4N7T-L2A7-RQZA-5BETW</div>
-            </div>
-            <button class="btn btn-primary" onclick="copyWallet(this)">📋 Скопировать адрес</button>
-            <p class="wallet-note">Для нового сценария используйте intent-купон: сайт сам выпустит код ставки и зафиксирует коэффициент</p>
+                <section class="section rules-section" aria-label="Правила PRIZMBET">
+                    <div class="rules-compact-card">
+                        <div class="smart-banner-eyebrow">Правила PRIZMBET</div>
+                        <h2 class="smart-banner-title">Новый купон в 3 правилах</h2>
+                        <p class="smart-banner-copy">Главная линия остаётся в центре внимания, а правила собраны в короткий блок рядом с кошельком.</p>
+
+                        <div class="rules-chip-row">
+                            <span class="rules-chip">Код ставки</span>
+                            <span class="rules-chip">Фиксированный кэф</span>
+                            <span class="rules-chip">До старта матча</span>
+                            <span class="rules-chip">Кабинет статуса</span>
+                        </div>
+
+                        <div class="rules-mini-grid">
+                            <article class="rules-mini-point">
+                                <div class="rules-mini-title">1. Только короткий код</div>
+                                <p class="rules-mini-copy">В перевод вставляется только intent-код. Старый длинный комментарий больше не нужен.</p>
+                            </article>
+                            <article class="rules-mini-point">
+                                <div class="rules-mini-title">2. Ставка действует до старта</div>
+                                <p class="rules-mini-copy">Переводы после начала события или с неверным кодом автоматически отклоняются.</p>
+                            </article>
+                            <article class="rules-mini-point">
+                                <div class="rules-mini-title">3. Статус виден на сайте</div>
+                                <p class="rules-mini-copy">После перевода откройте кабинет кошелька и проверьте accepted, rejected, win или loss.</p>
+                            </article>
+                        </div>
+
+                        <div class="rules-limit-row">
+                            <div class="rules-limit-pill">Мин: 1 500 PRIZM</div>
+                            <div class="rules-limit-pill">Макс: 200 000 PRIZM</div>
+                            <div class="rules-limit-pill">Выплаты до 24 часов</div>
+                        </div>
+
+                        <div class="rules-poster-row">
+                            <p class="rules-note">Полный постер с расшифровкой ставок и примерами открыт по кнопке и не перегружает главную страницу.</p>
+                            <button class="coupon-secondary-btn rules-poster-btn" type="button" onclick="openImage('prizmbet-info-1.webp')">Открыть постер правил</button>
+                        </div>
+                    </div>
+                </section>
+            </aside>
         </div>
-
-        <!-- МАТЧИ -->
-        <div id="content">
-            <div style="text-align: center; padding: 48px 16px;">
-                <div class="loading" style="width: 40px; height: 40px; margin: 0 auto;"></div>
-                <p style="color: var(--text-tertiary); margin-top: 16px; font-weight: 500;">Загрузка линии...</p>
-            </div>
-        </div>
-
-        <!-- ЛИМИТЫ -->
-        <section class="section" aria-label="Лимиты ставок">
-            <div class="rules-limits-card">
-                <div class="smart-banner-eyebrow">Правила и лимиты</div>
-                <h3 class="smart-banner-title">Что важно перед переводом</h3>
-                <div class="rules-grid">
-                    <article class="rules-point">
-                        <div class="rules-point-title">Диапазон суммы</div>
-                        <p class="rules-point-copy">Минимальная ставка: <strong>1 500 PRIZM</strong>. Максимальная:
-                            <strong>200 000 PRIZM</strong>.</p>
-                    </article>
-                    <article class="rules-point">
-                        <div class="rules-point-title">Только до старта матча</div>
-                        <p class="rules-point-copy">Intent и перевод должны прийти до начала события. После старта ставка
-                            отклоняется.</p>
-                    </article>
-                    <article class="rules-point">
-                        <div class="rules-point-title">Расчёт и выплаты</div>
-                        <p class="rules-point-copy">Проигрышные ставки не возвращаются. Выигрышные рассчитываются по
-                            зафиксированному коэффициенту.</p>
-                    </article>
-                    <article class="rules-point">
-                        <div class="rules-point-title">Решение по приёму</div>
-                        <p class="rules-point-copy">До старта события PRIZMBET может отказать в приёме ставки и вернуть
-                            средства без дополнительного объяснения.</p>
-                    </article>
-                </div>
-                <p class="rules-note">Количество ставок ограничено. Статус каждого перевода и результат расчёта доступны
-                    в кабинете кошелька.</p>
-            </div>
-        </section>
 
         <footer style="padding: 24px 16px; text-align: center;">
             <div class="footer-brand" style="font-size: 1rem; margin-bottom: 10px;">2026 &copy; PrizmBet</div>
@@ -351,7 +330,7 @@
             <div class="coupon-code-card">
                 <div class="coupon-code-head">
                     <div>
-                        <div class="coupon-field-label">Intent code</div>
+                        <div class="coupon-field-label">Код ставки</div>
                         <div class="coupon-countdown" id="bsIntentCountdown">15:00</div>
                     </div>
                     <button class="coupon-secondary-btn" type="button" onclick="copyBetSlipCode()">Скопировать код</button>

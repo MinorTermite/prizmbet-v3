@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PrizmBet v3 - Smart Coupon Module
  */
 import { showToast } from './notifications.js';
@@ -17,11 +17,11 @@ const INTENT_TTL_MS = 15 * 60 * 1000;
 const STATUS_LABELS = {
     draft: 'Черновик',
     awaiting_payment: 'Ожидает перевод',
-    accepted: 'Accepted',
-    rejected: 'Rejected',
+    accepted: 'Принята',
+    rejected: 'Отклонена',
     expired: 'Истёк',
-    won: 'Win',
-    lost: 'Loss',
+    won: 'Выиграла',
+    lost: 'Проиграла',
 };
 const REJECT_LABELS = {
     LATE_BET: 'Ставка пришла позже безопасного окна',
@@ -212,7 +212,7 @@ export async function refreshSlipStatus() {
         upsertIntentRecord(activeIntent);
         renderCoupon();
         dispatchIntentUpdate();
-        showToast('Live backend не найден. Купон работает в локальном режиме.');
+        showToast('Онлайн API недоступен. Купон работает в локальном режиме.');
         return;
     }
 
@@ -223,7 +223,7 @@ export async function refreshSlipStatus() {
         syncIntentFromApi(payload);
         showToast('Статус купона обновлён.');
     } catch (error) {
-        showToast('Не удалось обновить статус из backend.');
+        showToast('Не удалось обновить статус из API.');
     }
 }
 
@@ -308,10 +308,10 @@ async function issueIntent(form) {
             intent.odds_fixed = Number(payload.odds_fixed || intent.odds_fixed);
             intent.expires_at = payload.expires_at || intent.expires_at;
             intent.mode = 'live';
-            pushTimeline(intent, 'Код записан в backend', 'Intent сохранён в bet_intents и может быть проверен listener-ом.');
+            pushTimeline(intent, 'Код сохранён в системе', 'Код сохранён в системе и будет проверен при поступлении перевода.');
         } catch (_) {
             intent.mode = 'local';
-            pushTimeline(intent, 'Переход в локальный режим', 'Backend intent API недоступен, поэтому купон временно работает локально.');
+            pushTimeline(intent, 'Переход в локальный режим', 'Intent API недоступен, поэтому купон временно работает локально.');
         }
     }
 
@@ -319,7 +319,7 @@ async function issueIntent(form) {
     upsertIntentRecord(activeIntent);
     renderCoupon();
     dispatchIntentUpdate();
-    showToast(activeIntent.mode === 'live' ? 'Код ставки выпущен через backend.' : 'Код ставки выпущен в локальном режиме.');
+    showToast(activeIntent.mode === 'live' ? 'Код ставки выпущен через API.' : 'Код ставки выпущен в локальном режиме.');
 }
 
 function buildLocalIntent(form) {
@@ -423,7 +423,7 @@ function syncIntentFromApi(payload) {
         activeIntent,
         'Статус синхронизирован',
         payload.bet
-            ? `Backend вернул ${STATUS_LABELS[activeIntent.status] || activeIntent.status}.`
+            ? `Система вернула ${STATUS_LABELS[activeIntent.status] || activeIntent.status}.`
             : `Intent пока без связанной транзакции, текущее состояние: ${STATUS_LABELS[activeIntent.status] || activeIntent.status}.`
     );
     upsertIntentRecord(activeIntent);
@@ -569,7 +569,7 @@ function getStatusMeta(status) {
         return {
             label: STATUS_LABELS.rejected,
             className: 'coupon-status--rejected',
-            hint: REJECT_LABELS[activeIntent?.reject_reason] || 'Ставка была отклонена backend-логикой.',
+            hint: REJECT_LABELS[activeIntent?.reject_reason] || 'Ставка была отклонена правилами системы.',
         };
     }
     if (status === 'expired') {
@@ -594,7 +594,7 @@ function getStatusMeta(status) {
 }
 
 function buildTransferInstructions(intent) {
-    return `Отправьте ${formatNumber(intent.amount_prizm)} PRIZM на ${MASTER_WALLET}. В сообщение перевода вставьте только код ${intent.intent_hash}. ${apiLive ? 'Статус подтянется из backend автоматически.' : 'Пока backend недоступен, купон сохранится локально и поможет пройти весь сценарий.'}`;
+    return `Отправьте ${formatNumber(intent.amount_prizm)} PRIZM на ${MASTER_WALLET}. В сообщение перевода вставьте только код ${intent.intent_hash}. ${apiLive ? 'Статус подтянется автоматически.' : 'Пока API недоступен, купон сохранится локально и поможет пройти весь сценарий.'}`;
 }
 
 function buildLocalCabinet(wallet) {

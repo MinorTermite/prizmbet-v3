@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = 'prizmbet_operator_console_v1';
+const STORAGE_KEY = 'prizmbet_operator_console_v1';
 const AUTO_REFRESH_MS = 20000;
 
 const state = {
@@ -144,7 +144,7 @@ function normalizeApiBase(value) {
 
 async function fetchFeed() {
   if (!state.apiBase) {
-    renderStatus('Укажите API base. Для локальной проверки обычно это http://127.0.0.1:8081.', 'warn');
+    renderStatus('Укажите адрес API. Для локальной проверки обычно это http://127.0.0.1:8081.', 'warn');
     state.items = [];
     state.stats = null;
     render();
@@ -152,7 +152,7 @@ async function fetchFeed() {
   }
 
   if (window.location.protocol === 'https:' && state.apiBase.startsWith('http://127.0.0.1')) {
-    renderStatus('Откройте operator.html локально по http: браузер блокирует вызовы к локальному http API со страницы https.', 'bad');
+    renderStatus('Откройте операторскую панель локально по http: браузер блокирует вызовы к локальному http API со страницы https.', 'bad');
     return;
   }
 
@@ -197,7 +197,7 @@ function buildSuccessMessage() {
   if (state.meta && state.meta.db_configured === false) {
     return state.meta.message || 'Supabase не подключён: лента пока пустая.';
   }
-  const keyNote = state.meta?.admin_key_required ? 'Admin key проверен.' : 'API открыт без admin key.';
+  const keyNote = state.meta?.admin_key_required ? 'Ключ доступа проверен.' : 'Ключ доступа не требуется.';
   return `Лента обновлена. ${keyNote}`;
 }
 

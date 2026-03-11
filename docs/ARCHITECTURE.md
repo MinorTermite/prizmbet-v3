@@ -1,4 +1,4 @@
-# PrizmBet v2 — Current Architecture
+# PrizmBet v3 — Current Architecture
 
 This document describes the architecture that is currently implemented in the repository.
 It intentionally excludes speculative/legacy designs.
@@ -16,7 +16,8 @@ PrizmBet consists of:
 
 ### Frontend
 - Main UI: `frontend/index.html`
-- Admin UI: `frontend/admin.html`
+- Operator UI: `frontend/operator.html`
+- Legacy redirect: `frontend/admin.html` → `frontend/operator.html`
 - PWA assets: `frontend/pwa/*`, `frontend/sw.js`, manifests
 
 ### Backend
