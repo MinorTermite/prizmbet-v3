@@ -2,14 +2,46 @@
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 const LS_CACHE_KEY = 'prizmbet_matches_cache';
 const LS_FULL_KEY  = 'prizmbet_matches_full_cache';
+const STALE_SNAPSHOT_MS = 8 * 60 * 60 * 1000;
 
-// ===== CACHE HELPERS =====
 function _getLS(key) {
     try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; }
     catch { return null; }
 }
 function _setLS(key, data) {
     try { localStorage.setItem(key, JSON.stringify(data)); } catch { }
+}
+
+function parseTimestamp(ts) {
+    if (!ts) return null;
+    const parsed = new Date(ts);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function buildMeta(data, mode, fromCache) {
+    const count = Array.isArray(data?.matches) ? data.matches.length : 0;
+    const parsed = parseTimestamp(data?.last_update);
+    const ageMs = parsed ? Date.now() - parsed.getTime() : null;
+    return {
+        mode: mode === 'full' ? 'full' : 'fast',
+        file: mode === 'full' ? 'matches.json' : 'matches-today.json',
+        source: data?.source || '',
+        last_update: data?.last_update || null,
+        total: count,
+        age_ms: ageMs,
+        from_cache: Boolean(fromCache),
+        is_stale: typeof ageMs === 'number' && ageMs > STALE_SNAPSHOT_MS,
+    };
+}
+
+function applyMeta(data, mode, fromCache) {
+    const meta = buildMeta(data, mode, fromCache);
+    window.__MATCHES_META__ = {
+        ...meta,
+        isStale: meta.is_stale,
+        fromCache: meta.from_cache,
+    };
+    return window.__MATCHES_META__;
 }
 
 function fmtTime(ts) {
@@ -25,6 +57,14 @@ function showStatus(ts, extra) {
     el.innerHTML = `Обновлено: ${fmtTime(ts)}${extra || ''}`;
 }
 
+function buildStatusFlags(meta, isFull) {
+    const flags = [];
+    if (meta.fromCache) flags.push('кэш');
+    flags.push(isFull ? 'все' : 'линия');
+    if (meta.isStale) flags.push('архивный снимок');
+    return ` <span style="font-size:.75em;opacity:.6">(${flags.join(', ')})</span>`;
+}
+
 function showShimmer() {
     const content = document.getElementById('content');
     if (!content) return;
@@ -35,7 +75,7 @@ function showShimmer() {
 
 function _showLoadError() {
     const content = document.getElementById('content');
-    if (!content || !content.querySelector('.shimmer')) return; // уже есть данные
+    if (!content || !content.querySelector('.shimmer')) return;
     content.innerHTML = `
         <div style="text-align:center;padding:60px 20px;color:var(--text-tertiary,#888)">
             <div style="font-size:2.5rem;margin-bottom:14px">📡</div>
@@ -45,10 +85,8 @@ function _showLoadError() {
         </div>`;
 }
 
-// ===== CACHE-BUST: round to 10-minute windows (CDN/browser cache friendly) =====
 function cacheBust() { return Math.floor(Date.now() / 600000); }
 
-// ===== FETCH HELPER с таймаутом 10 сек =====
 async function _fetchJson(url, timeoutMs = 10000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -61,50 +99,43 @@ async function _fetchJson(url, timeoutMs = 10000) {
     }
 }
 
-// ===== MAIN LOAD =====
-// mode: 'fast' (default) = matches-today.json  |  'full' = matches.json
 async function loadData(mode) {
     const isFull = mode === 'full';
     const cacheKey = isFull ? LS_FULL_KEY : LS_CACHE_KEY;
-
-    // 1. Показываем кэш мгновенно, или шиммер при первом запуске
     const cached = _getLS(cacheKey) || _getLS(LS_CACHE_KEY);
     let shimmerTimer = null;
 
     if (cached?.matches?.length) {
+        const cachedMeta = applyMeta(cached, mode, true);
         if (typeof renderMatches === 'function') renderMatches(cached.matches);
-        showStatus(cached.last_update, ' <span style="font-size:.75em;opacity:.6">(кэш)</span>');
+        showStatus(cached.last_update, buildStatusFlags(cachedMeta, isFull));
     } else {
         showShimmer();
-        // Fallback: если данные не пришли за 10 сек — показываем кнопку "Повторить"
         shimmerTimer = setTimeout(_showLoadError, 10000);
     }
 
-    // 2. Запрашиваем свежий JSON
     const file = isFull ? 'matches.json' : 'matches-today.json';
     let data = null;
     try {
         data = await _fetchJson(`${file}?v=${cacheBust()}`);
-    } catch (e) { console.warn(`[api] ${file} fetch:`, e.message); }
+    } catch (e) {
+        console.warn(`[api] ${file} fetch:`, e.message);
+    }
 
-    // Отменяем таймер шиммера — данные либо пришли, либо нет
     if (shimmerTimer) clearTimeout(shimmerTimer);
 
     if (data?.matches?.length) {
+        const liveMeta = applyMeta(data, mode, false);
         _setLS(cacheKey, data);
         if (typeof renderMatches === 'function') renderMatches(data.matches);
-        if (data.total) {
-            const el = document.getElementById('totalMatches');
-            if (el) el.textContent = data.total;
-        }
-        const label = isFull ? ' <span style="font-size:.75em;opacity:.6">(все)</span>'
-                              : ' <span style="font-size:.75em;opacity:.6">(сегодня)</span>';
-        showStatus(data.last_update, label);
+        showStatus(data.last_update, buildStatusFlags(liveMeta, isFull));
     } else if (!cached?.matches?.length) {
-        // Нет кэша И данные не пришли → показываем ошибку сразу
         _showLoadError();
     }
 }
 
-// ===== AUTO-REFRESH =====
-setInterval(() => { if (document.visibilityState === 'visible') loadData(); }, AUTO_REFRESH_MS);
+setInterval(() => {
+    if (document.visibilityState === 'visible') loadData();
+}, AUTO_REFRESH_MS);
+
+window.loadData = loadData;

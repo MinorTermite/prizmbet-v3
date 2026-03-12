@@ -1,4 +1,4 @@
-// Service Worker
+﻿// Service Worker
 const CACHE_NAME = "prizmbet-v2";
 const urlsToCache = ["/index.html", "/matches.json"];
 
@@ -21,3 +21,4 @@ self.addEventListener("activate", event => {
     ))
   );
 });
+

@@ -11,6 +11,52 @@ import * as ui from './modules/ui.js';
 
 let allMatches = [];
 
+function getActiveMeta() {
+    return window.__MATCHES_META__ || {};
+}
+
+function hasTotalMarket(match) {
+    return Boolean(match.total_over && match.total_over !== '—' && match.total_over !== '0.00');
+}
+
+function getStaleFallbackMatches(matches, state) {
+    const favIds = state.sport === 'favs' ? storage.getFavorites() : null;
+
+    return matches.filter((match) => {
+        if (!filters.isValidMatch(match)) return false;
+        if (favIds !== null) return favIds.includes(match.id);
+        if (state.sport === 'results') return Boolean(match.score);
+        if (match.score) return false;
+
+        const matchSport = filters.getMatchSport(match);
+        if (state.sport === 'totals') {
+            if (!hasTotalMarket(match)) return false;
+        } else if (state.sport !== 'all' && state.sport !== 'results' && matchSport !== state.sport) {
+            return false;
+        }
+
+        if (state.league !== 'all' && filters.getMatchGame(match) !== state.league) return false;
+
+        if (state.popularOnly) {
+            const p1 = parseFloat(match.p1 || match.odds_home);
+            const p2 = parseFloat(match.p2 || match.odds_away);
+            if (!p1 || !p2 || p1 <= 1 || p2 <= 1) return false;
+        }
+
+        if (state.search) {
+            const search = state.search.toLowerCase();
+            const content = `${match.home_team || match.team1} ${match.away_team || match.team2} ${match.league} ${match.id}`.toLowerCase();
+            if (!content.includes(search)) return false;
+        }
+
+        return true;
+    }).sort((a, b) => {
+        const liveDelta = Number(Boolean(b.is_live)) - Number(Boolean(a.is_live));
+        if (liveDelta !== 0) return liveDelta;
+        return utils.parseMatchDateTime(a) - utils.parseMatchDateTime(b);
+    });
+}
+
 function updateApp(newMatches) {
     if (Array.isArray(newMatches)) {
         window.__ALL_MATCHES__ = newMatches;
@@ -20,18 +66,33 @@ function updateApp(newMatches) {
     notif.checkFinishedFavorites(allMatches);
 
     const state = filters.getFilterState();
+    const meta = getActiveMeta();
+
     let filtered = filters.filterMatches(allMatches, state);
     filtered = filters.sortMatches(filtered, state.sort);
 
-    const sportFiltered = filters.filterMatches(allMatches, { ...state, league: 'all' });
-    ui.buildGameFilter(sportFiltered);
-    ui.updateStats(filtered);
-    ui.renderMatches(filtered);
+    let displayMatches = filtered;
+    let staleFallback = false;
+
+    if (!filtered.length && allMatches.length && meta.isStale && !state.search) {
+        const fallbackMatches = getStaleFallbackMatches(allMatches, state);
+        if (fallbackMatches.length) {
+            displayMatches = filters.sortMatches(fallbackMatches, state.sort);
+            staleFallback = true;
+        }
+    }
+
+    const gameFilterSource = meta.isStale
+        ? getStaleFallbackMatches(allMatches, { ...state, league: 'all', date: 'all', search: '' })
+        : filters.filterMatches(allMatches, { ...state, league: 'all' });
+
+    ui.buildGameFilter(gameFilterSource);
+    ui.updateStats(displayMatches, { sourceMatches: allMatches, meta, staleFallback });
+    ui.renderMatches(displayMatches, { sourceMatches: allMatches, meta, staleFallback });
 }
 
 Object.assign(window, {
     shareMatch: (id) => utils.shareMatch(id, notif.showToast),
-
     toggleFavorite: (id) => {
         const favorites = storage.getFavorites();
         const index = favorites.indexOf(id);
@@ -54,13 +115,11 @@ Object.assign(window, {
         notif.showToast(index > -1 ? 'Удалено из избранного' : 'Добавлено в избранное');
         updateApp();
     },
-
     requestNotificationPermission: async () => {
         const granted = await notif.requestNotificationPermission();
         if (granted) notif.showToast('Уведомления включены!');
         notif.updateNotifBell();
     },
-
     openBetSlip: (id, teams, betType, coef, datetime, league) => {
         const betData = { id, teams, betType, coef, datetime, league };
         betSlip.openBetSlip(betData, betType, coef);
@@ -73,13 +132,10 @@ Object.assign(window, {
     toggleMyBets: historyUI.openHistory,
     checkMyBets: historyUI.openHistory,
     copyWallet: (btn) => betSlip.copyWallet(btn),
-
     openImage: (src) => window.open(src, '_blank'),
-
     openHistory: historyUI.openHistory,
     closeHistory: historyUI.closeHistory,
     clearHistory: historyUI.clearHistory,
-
     renderMatches: updateApp,
     onSearchInput: updateApp,
     refreshData: () => {

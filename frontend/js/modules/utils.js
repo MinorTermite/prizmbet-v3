@@ -55,12 +55,14 @@ export function parseMatchDateTime(match) {
 
 export function getMinutesToStart(match) {
     const start = parseMatchDateTime(match).getTime();
-    if (!start) return null;
+    if (!Number.isFinite(start) || start <= 0) return null;
     return Math.floor((start - Date.now()) / 60000);
 }
 
 export function isMatchLive(match) {
+    if (match?.is_live === true) return true;
     const start = parseMatchDateTime(match);
+    if (!Number.isFinite(start.getTime()) || start.getTime() <= 0) return false;
     const diffHours = (Date.now() - start.getTime()) / (1000 * 60 * 60);
     return diffHours >= 0 && diffHours < 2;
 }
@@ -72,14 +74,20 @@ export function isMatchImminent(match, windowMinutes = 15) {
 }
 
 export function getCountdownText(match) {
+    if (isMatchLive(match)) return 'LIVE';
+
     const start = parseMatchDateTime(match);
+    if (!Number.isFinite(start.getTime()) || start.getTime() <= 0) return '';
+
     const diff = start.getTime() - Date.now();
-    if (diff <= 0) return isMatchLive(match) ? 'LIVE' : 'Завершён';
+    if (diff <= 0) return 'Завершён';
 
     const minutes = Math.floor(diff / 60000);
-    if (minutes < 60) return `${minutes} м`;
+    if (minutes < 60) return `${minutes} мин`;
+
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} ч`;
+
     return `${Math.floor(hours / 24)} д`;
 }
 
