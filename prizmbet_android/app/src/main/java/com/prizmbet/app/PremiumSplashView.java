@@ -2,159 +2,159 @@ package com.prizmbet.app;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.BlurMaskFilter;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
+import android.graphics.RadialGradient;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 
+import androidx.appcompat.content.res.AppCompatResources;
+
 import java.util.Random;
 
-/**
- * Премиум-заставка в крипто-стиле — всё рисуется на Canvas, без GIF.
- *
- * Слои (снизу вверх):
- *  1. Тёмный фон #06060e
- *  2. Плавающие частицы (бренд-палитра)
- *  3. Логотип из ресурса (ic_splash_logo) + неоновый ореол
- *  4. Название "PRIZMBET" с glow, анимация снизу вверх
- *  5. Reveal-кольцо: дуга 0→360° вокруг логотипа
- *
- * Таймлайн (0..1 = 3200 мс):
- *   0.00 – 0.30  частицы проявляются
- *   0.10 – 0.45  логотип scale 0.75→1.0, fade-in
- *   0.38 – 0.62  текст slide-up + fade-in
- *   0.45 – 0.78  reveal-кольцо описывает 360°
- *   0.90         onComplete → переход в MainActivity
- */
 public class PremiumSplashView extends View {
 
-    // ── Цвета ─────────────────────────────────────────────────────────────────
-    private static final int BG          = 0xFF06060E;
-    private static final int ACCENT      = 0xFF6366F1;
-    private static final int ACCENT_LITE = 0xFF818CF8;
-    private static final int PURPLE      = 0xFFA855F7;
-    private static final int WHITE       = 0xFFFFFFFF;
+    private static final int BG = 0xFF06060E;
+    private static final int ACCENT = 0xFF903EBC;
+    private static final int ACCENT_LITE = 0xFFC684F1;
+    private static final int PINK = 0xFFE24AC9;
+    private static final int CYAN = 0xFF5BE7FF;
+    private static final int WHITE = 0xFFF8F7FF;
+    private static final int ANIM_MS = 3200;
+    private static final float COMPLETE_AT = 0.90f;
+    private static final int PARTICLE_COUNT = 44;
 
-    // ── Таймлайн ──────────────────────────────────────────────────────────────
-    private static final float TL_PART_END   = 0.30f;
-    private static final float TL_LOGO_S     = 0.10f;
-    private static final float TL_LOGO_E     = 0.45f;
-    private static final float TL_TEXT_S     = 0.38f;
-    private static final float TL_TEXT_E     = 0.62f;
-    private static final float TL_RING_S     = 0.45f;
-    private static final float TL_RING_E     = 0.78f;
-    private static final float TL_DONE       = 0.90f;
-    private static final int   ANIM_MS       = 3200;
-
-    // ── Частицы ───────────────────────────────────────────────────────────────
-    private static final int   PART_N        = 42;
-    private static final int[] PART_COLORS   = { ACCENT, ACCENT_LITE, PURPLE, 0xFFC4B5FD };
-    private static final float[] PART_SZ_DP  = { 1.2f, 2.0f, 3.2f };
-    private static final float[] PART_BL_MUL = { 2.0f, 2.8f, 3.5f };
-
-    private static final class Pt {
-        float x, y, vx, vy, baseA, phase, freq;
-        int   si, color;
+    private static final class Particle {
+        float x;
+        float y;
+        float vx;
+        float vy;
+        float radius;
+        float alpha;
+        float phase;
+        int color;
     }
 
-    private final Pt[]    pts       = new Pt[PART_N];
-    private final Paint[] partPnts  = new Paint[PART_SZ_DP.length];
-
-    // ── Логотип ───────────────────────────────────────────────────────────────
-    private Bitmap logoBmp;
-    private final Paint logoPaint     = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Random random = new Random(19);
+    private final Particle[] particles = new Particle[PARTICLE_COUNT];
+    private final Paint particlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint logoPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint logoGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Paint titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint titleGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint subtitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint orbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF ringRect = new RectF();
 
-    // ── Текст ─────────────────────────────────────────────────────────────────
-    private final Paint txtPaint     = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint txtGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint subPaint     = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-    // ── Кольцо ────────────────────────────────────────────────────────────────
-    private final Paint  ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final RectF  ringRect  = new RectF();
-
-    // ── Состояние ─────────────────────────────────────────────────────────────
-    private float     t         = 0f;
-    private float     tick      = 0f;
-    private boolean   doneFired = false;
-    private Runnable  onComplete;
+    private Bitmap logoBitmap;
     private ValueAnimator animator;
-    private float     density;
+    private Runnable onComplete;
+    private float progress = 0f;
+    private float tick = 0f;
+    private float density = 1f;
+    private boolean completeFired = false;
 
-    // ── Конструкторы ──────────────────────────────────────────────────────────
-    public PremiumSplashView(Context c)                       { super(c);       setup(c); }
-    public PremiumSplashView(Context c, AttributeSet a)       { super(c, a);    setup(c); }
-    public PremiumSplashView(Context c, AttributeSet a, int d){ super(c, a, d); setup(c); }
-
-    /** Вызывается когда анимация подходит к концу — запускает MainActivity. */
-    public void setOnCompleteListener(Runnable r) { onComplete = r; }
-
-    // ── Инициализация ─────────────────────────────────────────────────────────
-
-    private void setup(Context ctx) {
-        setLayerType(LAYER_TYPE_SOFTWARE, null);   // нужно для BlurMaskFilter
-        density = ctx.getResources().getDisplayMetrics().density;
-
-        // Загружаем логотип
-        try {
-            logoBmp = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_splash_logo);
-        } catch (Exception ignored) {}
-
-        // ── Частицы ──
-        Random rnd = new Random(19);
-        for (int i = 0; i < PART_N; i++) {
-            Pt p = new Pt();
-            p.x     = rnd.nextFloat();
-            p.y     = rnd.nextFloat();
-            float spd = 0.00020f + rnd.nextFloat() * 0.00045f;
-            double ang = rnd.nextDouble() * Math.PI * 2;
-            p.vx    = (float)(Math.cos(ang) * spd);
-            p.vy    = (float)(Math.sin(ang) * spd);
-            p.si    = rnd.nextInt(PART_SZ_DP.length);
-            p.color = PART_COLORS[rnd.nextInt(PART_COLORS.length)];
-            p.baseA = 0.25f + rnd.nextFloat() * 0.50f;
-            p.phase = rnd.nextFloat() * (float)(Math.PI * 2);
-            p.freq  = 0.4f + rnd.nextFloat() * 1.2f;
-            pts[i]  = p;
-        }
-        for (int i = 0; i < PART_SZ_DP.length; i++) {
-            partPnts[i] = new Paint(Paint.ANTI_ALIAS_FLAG);
-            partPnts[i].setStyle(Paint.Style.FILL);
-            partPnts[i].setMaskFilter(new BlurMaskFilter(
-                    PART_SZ_DP[i] * density * PART_BL_MUL[i], BlurMaskFilter.Blur.NORMAL));
-        }
-
-        // ── Логотип: glow слой (фиолетовый, размытый) ──
-        logoGlowPaint.setColorFilter(new PorterDuffColorFilter(0xAA6366F1, PorterDuff.Mode.SRC_ATOP));
-        logoGlowPaint.setMaskFilter(new BlurMaskFilter(36f * density, BlurMaskFilter.Blur.NORMAL));
-
-        // ── Текст ──
-        Typeface bold = Typeface.create(Typeface.DEFAULT, Typeface.BOLD);
-
-        txtPaint.setColor(WHITE);
-        txtPaint.setTextAlign(Paint.Align.CENTER);
-        txtPaint.setTypeface(bold);
-        txtPaint.setLetterSpacing(0.22f);
-
-        txtGlowPaint.setColor(ACCENT);
-        txtGlowPaint.setTextAlign(Paint.Align.CENTER);
-        txtGlowPaint.setTypeface(bold);
-        txtGlowPaint.setLetterSpacing(0.22f);
-        txtGlowPaint.setMaskFilter(new BlurMaskFilter(16f * density, BlurMaskFilter.Blur.NORMAL));
-
-        subPaint.setColor(ACCENT_LITE);
-        subPaint.setTextAlign(Paint.Align.CENTER);
-        subPaint.setLetterSpacing(0.18f);
-
-        // ── Кольцо ──
-        ringPaint.setStyle(Paint.Style.STROKE);
-        ringPaint.setColor(ACCENT);
-        ringPaint.setStrokeWidth(1.8f * density);
-        ringPaint.setMaskFilter(new BlurMaskFilter(7f * density, BlurMaskFilter.Blur.NORMAL));
+    public PremiumSplashView(Context context) {
+        super(context);
+        setup(context);
     }
 
-    // ── Жизненный цикл ────────────────────────────────────────────────────────
+    public PremiumSplashView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        setup(context);
+    }
+
+    public PremiumSplashView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        setup(context);
+    }
+
+    public void setOnCompleteListener(Runnable runnable) {
+        onComplete = runnable;
+    }
+
+    private void setup(Context context) {
+        setLayerType(LAYER_TYPE_SOFTWARE, null);
+        density = context.getResources().getDisplayMetrics().density;
+
+        Drawable drawable = AppCompatResources.getDrawable(context, R.drawable.ic_prizm_mark);
+        if (drawable != null) {
+            logoBitmap = drawableToBitmap(drawable, (int) (240f * density), (int) (208f * density));
+        }
+
+        particlePaint.setStyle(Paint.Style.FILL);
+        particlePaint.setMaskFilter(new BlurMaskFilter(10f * density, BlurMaskFilter.Blur.NORMAL));
+
+        logoGlowPaint.setMaskFilter(new BlurMaskFilter(32f * density, BlurMaskFilter.Blur.NORMAL));
+        logoGlowPaint.setColor(ACCENT);
+
+        Typeface headlineTypeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD);
+
+        titlePaint.setColor(WHITE);
+        titlePaint.setTextAlign(Paint.Align.CENTER);
+        titlePaint.setTypeface(headlineTypeface);
+        titlePaint.setLetterSpacing(0.18f);
+
+        titleGlowPaint.setColor(ACCENT_LITE);
+        titleGlowPaint.setTextAlign(Paint.Align.CENTER);
+        titleGlowPaint.setTypeface(headlineTypeface);
+        titleGlowPaint.setLetterSpacing(0.18f);
+        titleGlowPaint.setMaskFilter(new BlurMaskFilter(18f * density, BlurMaskFilter.Blur.NORMAL));
+
+        subtitlePaint.setColor(CYAN);
+        subtitlePaint.setTextAlign(Paint.Align.CENTER);
+        subtitlePaint.setLetterSpacing(0.14f);
+
+        ringPaint.setStyle(Paint.Style.STROKE);
+        ringPaint.setStrokeWidth(2.2f * density);
+        ringPaint.setColor(ACCENT_LITE);
+        ringPaint.setMaskFilter(new BlurMaskFilter(8f * density, BlurMaskFilter.Blur.NORMAL));
+
+        for (int i = 0; i < particles.length; i++) {
+            Particle particle = new Particle();
+            particle.x = random.nextFloat();
+            particle.y = random.nextFloat();
+            particle.vx = (random.nextFloat() - 0.5f) * 0.0009f;
+            particle.vy = (random.nextFloat() - 0.5f) * 0.0009f;
+            particle.radius = (1.2f + random.nextFloat() * 2.8f) * density;
+            particle.alpha = 0.25f + random.nextFloat() * 0.45f;
+            particle.phase = random.nextFloat() * 6.2831855f;
+            particle.color = pickParticleColor(i);
+            particles[i] = particle;
+        }
+    }
+
+    private int pickParticleColor(int index) {
+        switch (index % 4) {
+            case 0:
+                return ACCENT;
+            case 1:
+                return ACCENT_LITE;
+            case 2:
+                return PINK;
+            default:
+                return CYAN;
+        }
+    }
+
+    private Bitmap drawableToBitmap(Drawable drawable, int width, int height) {
+        Bitmap bitmap = Bitmap.createBitmap(Math.max(width, 1), Math.max(height, 1), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawable.draw(canvas);
+        return bitmap;
+    }
 
     @Override
     protected void onAttachedToWindow() {
@@ -162,16 +162,15 @@ public class PremiumSplashView extends View {
         animator = ValueAnimator.ofFloat(0f, 1f);
         animator.setDuration(ANIM_MS);
         animator.setInterpolator(new LinearInterpolator());
-        animator.addUpdateListener(a -> {
-            t    = (float) a.getAnimatedValue();
-            tick = t * (ANIM_MS / 1000f);
-            for (Pt p : pts) {
-                p.x += p.vx;  if (p.x < -0.06f) p.x += 1.12f; else if (p.x > 1.06f) p.x -= 1.12f;
-                p.y += p.vy;  if (p.y < -0.06f) p.y += 1.12f; else if (p.y > 1.06f) p.y -= 1.12f;
-            }
-            if (!doneFired && t >= TL_DONE) {
-                doneFired = true;
-                if (onComplete != null) post(onComplete);
+        animator.addUpdateListener(valueAnimator -> {
+            progress = (float) valueAnimator.getAnimatedValue();
+            tick = progress * 12f;
+            advanceParticles();
+            if (!completeFired && progress >= COMPLETE_AT) {
+                completeFired = true;
+                if (onComplete != null) {
+                    post(onComplete);
+                }
             }
             invalidate();
         });
@@ -180,121 +179,142 @@ public class PremiumSplashView extends View {
 
     @Override
     protected void onDetachedFromWindow() {
-        if (animator != null) animator.cancel();
+        if (animator != null) {
+            animator.cancel();
+        }
         super.onDetachedFromWindow();
     }
 
-    // ── Отрисовка ─────────────────────────────────────────────────────────────
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        final int   w  = getWidth(),  h  = getHeight();
-        final float cx = w / 2f,      cy = h / 2f;
-
-        // 1. Фон
-        canvas.drawColor(BG);
-
-        // 2. Частицы
-        float partA = Math.min(1f, t / TL_PART_END);
-        drawParticles(canvas, w, h, partA);
-
-        // 3. Логотип + glow
-        float logoP = phase(TL_LOGO_S, TL_LOGO_E, t);
-        if (logoP > 0f && logoBmp != null) drawLogo(canvas, cx, cy, logoP);
-
-        // 4. Текст
-        float textP = phase(TL_TEXT_S, TL_TEXT_E, t);
-        if (textP > 0f) drawText(canvas, cx, cy, textP);
-
-        // 5. Reveal-кольцо
-        float ringP = phase(TL_RING_S, TL_RING_E, t);
-        if (ringP > 0f && ringP <= 1f) drawRing(canvas, cx, cy, ringP);
-    }
-
-    // ── Слои ──────────────────────────────────────────────────────────────────
-
-    private void drawParticles(Canvas canvas, int w, int h, float alpha) {
-        for (Pt p : pts) {
-            float twinkle = (float)(Math.sin(tick * p.freq + p.phase) * 0.5 + 0.5);
-            float a       = alpha * p.baseA * (0.35f + twinkle * 0.65f);
-            Paint pnt     = partPnts[p.si];
-            pnt.setColor(p.color);
-            pnt.setAlpha((int)(a * 255));
-            canvas.drawCircle(p.x * w, p.y * h, PART_SZ_DP[p.si] * density, pnt);
+    private void advanceParticles() {
+        for (Particle particle : particles) {
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            if (particle.x < -0.05f) particle.x = 1.05f;
+            if (particle.x > 1.05f) particle.x = -0.05f;
+            if (particle.y < -0.05f) particle.y = 1.05f;
+            if (particle.y > 1.05f) particle.y = -0.05f;
         }
     }
 
-    private void drawLogo(Canvas canvas, float cx, float cy, float p) {
-        float e    = decel(p);                  // замедленный прогресс
-        float sz   = (120f + 10f * e) * density; // 120dp → 130dp по мере появления
-        float logoCy = cy - 50f * density;      // центр логотипа чуть выше экрана
-        float l    = cx - sz / 2f;
-        float top  = logoCy - sz / 2f;
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        int width = getWidth();
+        int height = getHeight();
+        float cx = width / 2f;
+        float cy = height / 2f;
 
-        Rect src = new Rect(0, 0, logoBmp.getWidth(), logoBmp.getHeight());
-
-        // glow-слой (чуть крупнее, размытый фиолетовый)
-        float gs = sz * 1.35f;
-        float gl = cx - gs / 2f, gt = logoCy - gs / 2f;
-        logoGlowPaint.setAlpha((int)(e * 170));
-        canvas.drawBitmap(logoBmp, src, new RectF(gl, gt, gl + gs, gt + gs), logoGlowPaint);
-
-        // сам логотип
-        logoPaint.setAlpha((int)(e * 255));
-        canvas.drawBitmap(logoBmp, src, new RectF(l, top, l + sz, top + sz), logoPaint);
+        canvas.drawColor(BG);
+        drawAmbientOrbs(canvas, width, height);
+        drawParticles(canvas, width, height);
+        drawLogo(canvas, cx, cy);
+        drawText(canvas, cx, cy);
+        drawRevealRing(canvas, cx, cy);
     }
 
-    private void drawText(Canvas canvas, float cx, float cy, float p) {
-        float e       = decel(p);
-        float logoCy  = cy - 50f * density;
-        float baseY   = logoCy + 90f * density;    // ниже логотипа
-        float slideY  = baseY + (1f - e) * 18f * density; // едет снизу вверх
+    private void drawAmbientOrbs(Canvas canvas, int width, int height) {
+        float alpha = Math.min(1f, progress / 0.45f);
+        orbPaint.setShader(new RadialGradient(width * 0.28f, height * 0.25f, width * 0.42f,
+                new int[]{Color.argb((int) (alpha * 70), 144, 62, 188), Color.TRANSPARENT},
+                new float[]{0f, 1f}, Shader.TileMode.CLAMP));
+        canvas.drawRect(0f, 0f, width, height, orbPaint);
 
-        float tsz = 21f * density;
-        txtPaint.setTextSize(tsz);
-        txtGlowPaint.setTextSize(tsz);
+        orbPaint.setShader(new RadialGradient(width * 0.72f, height * 0.2f, width * 0.36f,
+                new int[]{Color.argb((int) (alpha * 46), 226, 74, 201), Color.TRANSPARENT},
+                new float[]{0f, 1f}, Shader.TileMode.CLAMP));
+        canvas.drawRect(0f, 0f, width, height, orbPaint);
 
-        // glow
-        txtGlowPaint.setAlpha((int)(e * 170));
-        canvas.drawText("PRIZMBET", cx, slideY, txtGlowPaint);
-
-        // основной текст
-        txtPaint.setAlpha((int)(e * 255));
-        canvas.drawText("PRIZMBET", cx, slideY, txtPaint);
-
-        // подпись
-        float ssz = 9.5f * density;
-        subPaint.setTextSize(ssz);
-        subPaint.setAlpha((int)(e * 120));
-        canvas.drawText("CRYPTO  ·  SPORTS  ·  BETTING", cx, slideY + 18f * density, subPaint);
+        orbPaint.setShader(new LinearGradient(0f, 0f, width, height,
+                new int[]{Color.argb((int) (alpha * 24), 91, 231, 255), Color.TRANSPARENT},
+                new float[]{0f, 1f}, Shader.TileMode.CLAMP));
+        canvas.drawRect(0f, 0f, width, height, orbPaint);
     }
 
-    private void drawRing(Canvas canvas, float cx, float cy, float p) {
-        float e       = easeInOut(p);
-        float logoCy  = cy - 50f * density;
-        float r       = 78f * density;
-        ringRect.set(cx - r, logoCy - r, cx + r, logoCy + r);
-
-        // Кольцо описывает 360° и постепенно тускнеет
-        float fadeOut = 1f - p * 0.65f;
-        ringPaint.setAlpha((int)(fadeOut * 210));
-        canvas.drawArc(ringRect, -90f, 360f * e, false, ringPaint);
+    private void drawParticles(Canvas canvas, int width, int height) {
+        float layer = Math.min(1f, progress / 0.25f);
+        for (Particle particle : particles) {
+            float twinkle = (float) ((Math.sin(tick + particle.phase) + 1f) * 0.5f);
+            particlePaint.setColor(particle.color);
+            particlePaint.setAlpha((int) (255f * particle.alpha * layer * (0.35f + twinkle * 0.65f)));
+            canvas.drawCircle(particle.x * width, particle.y * height, particle.radius, particlePaint);
+        }
     }
 
-    // ── Easing ────────────────────────────────────────────────────────────────
+    private void drawLogo(Canvas canvas, float cx, float cy) {
+        if (logoBitmap == null) {
+            return;
+        }
+        float phase = phase(0.08f, 0.42f, progress);
+        if (phase <= 0f) {
+            return;
+        }
 
-    /** Нормализует прогресс sub-фазы [start..end] в [0..1]. */
-    private static float phase(float start, float end, float t) {
-        if (t <= start) return 0f;
-        if (t >= end)   return 1f;
-        return (t - start) / (end - start);
+        float eased = decel(phase);
+        float logoCy = cy - 54f * density;
+        float logoWidth = (132f + 16f * eased) * density;
+        float aspect = logoBitmap.getHeight() / (float) logoBitmap.getWidth();
+        float logoHeight = logoWidth * aspect;
+        Rect src = new Rect(0, 0, logoBitmap.getWidth(), logoBitmap.getHeight());
+
+        float glowWidth = logoWidth * 1.3f;
+        float glowHeight = logoHeight * 1.3f;
+        float glowLeft = cx - glowWidth / 2f;
+        float glowTop = logoCy - glowHeight / 2f;
+        logoGlowPaint.setAlpha((int) (180f * eased));
+        canvas.drawBitmap(logoBitmap, src, new RectF(glowLeft, glowTop, glowLeft + glowWidth, glowTop + glowHeight), logoGlowPaint);
+
+        float left = cx - logoWidth / 2f;
+        float top = logoCy - logoHeight / 2f;
+        logoPaint.setAlpha((int) (255f * eased));
+        canvas.drawBitmap(logoBitmap, src, new RectF(left, top, left + logoWidth, top + logoHeight), logoPaint);
     }
 
-    /** Decelerate: быстро начинает, замедляется. */
-    private static float decel(float x) { return 1f - (1f - x) * (1f - x); }
+    private void drawText(Canvas canvas, float cx, float cy) {
+        float phase = phase(0.32f, 0.64f, progress);
+        if (phase <= 0f) {
+            return;
+        }
 
-    /** Ease-in-out (sin). */
-    private static float easeInOut(float x) {
-        return (float)(Math.sin((x - 0.5f) * Math.PI) * 0.5 + 0.5);
+        float eased = decel(phase);
+        float baseline = cy + 54f * density + (1f - eased) * 18f * density;
+
+        titlePaint.setTextSize(21f * density);
+        titleGlowPaint.setTextSize(21f * density);
+        titleGlowPaint.setAlpha((int) (170f * eased));
+        titlePaint.setAlpha((int) (255f * eased));
+        canvas.drawText("PRIZMBET", cx, baseline, titleGlowPaint);
+        canvas.drawText("PRIZMBET", cx, baseline, titlePaint);
+
+        subtitlePaint.setTextSize(9.5f * density);
+        subtitlePaint.setAlpha((int) (160f * eased));
+        canvas.drawText("PRIZM · WALLET · STATUS", cx, baseline + 18f * density, subtitlePaint);
+    }
+
+    private void drawRevealRing(Canvas canvas, float cx, float cy) {
+        float phase = phase(0.44f, 0.78f, progress);
+        if (phase <= 0f) {
+            return;
+        }
+
+        float eased = easeInOut(phase);
+        float centerY = cy - 54f * density;
+        float radius = 82f * density;
+        ringRect.set(cx - radius, centerY - radius, cx + radius, centerY + radius);
+        ringPaint.setAlpha((int) (210f * (1f - phase * 0.6f)));
+        canvas.drawArc(ringRect, -90f, 360f * eased, false, ringPaint);
+    }
+
+    private static float phase(float start, float end, float value) {
+        if (value <= start) return 0f;
+        if (value >= end) return 1f;
+        return (value - start) / (end - start);
+    }
+
+    private static float decel(float value) {
+        return 1f - (1f - value) * (1f - value);
+    }
+
+    private static float easeInOut(float value) {
+        return (float) (Math.sin((value - 0.5f) * Math.PI) * 0.5f + 0.5f);
     }
 }

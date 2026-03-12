@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """PrizmBet v3 Configuration."""
 import os
 from dotenv import load_dotenv
@@ -18,6 +18,10 @@ class Config:
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
     TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
     TELEGRAM_NOTIFY_CHAT_IDS = os.getenv('TELEGRAM_NOTIFY_CHAT_IDS', '')
+    V3_TELEGRAM_BOT_TOKEN = os.getenv('V3_TELEGRAM_BOT_TOKEN', '')
+    V3_TELEGRAM_CHAT_ID = os.getenv('V3_TELEGRAM_CHAT_ID', '')
+    V3_TELEGRAM_CHAT_IDS = os.getenv('V3_TELEGRAM_CHAT_IDS', '')
+    V3_TELEGRAM_MIN_ALERT_PRIZM = float(os.getenv('V3_TELEGRAM_MIN_ALERT_PRIZM', '1000'))
 
     ADMIN_VIEW_KEY = os.getenv('ADMIN_VIEW_KEY', '')
 
