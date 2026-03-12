@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PRIZMBET — Операторская панель</title>
+<title>PRIZMBET — операторская панель</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/smart-flow.css">
 <link rel="stylesheet" href="css/operator.css">
@@ -16,8 +16,8 @@
     <div class="operator-hero-card">
       <div>
         <div class="smart-banner-eyebrow">Операторская панель</div>
-        <h1 class="operator-title">Входящие ставки и расшифровка купонов</h1>
-        <p class="operator-copy">Здесь intent-код превращается в понятную карточку: матч, исход, коэффициент, сумма, кошелёк отправителя, TX и текущий статус.</p>
+        <h1 class="operator-title">Входящие ставки и автоматический live-контур</h1>
+        <p class="operator-copy">Лента показывает расшифровку intent-кода, состояние матча, сумму, потенциальную выплату, TX и причину отклонения. Обновление идёт автоматически.</p>
       </div>
       <a class="operator-back" href="./index.html">На главную</a>
     </div>
@@ -27,12 +27,12 @@
     <div class="operator-access-card">
       <div class="operator-access-grid">
         <label class="operator-field">
-          <span class="operator-label">API адрес</span>
+          <span class="operator-label">API base</span>
           <input id="apiBaseInput" class="operator-input" type="text" placeholder="http://127.0.0.1:8081">
         </label>
         <label class="operator-field">
-          <span class="operator-label">Ключ доступа</span>
-          <input id="adminKeyInput" class="operator-input" type="password" placeholder="Если включён в .env">
+          <span class="operator-label">Admin key</span>
+          <input id="adminKeyInput" class="operator-input" type="password" placeholder="Ключ оператора из .env">
         </label>
       </div>
       <div class="operator-actions">
@@ -43,7 +43,7 @@
           <span>Автообновление</span>
         </label>
       </div>
-      <div id="operatorStatus" class="operator-status-line">Укажите API base и нажмите «Подключить».</div>
+      <div id="operatorStatus" class="operator-status-line">Укажите API base и admin key, затем подключитесь.</div>
     </div>
   </section>
 
@@ -53,7 +53,7 @@
 
   <section class="section operator-feed-section">
     <div class="operator-feed-toolbar">
-      <input id="queryInput" class="operator-input operator-input--search" type="search" placeholder="Поиск по коду, TX, кошельку, матчу или лиге">
+      <input id="queryInput" class="operator-input operator-input--search" type="search" placeholder="Поиск по матчу, TX, кошельку, intent или статусу">
       <select id="statusFilter" class="operator-select">
         <option value="">Все статусы</option>
         <option value="accepted">Принятые</option>

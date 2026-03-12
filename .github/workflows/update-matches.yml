@@ -1,4 +1,4 @@
-name: Update Matches & Deploy to GitHub Pages
+﻿name: Update Matches & Deploy to GitHub Pages
 
 on:
   schedule:
@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Generate fresh data when secrets are configured
+      - name: Generate fresh data
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
@@ -46,17 +46,46 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           PINNACLE_LOGIN: ${{ secrets.PINNACLE_LOGIN }}
           PINNACLE_PASSWORD: ${{ secrets.PINNACLE_PASSWORD }}
-          PROXY_ENABLED: "true"
           PROXY_URL: ${{ secrets.PROXY_URL }}
         run: |
-          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
-            python backend/api/generate_json.py
-            if [ -n "$API_FOOTBALL_KEY" ]; then
-              python backend/score_enricher.py
-            fi
+          if [ -n "$PROXY_URL" ] || { [ -n "$UPSTASH_REDIS_URL" ] && [ -n "$UPSTASH_REDIS_TOKEN" ]; }; then
+            export PROXY_ENABLED=true
           else
-            echo "Secrets are not configured yet, keeping copied frontend data as-is."
+            export PROXY_ENABLED=false
           fi
+
+          python backend/api/generate_json.py
+
+          if [ -n "$API_FOOTBALL_KEY" ]; then
+            python backend/score_enricher.py
+          fi
+
+      - name: Validate fresh payload
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          path = Path('frontend/matches-today.json')
+          payload = json.loads(path.read_text(encoding='utf-8'))
+          last_update = payload.get('last_update')
+          total = payload.get('total', 0)
+          today_total = payload.get('today_total', len(payload.get('matches', [])))
+
+          if not last_update:
+              raise SystemExit('matches-today.json has no last_update')
+
+          dt = datetime.fromisoformat(last_update)
+          age_hours = (datetime.now(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds() / 3600
+          print(f'last_update={last_update} total={total} today_total={today_total} age_hours={age_hours:.2f}')
+
+          if total <= 0 or today_total <= 0:
+              raise SystemExit('fresh payload is empty')
+
+          if age_hours > 6:
+              raise SystemExit('fresh payload is stale after generation step')
+          PY
 
       - name: Commit and push refreshed frontend data when it changes
         run: |

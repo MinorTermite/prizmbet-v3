@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'prizmbet_operator_console_v1';
+﻿const STORAGE_KEY = 'prizmbet_operator_console_v2';
 const AUTO_REFRESH_MS = 20000;
 
 const state = {
@@ -8,13 +8,12 @@ const state = {
   status: '',
   autoRefresh: true,
   loading: false,
-  error: '',
-  info: '',
   items: [],
   stats: null,
   meta: null,
   generatedAt: '',
   timer: null,
+  message: '',
 };
 
 const dom = {};
@@ -52,11 +51,12 @@ function bindEvents() {
   });
 
   dom.refreshBtn.addEventListener('click', () => fetchFeed());
+
   dom.autoRefreshToggle.addEventListener('change', () => {
     state.autoRefresh = dom.autoRefreshToggle.checked;
     persistState();
     syncAutoRefresh();
-    renderStatus(state.autoRefresh ? 'Автообновление включено.' : 'Автообновление выключено.', 'neutral');
+    renderStatus(state.autoRefresh ? 'Автообновление включено.' : 'Автообновление остановлено.', 'neutral');
   });
 
   let debounceId = null;
@@ -82,7 +82,7 @@ function bindEvents() {
       await navigator.clipboard.writeText(value);
       renderStatus(`Скопировано: ${value}`, 'good');
     } catch {
-      renderStatus('Браузер не дал доступ к буферу обмена.', 'warn');
+      renderStatus('Не удалось записать значение в буфер обмена.', 'warn');
     }
   });
 }
@@ -144,20 +144,20 @@ function normalizeApiBase(value) {
 
 async function fetchFeed() {
   if (!state.apiBase) {
-    renderStatus('Укажите адрес API. Для локальной проверки обычно это http://127.0.0.1:8081.', 'warn');
     state.items = [];
     state.stats = null;
+    renderStatus('Укажите API base. Для локального запуска обычно используется http://127.0.0.1:8081.', 'warn');
     render();
     return;
   }
 
   if (window.location.protocol === 'https:' && state.apiBase.startsWith('http://127.0.0.1')) {
-    renderStatus('Откройте операторскую панель локально по http: браузер блокирует вызовы к локальному http API со страницы https.', 'bad');
+    renderStatus('Публичная HTTPS-страница не может читать локальный HTTP API. Откройте панель локально или поднимите HTTPS API.', 'bad');
     return;
   }
 
   state.loading = true;
-  renderStatus('Загружаю ленту входящих ставок...', 'neutral');
+  renderStatus('Загружаю операторскую ленту...', 'neutral');
   render();
 
   try {
@@ -171,7 +171,6 @@ async function fetchFeed() {
 
     const response = await fetch(url.toString(), { headers });
     const payload = await response.json().catch(() => ({}));
-
     if (!response.ok) {
       throw new Error(payload.error || `API вернул ${response.status}`);
     }
@@ -180,7 +179,6 @@ async function fetchFeed() {
     state.stats = payload.stats || null;
     state.meta = payload.meta || null;
     state.generatedAt = payload.generated_at || '';
-    state.error = '';
     renderStatus(buildSuccessMessage(), 'good');
   } catch (error) {
     state.items = [];
@@ -197,8 +195,14 @@ function buildSuccessMessage() {
   if (state.meta && state.meta.db_configured === false) {
     return state.meta.message || 'Supabase не подключён: лента пока пустая.';
   }
-  const keyNote = state.meta?.admin_key_required ? 'Ключ доступа проверен.' : 'Ключ доступа не требуется.';
+  const keyNote = state.meta?.admin_key_required ? 'Admin key обязателен.' : 'Admin key не требуется.';
   return `Лента обновлена. ${keyNote}`;
+}
+
+function renderStatus(message, tone) {
+  state.message = String(message || '');
+  dom.operatorStatus.textContent = state.message || 'Операторская панель готова.';
+  dom.operatorStatus.dataset.tone = tone || 'neutral';
 }
 
 function render() {
@@ -207,29 +211,22 @@ function render() {
   renderFeed();
 }
 
-function renderStatus(message, tone) {
-  state.info = String(message || '');
-  state.error = tone === 'bad' ? state.info : '';
-  dom.operatorStatus.textContent = state.info || 'Операторская панель готова.';
-  dom.operatorStatus.dataset.tone = tone || 'neutral';
-}
-
 function renderStats() {
   const stats = state.stats;
   if (!stats) {
     dom.statsGrid.innerHTML = [
-      buildStatCard('Ставки в ленте', '0'),
-      buildStatCard('Принято', '0'),
-      buildStatCard('Отклонено', '0'),
+      buildStatCard('Ставок в ленте', '0'),
+      buildStatCard('Принятые', '0'),
+      buildStatCard('Отклонённые', '0'),
       buildStatCard('Оборот', '0 PRIZM'),
     ].join('');
     return;
   }
 
   dom.statsGrid.innerHTML = [
-    buildStatCard('Ставки в ленте', formatNumber(stats.total_items)),
-    buildStatCard('Принято', formatNumber(stats.accepted_count)),
-    buildStatCard('Отклонено', formatNumber(stats.rejected_count)),
+    buildStatCard('Ставок в ленте', formatNumber(stats.total_items)),
+    buildStatCard('Принятые', formatNumber(stats.accepted_count)),
+    buildStatCard('Отклонённые', formatNumber(stats.rejected_count)),
     buildStatCard('Оборот', `${formatNumber(stats.turnover_prizm)} PRIZM`),
   ].join('');
 }
@@ -247,7 +244,9 @@ function renderFeedMeta() {
   const parts = [];
   if (state.loading) parts.push('Загрузка...');
   if (state.generatedAt) parts.push(`Обновлено ${formatDate(state.generatedAt)}`);
-  if (state.items.length) parts.push(`${state.items.length} ставок`);
+  if (state.items.length) parts.push(`${state.items.length} записей`);
+  const liveItems = state.items.filter((item) => item.match_state === 'live').length;
+  if (liveItems) parts.push(`LIVE: ${liveItems}`);
   dom.feedMeta.textContent = parts.join(' • ') || 'Лента ещё не загружена.';
 }
 
@@ -255,8 +254,8 @@ function renderFeed() {
   if (!state.items.length) {
     dom.feedList.innerHTML = `
       <div class="operator-empty">
-        <strong>Пока пусто.</strong><br>
-        После подключения API здесь появятся входящие ставки с полной расшифровкой intent-кодов.
+        <strong>Пустая лента.</strong><br>
+        После подключения API здесь появятся обработанные переводы и расшифрованные intent-коды.
       </div>
     `;
     return;
@@ -274,8 +273,11 @@ function renderCard(item) {
     <article class="operator-card">
       <div class="operator-card-head">
         <div>
-          <span class="operator-badge" data-tone="${escapeHtml(item.status_tone || 'neutral')}">${escapeHtml(item.status_label || item.status || '—')}</span>
-          <h3 class="operator-card-title">${escapeHtml(item.match_label || 'Матч без названия')}</h3>
+          <div class="operator-badges">
+            <span class="operator-badge" data-tone="${escapeHtml(item.status_tone || 'neutral')}">${escapeHtml(item.status_label || item.status || '—')}</span>
+            <span class="operator-badge" data-tone="${escapeHtml(item.match_state_tone || 'neutral')}">${escapeHtml(item.match_state_label || 'Матч')}</span>
+          </div>
+          <h3 class="operator-card-title">${escapeHtml(item.match_label || 'Матч без расшифровки')}</h3>
           <p class="operator-card-copy">${escapeHtml(item.operator_summary || '')}</p>
         </div>
         <div class="operator-actions">
@@ -284,11 +286,11 @@ function renderCard(item) {
         </div>
       </div>
       <div class="operator-card-grid">
-        ${renderMeta('Купон', item.intent_hash || '—')}
+        ${renderMeta('Intent', item.intent_hash || '—')}
         ${renderMeta('Кошелёк', item.sender_wallet || '—')}
         ${renderMeta('Исход', `${item.outcome_label || '—'} @ ${item.odds_label || '0.00'}`)}
         ${renderMeta('Сумма', `${formatNumber(item.amount_prizm)} PRIZM`)}
-        ${renderMeta('Потенциал', `${formatNumber(item.potential_payout_prizm)} PRIZM`)}
+        ${renderMeta('Потенциально', `${formatNumber(item.potential_payout_prizm)} PRIZM`)}
         ${renderMeta('Время', formatDate(item.block_timestamp || item.created_at))}
       </div>
       ${rejectBlock}

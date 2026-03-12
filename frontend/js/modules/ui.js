@@ -55,8 +55,29 @@ export function buildGameFilter(matches) {
 }
 
 function getExternalMatchUrl(match) {
-    const url = String(match.match_url || '').trim();
-    return /^https?:\/\//i.test(url) ? url : '';
+    const rawUrl = String(match.match_url || '').trim();
+    if (!/^https?:\/\//i.test(rawUrl)) return '';
+
+    try {
+        const url = new URL(rawUrl);
+        const host = url.hostname.replace(/^www\./i, '').toLowerCase();
+        const path = url.pathname.replace(/\/+$/, '');
+
+        if (host === 'leon.ru') {
+            return /^\/events\/[^/]+\/[^/]+\/\d[^/]*$/i.test(path) ? rawUrl : '';
+        }
+
+        if (host.endsWith('api-football.com')) {
+            return /^\/fixture\/\d+$/i.test(path) ? rawUrl : '';
+        }
+
+        const segments = path.split('/').filter(Boolean);
+        const tail = segments[segments.length - 1] || '';
+        const looksSpecific = segments.length >= 2 && /\d/.test(tail);
+        return looksSpecific ? rawUrl : '';
+    } catch {
+        return '';
+    }
 }
 
 function hasTotalMarket(match) {
@@ -127,7 +148,7 @@ function buildResultCard(match, isFavorite) {
 
     const card = document.createElement('div');
     card.id = `match-${match.id || ''}`;
-    card.className = `match-result-card${isFavorite ? ' favorited' : ''}`;
+    card.className = `match-result-card match-result-card--finished${isFavorite ? ' favorited' : ''}`;
     card.innerHTML = `
         <div class="result-header">${escapeHtml(match.league || '')}, ${escapeHtml(dateText)} ${escapeHtml(timeText)}</div>
         <div class="result-body">
@@ -392,3 +413,5 @@ export function renderMatches(matches, options = {}) {
 
     renderLeagueChunk(container, leagueOrder, matchesMap, favorites);
 }
+
+
