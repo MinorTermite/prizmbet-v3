@@ -3,10 +3,12 @@ package com.prizmbet.app;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
@@ -32,7 +34,7 @@ public class PremiumSplashView extends View {
     private static final int WHITE = 0xFFF8F7FF;
     private static final int ANIM_MS = 3200;
     private static final float COMPLETE_AT = 0.90f;
-    private static final int PARTICLE_COUNT = 44;
+    private static final int PARTICLE_COUNT = 32;
 
     private static final class Particle {
         float x;
@@ -55,9 +57,14 @@ public class PremiumSplashView extends View {
     private final Paint subtitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint orbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint posterOverlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint posterFramePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF ringRect = new RectF();
+    private final RectF posterRect = new RectF();
+    private final Matrix posterMatrix = new Matrix();
 
     private Bitmap logoBitmap;
+    private Bitmap posterBitmap;
     private ValueAnimator animator;
     private Runnable onComplete;
     private float progress = 0f;
@@ -92,6 +99,7 @@ public class PremiumSplashView extends View {
         if (drawable != null) {
             logoBitmap = drawableToBitmap(drawable, (int) (240f * density), (int) (208f * density));
         }
+        posterBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.splash_poster_v3);
 
         particlePaint.setStyle(Paint.Style.FILL);
         particlePaint.setMaskFilter(new BlurMaskFilter(10f * density, BlurMaskFilter.Blur.NORMAL));
@@ -121,14 +129,19 @@ public class PremiumSplashView extends View {
         ringPaint.setColor(ACCENT_LITE);
         ringPaint.setMaskFilter(new BlurMaskFilter(8f * density, BlurMaskFilter.Blur.NORMAL));
 
+        posterFramePaint.setStyle(Paint.Style.STROKE);
+        posterFramePaint.setStrokeWidth(1.5f * density);
+        posterFramePaint.setColor(Color.argb(120, 255, 178, 87));
+        posterFramePaint.setMaskFilter(new BlurMaskFilter(6f * density, BlurMaskFilter.Blur.NORMAL));
+
         for (int i = 0; i < particles.length; i++) {
             Particle particle = new Particle();
             particle.x = random.nextFloat();
             particle.y = random.nextFloat();
             particle.vx = (random.nextFloat() - 0.5f) * 0.0009f;
             particle.vy = (random.nextFloat() - 0.5f) * 0.0009f;
-            particle.radius = (1.2f + random.nextFloat() * 2.8f) * density;
-            particle.alpha = 0.25f + random.nextFloat() * 0.45f;
+            particle.radius = (1.2f + random.nextFloat() * 2.4f) * density;
+            particle.alpha = 0.18f + random.nextFloat() * 0.34f;
             particle.phase = random.nextFloat() * 6.2831855f;
             particle.color = pickParticleColor(i);
             particles[i] = particle;
@@ -164,7 +177,7 @@ public class PremiumSplashView extends View {
         animator.setInterpolator(new LinearInterpolator());
         animator.addUpdateListener(valueAnimator -> {
             progress = (float) valueAnimator.getAnimatedValue();
-            tick = progress * 12f;
+            tick = progress * 10f;
             advanceParticles();
             if (!completeFired && progress >= COMPLETE_AT) {
                 completeFired = true;
@@ -205,6 +218,7 @@ public class PremiumSplashView extends View {
         float cy = height / 2f;
 
         canvas.drawColor(BG);
+        drawPoster(canvas, width, height);
         drawAmbientOrbs(canvas, width, height);
         drawParticles(canvas, width, height);
         drawLogo(canvas, cx, cy);
@@ -212,26 +226,67 @@ public class PremiumSplashView extends View {
         drawRevealRing(canvas, cx, cy);
     }
 
+    private void drawPoster(Canvas canvas, int width, int height) {
+        if (posterBitmap == null) {
+            return;
+        }
+
+        float appear = phase(0.0f, 0.28f, progress);
+        float zoom = 1.04f + (1f - decel(progress)) * 0.08f;
+        float scale = Math.max(width / (float) posterBitmap.getWidth(), height / (float) posterBitmap.getHeight()) * zoom;
+        float drawWidth = posterBitmap.getWidth() * scale;
+        float drawHeight = posterBitmap.getHeight() * scale;
+        float left = (width - drawWidth) / 2f;
+        float top = (height - drawHeight) / 2f;
+
+        posterMatrix.reset();
+        posterMatrix.postScale(scale, scale);
+        posterMatrix.postTranslate(left, top);
+
+        logoPaint.setAlpha((int) (255f * Math.max(0.75f, appear)));
+        canvas.drawBitmap(posterBitmap, posterMatrix, logoPaint);
+
+        posterOverlayPaint.setShader(new LinearGradient(
+                0f,
+                0f,
+                0f,
+                height,
+                new int[]{Color.argb(170, 4, 3, 8), Color.argb(70, 8, 6, 18), Color.argb(210, 5, 4, 8)},
+                new float[]{0f, 0.45f, 1f},
+                Shader.TileMode.CLAMP
+        ));
+        canvas.drawRect(0f, 0f, width, height, posterOverlayPaint);
+
+        posterOverlayPaint.setShader(new RadialGradient(
+                width * 0.5f,
+                height * 0.42f,
+                Math.max(width, height) * 0.62f,
+                new int[]{Color.TRANSPARENT, Color.argb(150, 6, 6, 14)},
+                new float[]{0.32f, 1f},
+                Shader.TileMode.CLAMP
+        ));
+        canvas.drawRect(0f, 0f, width, height, posterOverlayPaint);
+
+        float inset = 18f * density;
+        posterRect.set(inset, inset, width - inset, height - inset);
+        canvas.drawRoundRect(posterRect, 22f * density, 22f * density, posterFramePaint);
+    }
+
     private void drawAmbientOrbs(Canvas canvas, int width, int height) {
         float alpha = Math.min(1f, progress / 0.45f);
-        orbPaint.setShader(new RadialGradient(width * 0.28f, height * 0.25f, width * 0.42f,
-                new int[]{Color.argb((int) (alpha * 70), 144, 62, 188), Color.TRANSPARENT},
+        orbPaint.setShader(new RadialGradient(width * 0.24f, height * 0.18f, width * 0.42f,
+                new int[]{Color.argb((int) (alpha * 52), 144, 62, 188), Color.TRANSPARENT},
                 new float[]{0f, 1f}, Shader.TileMode.CLAMP));
         canvas.drawRect(0f, 0f, width, height, orbPaint);
 
-        orbPaint.setShader(new RadialGradient(width * 0.72f, height * 0.2f, width * 0.36f,
-                new int[]{Color.argb((int) (alpha * 46), 226, 74, 201), Color.TRANSPARENT},
-                new float[]{0f, 1f}, Shader.TileMode.CLAMP));
-        canvas.drawRect(0f, 0f, width, height, orbPaint);
-
-        orbPaint.setShader(new LinearGradient(0f, 0f, width, height,
-                new int[]{Color.argb((int) (alpha * 24), 91, 231, 255), Color.TRANSPARENT},
+        orbPaint.setShader(new RadialGradient(width * 0.78f, height * 0.76f, width * 0.35f,
+                new int[]{Color.argb((int) (alpha * 44), 226, 74, 201), Color.TRANSPARENT},
                 new float[]{0f, 1f}, Shader.TileMode.CLAMP));
         canvas.drawRect(0f, 0f, width, height, orbPaint);
     }
 
     private void drawParticles(Canvas canvas, int width, int height) {
-        float layer = Math.min(1f, progress / 0.25f);
+        float layer = Math.min(1f, progress / 0.24f);
         for (Particle particle : particles) {
             float twinkle = (float) ((Math.sin(tick + particle.phase) + 1f) * 0.5f);
             particlePaint.setColor(particle.color);
@@ -244,23 +299,23 @@ public class PremiumSplashView extends View {
         if (logoBitmap == null) {
             return;
         }
-        float phase = phase(0.08f, 0.42f, progress);
+        float phase = phase(0.18f, 0.48f, progress);
         if (phase <= 0f) {
             return;
         }
 
         float eased = decel(phase);
-        float logoCy = cy - 54f * density;
-        float logoWidth = (132f + 16f * eased) * density;
+        float logoCy = cy - 178f * density;
+        float logoWidth = (42f + 6f * eased) * density;
         float aspect = logoBitmap.getHeight() / (float) logoBitmap.getWidth();
         float logoHeight = logoWidth * aspect;
         Rect src = new Rect(0, 0, logoBitmap.getWidth(), logoBitmap.getHeight());
 
-        float glowWidth = logoWidth * 1.3f;
-        float glowHeight = logoHeight * 1.3f;
+        float glowWidth = logoWidth * 1.6f;
+        float glowHeight = logoHeight * 1.6f;
         float glowLeft = cx - glowWidth / 2f;
         float glowTop = logoCy - glowHeight / 2f;
-        logoGlowPaint.setAlpha((int) (180f * eased));
+        logoGlowPaint.setAlpha((int) (160f * eased));
         canvas.drawBitmap(logoBitmap, src, new RectF(glowLeft, glowTop, glowLeft + glowWidth, glowTop + glowHeight), logoGlowPaint);
 
         float left = cx - logoWidth / 2f;
@@ -270,37 +325,38 @@ public class PremiumSplashView extends View {
     }
 
     private void drawText(Canvas canvas, float cx, float cy) {
-        float phase = phase(0.32f, 0.64f, progress);
+        float phase = phase(0.34f, 0.68f, progress);
         if (phase <= 0f) {
             return;
         }
 
         float eased = decel(phase);
-        float baseline = cy + 54f * density + (1f - eased) * 18f * density;
+        float titleY = cy + 232f * density + (1f - eased) * 18f * density;
+        float subtitleY = titleY + 20f * density;
 
-        titlePaint.setTextSize(21f * density);
-        titleGlowPaint.setTextSize(21f * density);
-        titleGlowPaint.setAlpha((int) (170f * eased));
-        titlePaint.setAlpha((int) (255f * eased));
-        canvas.drawText("PRIZMBET", cx, baseline, titleGlowPaint);
-        canvas.drawText("PRIZMBET", cx, baseline, titlePaint);
+        titlePaint.setTextSize(18f * density);
+        titleGlowPaint.setTextSize(18f * density);
+        titleGlowPaint.setAlpha((int) (150f * eased));
+        titlePaint.setAlpha((int) (240f * eased));
+        canvas.drawText("SMART FLOW READY", cx, titleY, titleGlowPaint);
+        canvas.drawText("SMART FLOW READY", cx, titleY, titlePaint);
 
-        subtitlePaint.setTextSize(9.5f * density);
-        subtitlePaint.setAlpha((int) (160f * eased));
-        canvas.drawText("PRIZM · WALLET · STATUS", cx, baseline + 18f * density, subtitlePaint);
+        subtitlePaint.setTextSize(8.8f * density);
+        subtitlePaint.setAlpha((int) (150f * eased));
+        canvas.drawText("PRIZM · INTENT · WALLET STATUS", cx, subtitleY, subtitlePaint);
     }
 
     private void drawRevealRing(Canvas canvas, float cx, float cy) {
-        float phase = phase(0.44f, 0.78f, progress);
+        float phase = phase(0.50f, 0.82f, progress);
         if (phase <= 0f) {
             return;
         }
 
         float eased = easeInOut(phase);
-        float centerY = cy - 54f * density;
-        float radius = 82f * density;
+        float centerY = cy - 178f * density;
+        float radius = 32f * density;
         ringRect.set(cx - radius, centerY - radius, cx + radius, centerY + radius);
-        ringPaint.setAlpha((int) (210f * (1f - phase * 0.6f)));
+        ringPaint.setAlpha((int) (190f * (1f - phase * 0.6f)));
         canvas.drawArc(ringRect, -90f, 360f * eased, false, ringPaint);
     }
 
