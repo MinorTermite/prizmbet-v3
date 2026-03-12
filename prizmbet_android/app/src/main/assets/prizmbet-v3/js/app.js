@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PrizmBet v3 - Main Entry Point
  */
 import * as utils from './modules/utils.js';
@@ -8,15 +8,19 @@ import * as notif from './modules/notifications.js';
 import * as betSlip from './modules/bet_slip.js';
 import * as historyUI from './modules/history_ui.js';
 import * as ui from './modules/ui.js';
+import * as i18n from './modules/i18n.js';
 
 let allMatches = [];
+let timeTicker = null;
+
+window.PrizmbetI18n = i18n;
 
 function getActiveMeta() {
     return window.__MATCHES_META__ || {};
 }
 
 function hasTotalMarket(match) {
-    return Boolean(match.total_over && match.total_over !== '—' && match.total_over !== '0.00');
+    return Boolean(match.total_over && match.total_over !== '?' && match.total_over !== '0.00');
 }
 
 function getStaleFallbackMatches(matches, state) {
@@ -91,6 +95,70 @@ function updateApp(newMatches) {
     ui.renderMatches(displayMatches, { sourceMatches: allMatches, meta, staleFallback });
 }
 
+function updateHeaderClock() {
+    const clock = document.getElementById('currentTimeValue');
+    const label = document.getElementById('currentTimeLabel');
+    if (!clock || !label) return;
+    clock.textContent = i18n.formatTime(new Date());
+    label.textContent = i18n.t('header.timeLabel');
+}
+
+function startHeaderClock() {
+    updateHeaderClock();
+    if (timeTicker) clearInterval(timeTicker);
+    timeTicker = window.setInterval(updateHeaderClock, 1000 * 20);
+}
+
+function closeMobileMenu() {
+    document.body.classList.remove('mobile-menu-open');
+    document.getElementById('mobileMenu')?.classList.remove('is-open');
+    document.getElementById('mobileMenuBackdrop')?.classList.remove('is-open');
+}
+
+function toggleMobileMenu(force) {
+    const menu = document.getElementById('mobileMenu');
+    const backdrop = document.getElementById('mobileMenuBackdrop');
+    if (!menu || !backdrop) return;
+    const shouldOpen = typeof force === 'boolean' ? force : !menu.classList.contains('is-open');
+    menu.classList.toggle('is-open', shouldOpen);
+    backdrop.classList.toggle('is-open', shouldOpen);
+    document.body.classList.toggle('mobile-menu-open', shouldOpen);
+}
+
+function bindLanguageSwitch() {
+    document.querySelectorAll('[data-lang-option]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const next = button.dataset.langOption === 'en' ? 'en' : 'ru';
+            i18n.setLanguage(next);
+            updateHeaderClock();
+            updateApp();
+            closeMobileMenu();
+        });
+    });
+}
+
+function bindHeaderUI() {
+    document.getElementById('menuToggleBtn')?.addEventListener('click', () => toggleMobileMenu());
+    document.getElementById('mobileMenuBackdrop')?.addEventListener('click', () => closeMobileMenu());
+    document.getElementById('mobileRefreshBtn')?.addEventListener('click', () => {
+        closeMobileMenu();
+        if (window.loadData) window.loadData('full').then(updateApp);
+    });
+    document.getElementById('mobileCabinetBtn')?.addEventListener('click', () => {
+        closeMobileMenu();
+        historyUI.openHistory();
+    });
+    document.getElementById('mobileNotifBtn')?.addEventListener('click', () => {
+        closeMobileMenu();
+        window.requestNotificationPermission();
+    });
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 767) closeMobileMenu();
+    });
+    bindLanguageSwitch();
+    startHeaderClock();
+}
+
 Object.assign(window, {
     shareMatch: (id) => utils.shareMatch(id, notif.showToast),
     toggleFavorite: (id) => {
@@ -104,20 +172,20 @@ Object.assign(window, {
             if (match) {
                 const details = storage.getFavDetails();
                 details[id] = {
-                    home: match.home_team || match.team1 || 'Команда 1',
-                    away: match.away_team || match.team2 || 'Команда 2',
+                    home: match.home_team || match.team1 || i18n.t('common.team1'),
+                    away: match.away_team || match.team2 || i18n.t('common.team2'),
                     time: match.match_time,
                 };
                 storage.saveFavDetails(details);
             }
         }
         storage.saveFavorites(favorites);
-        notif.showToast(index > -1 ? 'Удалено из избранного' : 'Добавлено в избранное');
+        notif.showToast(index > -1 ? i18n.t('common.removeFavorite') : i18n.t('common.addFavorite'));
         updateApp();
     },
     requestNotificationPermission: async () => {
         const granted = await notif.requestNotificationPermission();
-        if (granted) notif.showToast('Уведомления включены!');
+        if (granted) notif.showToast(i18n.t('common.notificationsOn'));
         notif.updateNotifBell();
     },
     openBetSlip: (id, teams, betType, coef, datetime, league) => {
@@ -183,11 +251,20 @@ function wireFilters() {
     document.getElementById('popularOnly')?.addEventListener('change', updateApp);
 }
 
+window.addEventListener('prizmbet:language-changed', () => {
+    i18n.applyTranslations();
+    notif.updateNotifBell();
+    updateHeaderClock();
+    updateApp();
+});
+
 window.addEventListener('load', () => {
+    i18n.applyTranslations();
     utils.initScrollProgress();
     utils.initTabsHint();
     notif.updateNotifBell();
     wireFilters();
+    bindHeaderUI();
     betSlip.initSmartBetting();
     historyUI.initHistoryUI();
 
@@ -203,11 +280,11 @@ if ('serviceWorker' in navigator) {
                 registration.addEventListener('updatefound', () => {
                     registration.installing?.addEventListener('statechange', (event) => {
                         if (event.target.state === 'installed' && navigator.serviceWorker.controller) {
-                            console.log('[SW] Новая версия готова');
+                            console.log('[SW] New version ready');
                         }
                     });
                 });
             })
-            .catch((error) => console.warn('[SW] Регистрация не удалась:', error));
+            .catch((error) => console.warn('[SW] Registration failed:', error));
     });
 }

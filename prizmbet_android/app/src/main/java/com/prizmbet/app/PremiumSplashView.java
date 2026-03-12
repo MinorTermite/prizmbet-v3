@@ -32,8 +32,8 @@ public class PremiumSplashView extends View {
     private static final int PINK = 0xFFE24AC9;
     private static final int CYAN = 0xFF5BE7FF;
     private static final int WHITE = 0xFFF8F7FF;
-    private static final int ANIM_MS = 3200;
-    private static final float COMPLETE_AT = 0.90f;
+    private static final int ANIM_MS = 3600;
+    private static final float COMPLETE_AT = 0.88f;
     private static final int PARTICLE_COUNT = 32;
 
     private static final class Particle {
@@ -59,6 +59,7 @@ public class PremiumSplashView extends View {
     private final Paint orbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint posterOverlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint posterFramePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint outroPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF ringRect = new RectF();
     private final RectF posterRect = new RectF();
     private final Matrix posterMatrix = new Matrix();
@@ -221,9 +222,7 @@ public class PremiumSplashView extends View {
         drawPoster(canvas, width, height);
         drawAmbientOrbs(canvas, width, height);
         drawParticles(canvas, width, height);
-        drawLogo(canvas, cx, cy);
-        drawText(canvas, cx, cy);
-        drawRevealRing(canvas, cx, cy);
+        drawOutro(canvas, width, height);
     }
 
     private void drawPoster(Canvas canvas, int width, int height) {
@@ -232,7 +231,8 @@ public class PremiumSplashView extends View {
         }
 
         float appear = phase(0.0f, 0.28f, progress);
-        float zoom = 1.04f + (1f - decel(progress)) * 0.08f;
+        float drift = easeInOut(progress);
+        float zoom = 1.11f - (drift * 0.08f);
         float scale = Math.max(width / (float) posterBitmap.getWidth(), height / (float) posterBitmap.getHeight()) * zoom;
         float drawWidth = posterBitmap.getWidth() * scale;
         float drawHeight = posterBitmap.getHeight() * scale;
@@ -243,7 +243,7 @@ public class PremiumSplashView extends View {
         posterMatrix.postScale(scale, scale);
         posterMatrix.postTranslate(left, top);
 
-        logoPaint.setAlpha((int) (255f * Math.max(0.75f, appear)));
+        logoPaint.setAlpha((int) (255f * Math.max(0.76f, appear)));
         canvas.drawBitmap(posterBitmap, posterMatrix, logoPaint);
 
         posterOverlayPaint.setShader(new LinearGradient(
@@ -251,18 +251,18 @@ public class PremiumSplashView extends View {
                 0f,
                 0f,
                 height,
-                new int[]{Color.argb(170, 4, 3, 8), Color.argb(70, 8, 6, 18), Color.argb(210, 5, 4, 8)},
-                new float[]{0f, 0.45f, 1f},
+                new int[]{Color.argb(164, 4, 3, 8), Color.argb(58, 8, 6, 18), Color.argb(220, 5, 4, 8)},
+                new float[]{0f, 0.42f, 1f},
                 Shader.TileMode.CLAMP
         ));
         canvas.drawRect(0f, 0f, width, height, posterOverlayPaint);
 
         posterOverlayPaint.setShader(new RadialGradient(
                 width * 0.5f,
-                height * 0.42f,
+                height * 0.44f,
                 Math.max(width, height) * 0.62f,
-                new int[]{Color.TRANSPARENT, Color.argb(150, 6, 6, 14)},
-                new float[]{0.32f, 1f},
+                new int[]{Color.TRANSPARENT, Color.argb(156, 6, 6, 14)},
+                new float[]{0.30f, 1f},
                 Shader.TileMode.CLAMP
         ));
         canvas.drawRect(0f, 0f, width, height, posterOverlayPaint);
@@ -306,16 +306,16 @@ public class PremiumSplashView extends View {
 
         float eased = decel(phase);
         float logoCy = cy - 178f * density;
-        float logoWidth = (42f + 6f * eased) * density;
+        float logoWidth = (42f + 8f * eased) * density;
         float aspect = logoBitmap.getHeight() / (float) logoBitmap.getWidth();
         float logoHeight = logoWidth * aspect;
         Rect src = new Rect(0, 0, logoBitmap.getWidth(), logoBitmap.getHeight());
 
-        float glowWidth = logoWidth * 1.6f;
-        float glowHeight = logoHeight * 1.6f;
+        float glowWidth = logoWidth * 1.72f;
+        float glowHeight = logoHeight * 1.72f;
         float glowLeft = cx - glowWidth / 2f;
         float glowTop = logoCy - glowHeight / 2f;
-        logoGlowPaint.setAlpha((int) (160f * eased));
+        logoGlowPaint.setAlpha((int) (170f * eased));
         canvas.drawBitmap(logoBitmap, src, new RectF(glowLeft, glowTop, glowLeft + glowWidth, glowTop + glowHeight), logoGlowPaint);
 
         float left = cx - logoWidth / 2f;
@@ -360,17 +360,37 @@ public class PremiumSplashView extends View {
         canvas.drawArc(ringRect, -90f, 360f * eased, false, ringPaint);
     }
 
-    private static float phase(float start, float end, float value) {
+    private void drawOutro(Canvas canvas, int width, int height) {
+        float outro = phase(0.80f, 1f, progress);
+        if (outro <= 0f) {
+            return;
+        }
+        int alpha = (int) (150f * easeInOut(outro));
+        outroPaint.setShader(new LinearGradient(
+                0f,
+                0f,
+                0f,
+                height,
+                new int[]{Color.argb(alpha, 4, 4, 10), Color.argb((int) (alpha * 0.35f), 4, 4, 10), Color.argb(alpha, 4, 4, 10)},
+                new float[]{0f, 0.45f, 1f},
+                Shader.TileMode.CLAMP
+        ));
+        canvas.drawRect(0f, 0f, width, height, outroPaint);
+    }
+
+    private float phase(float start, float end, float value) {
         if (value <= start) return 0f;
         if (value >= end) return 1f;
         return (value - start) / (end - start);
     }
 
-    private static float decel(float value) {
-        return 1f - (1f - value) * (1f - value);
+    private float decel(float value) {
+        float t = Math.max(0f, Math.min(1f, value));
+        return 1f - (1f - t) * (1f - t);
     }
 
-    private static float easeInOut(float value) {
-        return (float) (Math.sin((value - 0.5f) * Math.PI) * 0.5f + 0.5f);
+    private float easeInOut(float value) {
+        float t = Math.max(0f, Math.min(1f, value));
+        return (float) (t < 0.5f ? 4f * t * t * t : 1f - Math.pow(-2f * t + 2f, 3f) / 2f);
     }
 }

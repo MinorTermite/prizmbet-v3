@@ -5,27 +5,22 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Премиум-заставка в крипто-стиле.
- *
- * Всё рисуется на Canvas в PremiumSplashView — никакого GIF, никаких рамок.
- * Визуальный поток:
- *   OS splash (Theme.Prizmbet.Starting, мгновенно)
- *   → PremiumSplashView: частицы + логотип с glow + текст + reveal-кольцо (3.2 с)
- *   → fade → MainActivity (#06060e + WebView)
- */
 public class SplashActivity extends AppCompatActivity {
 
     private final AtomicBoolean launched = new AtomicBoolean(false);
-
-    /** Максимальное ожидание (на случай сбоя анимации). */
     private static final int FALLBACK_MS = 5000;
+
+    private PremiumSplashView premiumSplash;
+    private View entryScrim;
+    private View entryPanel;
+    private boolean entryShown = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,21 +37,61 @@ public class SplashActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_splash);
 
-        PremiumSplashView splash = findViewById(R.id.premiumSplash);
+        premiumSplash = findViewById(R.id.premiumSplash);
+        entryScrim = findViewById(R.id.entryScrim);
+        entryPanel = findViewById(R.id.entryPanel);
+        Button enterButton = findViewById(R.id.enterButton);
 
-        // Переход в MainActivity по окончании анимации (~2.9 с)
-        splash.setOnCompleteListener(this::launchMain);
+        if (enterButton != null) {
+            enterButton.setOnClickListener(v -> launchMain());
+        }
+        if (entryPanel != null) {
+            entryPanel.setOnClickListener(v -> { /* block click-through */ });
+        }
 
-        // Запасной таймер — на случай если анимация не сработала
-        splash.postDelayed(this::launchMain, FALLBACK_MS);
+        premiumSplash.setOnCompleteListener(this::showEntryScreen);
+        premiumSplash.postDelayed(this::showEntryScreen, FALLBACK_MS);
+    }
+
+    private void showEntryScreen() {
+        if (entryShown) return;
+        entryShown = true;
+
+        if (entryScrim != null) {
+            entryScrim.setVisibility(View.VISIBLE);
+            entryScrim.setAlpha(0f);
+            entryScrim.animate()
+                    .alpha(1f)
+                    .setDuration(420)
+                    .start();
+        }
+
+        if (premiumSplash != null) {
+            premiumSplash.animate()
+                    .alpha(0.82f)
+                    .scaleX(1.035f)
+                    .scaleY(1.035f)
+                    .setDuration(520)
+                    .start();
+        }
+
+        if (entryPanel != null) {
+            entryPanel.setVisibility(View.VISIBLE);
+            entryPanel.setAlpha(0f);
+            entryPanel.setTranslationY(42f);
+            entryPanel.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(460)
+                    .setStartDelay(120)
+                    .start();
+        }
     }
 
     private void launchMain() {
         if (!launched.compareAndSet(false, true)) return;
 
         Intent intent = new Intent(this, MainActivity.class);
-
-        // Прокидываем shortcut_action если запуск был через App Shortcut
         String shortcut = getIntent().getStringExtra(MainActivity.EXTRA_SHORTCUT);
         if (shortcut != null) intent.putExtra(MainActivity.EXTRA_SHORTCUT, shortcut);
 

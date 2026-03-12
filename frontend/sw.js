@@ -1,5 +1,5 @@
 ﻿// ── PrizmBet Service Worker ───────────────────────────────────────────────────
-const VERSION     = 'v26';
+const VERSION     = 'v27';
 const SHELL_CACHE = `prizmbet-shell-${VERSION}`;
 const DATA_CACHE  = 'prizmbet-data';   // вечный, обновляется по контенту
 
@@ -14,11 +14,14 @@ const SHELL_ASSETS = [
     './js/modules/bet_slip.js',
     './js/modules/filters.js',
     './js/modules/history_ui.js',
+    './js/modules/i18n.js',
     './js/modules/notifications.js',
     './js/modules/storage.js',
     './js/modules/ui.js',
     './js/modules/utils.js',
     './css/base.min.css',
+    './css/smart-flow.css',
+    './prizm-icon.svg',
     './prizmbet-logo.webp',
     './qr_wallet.webp',
     './prizmbet-info-1.webp',

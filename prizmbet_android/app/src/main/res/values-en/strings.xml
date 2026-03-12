@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PRIZMBET</string>
+    <string name="error_icon">⚠</string>
+    <string name="error_no_connection">No internet connection.&#10;Check your network and try again.</string>
+    <string name="retry">Retry</string>
+    <string name="shortcut_football_short">Football</string>
+    <string name="shortcut_football_long">Football line</string>
+    <string name="shortcut_esports_short">Esports</string>
+    <string name="shortcut_esports_long">Esports line</string>
+    <string name="shortcut_refresh_short">Refresh</string>
+    <string name="shortcut_refresh_long">Refresh line</string>
+    <string name="splash_badge">PRIZMBET V3</string>
+    <string name="splash_entry_title">PRIZMBET main line</string>
+    <string name="splash_entry_subtitle">Open the app, pick a match and manage bets in one mobile flow.</string>
+    <string name="splash_enter_button">Enter the app</string>
+    <string name="splash_entry_hint">The match line and wallet cabinet open after entry.</string>
+</resources>

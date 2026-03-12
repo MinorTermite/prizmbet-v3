@@ -1,14 +1,18 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PRIZMBET</string>
-    <string name="error_icon">⚡</string>
+    <string name="error_icon">⚠</string>
     <string name="error_no_connection">Нет подключения к интернету.&#10;Проверьте сеть и попробуйте снова.</string>
     <string name="retry">Повторить</string>
-
     <string name="shortcut_football_short">Футбол</string>
-    <string name="shortcut_football_long">Матчи футбола</string>
-    <string name="shortcut_esports_short">Кибер</string>
-    <string name="shortcut_esports_long">Матчи киберспорта</string>
+    <string name="shortcut_football_long">Футбольная линия</string>
+    <string name="shortcut_esports_short">Киберспорт</string>
+    <string name="shortcut_esports_long">Линия киберспорта</string>
     <string name="shortcut_refresh_short">Обновить</string>
     <string name="shortcut_refresh_long">Обновить линию</string>
+    <string name="splash_badge">PRIZMBET V3</string>
+    <string name="splash_entry_title">Главная линия PRIZMBET</string>
+    <string name="splash_entry_subtitle">Откройте приложение, выберите матч и управляйте ставками в одном мобильном потоке.</string>
+    <string name="splash_enter_button">Войти в приложение</string>
+    <string name="splash_entry_hint">После входа откроются линия матчей и кабинет кошелька.</string>
 </resources>

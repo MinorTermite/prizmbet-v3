@@ -1,20 +1,26 @@
-﻿/**
+/**
  * PrizmBet v3 - Wallet Cabinet UI
  */
 import { clearIntentRecords, getWalletAddress, saveWalletAddress } from './storage.js';
 import { escapeHtml } from './utils.js';
 import { getCabinetData, syncWalletInput } from './bet_slip.js';
 import { showToast } from './notifications.js';
+import { formatNumber, t } from './i18n.js';
 
 let initialized = false;
 const dom = {};
 
 const RANK_LABELS = {
-    Observer: 'Старт',
-    Runner: 'Игрок',
-    Operator: 'Тактик',
-    Strategist: 'Профи',
-    Imperator: 'Император',
+    Observer: 'rank.start',
+    Runner: 'rank.player',
+    Operator: 'rank.tactic',
+    Strategist: 'rank.pro',
+    Imperator: 'rank.emperor',
+    '?????': 'rank.start',
+    '?????': 'rank.player',
+    '??????': 'rank.tactic',
+    '?????': 'rank.pro',
+    '?????????': 'rank.emperor',
 };
 
 export function initHistoryUI() {
@@ -48,6 +54,10 @@ export function initHistoryUI() {
         if (dom.modal?.classList.contains('show')) openHistory();
     });
 
+    window.addEventListener('prizmbet:language-changed', () => {
+        if (dom.modal?.classList.contains('show')) renderCabinet();
+    });
+
     initialized = true;
 }
 
@@ -68,16 +78,16 @@ export function closeHistory() {
 }
 
 export async function clearHistory() {
-    if (!confirm('Очистить сохранённую историю купонов на этом устройстве?')) return;
+    if (!confirm(getConfirmText())) return;
     clearIntentRecords();
-    showToast('История на этом устройстве очищена.');
+    showToast(getClearedText());
     await renderCabinet();
 }
 
 async function renderCabinet() {
     const wallet = normalizeWallet(dom.walletInput?.value || getWalletAddress());
     if (!wallet) {
-        renderEmptyCabinet('Введите кошелёк PRIZM, чтобы открыть кабинет и увидеть статусы по ставкам.');
+        renderEmptyCabinet(getWalletPrompt());
         return;
     }
 
@@ -86,7 +96,7 @@ async function renderCabinet() {
     if (dom.walletInput) dom.walletInput.value = wallet;
 
     if (dom.feed) {
-        dom.feed.innerHTML = '<div class="cabinet-empty">Загружаем кабинет кошелька…</div>';
+        dom.feed.innerHTML = `<div class="cabinet-empty">${escapeHtml(t('common.loadingCabinet'))}</div>`;
     }
 
     try {
@@ -94,14 +104,14 @@ async function renderCabinet() {
         renderStats(data);
         renderFeed(data.feed || []);
     } catch (_) {
-        renderEmptyCabinet('Не удалось получить данные кабинета. Повторите обновление позже.');
+        renderEmptyCabinet(getCabinetErrorText());
     }
 }
 
 function renderStats(data) {
     if (dom.modeBadge) {
         const isLive = data.mode === 'live';
-        dom.modeBadge.textContent = isLive ? 'Статусы из системы' : 'История на этом устройстве';
+        dom.modeBadge.textContent = isLive ? getLiveModeText() : getLocalModeText();
         dom.modeBadge.className = `coupon-badge ${isLive ? 'coupon-badge--live' : 'coupon-badge--local'}`;
     }
 
@@ -111,18 +121,18 @@ function renderStats(data) {
 
     if (dom.rankHint) {
         dom.rankHint.textContent = data.rank?.next
-            ? `До уровня ${translateRank(data.rank.next.name)} осталось ${formatNumber(data.rank.next.remaining_prizm)} PRIZM оборота.`
-            : 'Максимальный уровень кабинета уже достигнут.';
+            ? getNextRankText(data.rank.next.name, data.rank.next.remaining_prizm)
+            : getMaxRankText();
     }
 
     if (dom.stats) {
         dom.stats.innerHTML = `
-            ${renderStatCard('Купоны', data.stats?.total_intents || 0, 'Выпущено кодов')}
-            ${renderStatCard('Ждут', data.stats?.waiting_payment || 0, 'Ожидают перевод')}
-            ${renderStatCard('Приняты', data.stats?.accepted || 0, 'Подтверждены системой')}
-            ${renderStatCard('Отклонены', data.stats?.rejected || 0, 'Не прошли проверку')}
-            ${renderStatCard('Выиграли', data.stats?.won || 0, 'Рассчитаны как выигрыш')}
-            ${renderStatCard('Оборот', `${formatNumber(data.stats?.turnover_prizm || 0)} PZM`, 'Учтённый объём ставок')}
+            ${renderStatCard(getStatCoupons(), data.stats?.total_intents || 0, getStatCouponsHint())}
+            ${renderStatCard(getStatWaiting(), data.stats?.waiting_payment || 0, getStatWaitingHint())}
+            ${renderStatCard(getStatAccepted(), data.stats?.accepted || 0, getStatAcceptedHint())}
+            ${renderStatCard(getStatRejected(), data.stats?.rejected || 0, getStatRejectedHint())}
+            ${renderStatCard(getStatWon(), data.stats?.won || 0, getStatWonHint())}
+            ${renderStatCard(getStatTurnover(), `${formatNumber(data.stats?.turnover_prizm || 0, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PZM`, getStatTurnoverHint())}
         `;
     }
 }
@@ -130,7 +140,7 @@ function renderStats(data) {
 function renderFeed(items) {
     if (!dom.feed) return;
     if (!items.length) {
-        dom.feed.innerHTML = previewMarkup('После первого купона здесь появятся коды, статусы, расчёт и история по вашему кошельку.');
+        dom.feed.innerHTML = previewMarkup(getPreviewText());
         return;
     }
 
@@ -148,11 +158,11 @@ function renderFeed(items) {
 
 function renderEmptyCabinet(message) {
     if (dom.modeBadge) {
-        dom.modeBadge.textContent = 'История на этом устройстве';
+        dom.modeBadge.textContent = getLocalModeText();
         dom.modeBadge.className = 'coupon-badge coupon-badge--local';
     }
-    if (dom.rankTitle) dom.rankTitle.textContent = 'Старт';
-    if (dom.rankHint) dom.rankHint.textContent = 'Кабинет наполнится после выпуска первого кода ставки.';
+    if (dom.rankTitle) dom.rankTitle.textContent = translateRank('Observer');
+    if (dom.rankHint) dom.rankHint.textContent = getFirstCouponHint();
     if (dom.stats) dom.stats.innerHTML = '';
     if (dom.feed) dom.feed.innerHTML = previewMarkup(message);
 }
@@ -160,12 +170,12 @@ function renderEmptyCabinet(message) {
 function previewMarkup(message) {
     return `
         <div class="cabinet-empty">
-            <strong>Кабинет появится после первого купона.</strong>
+            <strong>${escapeHtml(getPreviewHeadline())}</strong>
             <div class="cabinet-empty-copy">${escapeHtml(message)}</div>
             <div class="cabinet-preview">
-                <div class="cabinet-preview-item"><span>Код ставки</span><span>ожидает перевод</span></div>
-                <div class="cabinet-preview-item"><span>Принятие</span><span>после проверки перевода</span></div>
-                <div class="cabinet-preview-item"><span>Расчёт</span><span>win, loss или отклонение</span></div>
+                <div class="cabinet-preview-item"><span>${escapeHtml(getPreviewCodeLabel())}</span><span>${escapeHtml(getPreviewCodeValue())}</span></div>
+                <div class="cabinet-preview-item"><span>${escapeHtml(getPreviewAcceptanceLabel())}</span><span>${escapeHtml(getPreviewAcceptanceValue())}</span></div>
+                <div class="cabinet-preview-item"><span>${escapeHtml(getPreviewSettlementLabel())}</span><span>${escapeHtml(getPreviewSettlementValue())}</span></div>
             </div>
         </div>
     `;
@@ -182,16 +192,76 @@ function renderStatCard(label, value, hint) {
 }
 
 function translateRank(rank) {
-    return RANK_LABELS[rank] || rank || 'Старт';
-}
-
-function formatNumber(value) {
-    const number = Number(value || 0);
-    return Number.isFinite(number)
-        ? number.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-        : '0';
+    return t(RANK_LABELS[rank] || 'rank.start');
 }
 
 function normalizeWallet(value) {
     return String(value || '').trim().toUpperCase();
 }
+
+function getConfirmText() {
+    return t('cabinet.clear') + '?';
+}
+function getClearedText() {
+    return t('cabinet.clear') + '.';
+}
+function getWalletPrompt() {
+    return t('cabinet.wallet') + ' PRIZM, ????? ??????? ??????? ? ??????? ??????? ?? ???????.';
+}
+function getCabinetErrorText() {
+    return t('cabinet.title') + ': ?????? ???????? ??????????.';
+}
+function getLiveModeText() {
+    return getIsEn() ? 'Live system statuses' : '??????? ?? ???????';
+}
+function getLocalModeText() {
+    return getIsEn() ? 'History on this device' : '??????? ?? ???? ??????????';
+}
+function getNextRankText(name, remaining) {
+    return getIsEn()
+        ? `${formatNumber(remaining, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PRIZM turnover left to ${translateRank(name)}.`
+        : `?? ?????? ${translateRank(name)} ???????? ${formatNumber(remaining, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PRIZM ???????.`;
+}
+function getMaxRankText() {
+    return getIsEn() ? 'Maximum cabinet level reached.' : '???????????? ??????? ???????? ??? ?????????.';
+}
+function getFirstCouponHint() {
+    return getIsEn() ? 'The cabinet will fill after the first issued bet code.' : '??????? ?????????? ????? ??????? ??????? ???? ??????.';
+}
+function getPreviewText() {
+    return getIsEn() ? 'Issued codes, statuses and settlement will appear here after the first coupon.' : '????? ??????? ?????? ????? ???????? ????, ???????, ?????? ? ??????? ?? ?????? ????????.';
+}
+function getPreviewHeadline() {
+    return getIsEn() ? 'The cabinet appears after the first coupon.' : '??????? ???????? ????? ??????? ??????.';
+}
+function getPreviewCodeLabel() {
+    return getIsEn() ? 'Bet code' : '??? ??????';
+}
+function getPreviewCodeValue() {
+    return getIsEn() ? 'waiting for transfer' : '??????? ???????';
+}
+function getPreviewAcceptanceLabel() {
+    return getIsEn() ? 'Acceptance' : '????????';
+}
+function getPreviewAcceptanceValue() {
+    return getIsEn() ? 'after transfer validation' : '????? ???????? ????????';
+}
+function getPreviewSettlementLabel() {
+    return getIsEn() ? 'Settlement' : '??????';
+}
+function getPreviewSettlementValue() {
+    return getIsEn() ? 'win, loss or rejected' : 'win, loss ??? ??????????';
+}
+function getStatCoupons() { return getIsEn() ? 'Coupons' : '??????'; }
+function getStatCouponsHint() { return getIsEn() ? 'Issued codes' : '???????? ?????'; }
+function getStatWaiting() { return getIsEn() ? 'Waiting' : '????'; }
+function getStatWaitingHint() { return getIsEn() ? 'Waiting for transfer' : '??????? ???????'; }
+function getStatAccepted() { return getIsEn() ? 'Accepted' : '???????'; }
+function getStatAcceptedHint() { return getIsEn() ? 'Confirmed by system' : '???????????? ????????'; }
+function getStatRejected() { return getIsEn() ? 'Rejected' : '?????????'; }
+function getStatRejectedHint() { return getIsEn() ? 'Did not pass validation' : '?? ?????? ????????'; }
+function getStatWon() { return getIsEn() ? 'Won' : '????????'; }
+function getStatWonHint() { return getIsEn() ? 'Settled as wins' : '?????????? ??? ???????'; }
+function getStatTurnover() { return getIsEn() ? 'Turnover' : '??????'; }
+function getStatTurnoverHint() { return getIsEn() ? 'Counted betting volume' : '???????? ????? ??????'; }
+function getIsEn() { return document.documentElement.lang === 'en'; }

@@ -1,8 +1,45 @@
-﻿// ===== КОНФИГУРАЦИЯ =====
+// ===== CONFIG =====
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 const LS_CACHE_KEY = 'prizmbet_matches_cache';
 const LS_FULL_KEY  = 'prizmbet_matches_full_cache';
+const LANG_KEY = 'prizmbet_lang_v1';
 const STALE_SNAPSHOT_MS = 8 * 60 * 60 * 1000;
+
+function getLang() {
+    return String(localStorage.getItem(LANG_KEY) || 'ru').toLowerCase() === 'en' ? 'en' : 'ru';
+}
+function getLocale() {
+    return getLang() === 'en' ? 'en-US' : 'ru-RU';
+}
+function getZone() {
+    return getLang() === 'en' ? 'America/New_York' : 'Europe/Moscow';
+}
+function t(key, vars = {}) {
+    const dict = {
+        ru: {
+            updated: '?????????: {value}',
+            cache: '???',
+            full: '???',
+            line: '?????',
+            archive: '???????? ??????',
+            loadErrorTitle: '?? ??????? ????????? ?????',
+            loadErrorText: '????????? ??????????? ? ?????????',
+            retry: '?????????',
+        },
+        en: {
+            updated: 'Updated: {value}',
+            cache: 'cache',
+            full: 'full',
+            line: 'line',
+            archive: 'archived snapshot',
+            loadErrorTitle: 'Failed to load matches',
+            loadErrorText: 'Check your internet connection',
+            retry: 'Retry',
+        },
+    };
+    const table = dict[getLang()];
+    return String(table[key] || key).replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''));
+}
 
 function _getLS(key) {
     try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; }
@@ -45,23 +82,23 @@ function applyMeta(data, mode, fromCache) {
 }
 
 function fmtTime(ts) {
-    if (!ts) return '—';
+    if (!ts) return '?';
     const d = new Date(ts);
     if (isNaN(d.getTime())) return ts;
-    return d.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleString(getLocale(), { timeZone: getZone(), day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 function showStatus(ts, extra) {
     const el = document.getElementById('lastUpdate');
     if (!el) return;
-    el.innerHTML = `Обновлено: ${fmtTime(ts)}${extra || ''}`;
+    el.innerHTML = t('updated', { value: fmtTime(ts) }) + (extra || '');
 }
 
 function buildStatusFlags(meta, isFull) {
     const flags = [];
-    if (meta.fromCache) flags.push('кэш');
-    flags.push(isFull ? 'все' : 'линия');
-    if (meta.isStale) flags.push('архивный снимок');
+    if (meta.fromCache) flags.push(t('cache'));
+    flags.push(isFull ? t('full') : t('line'));
+    if (meta.isStale) flags.push(t('archive'));
     return ` <span style="font-size:.75em;opacity:.6">(${flags.join(', ')})</span>`;
 }
 
@@ -78,10 +115,10 @@ function _showLoadError() {
     if (!content || !content.querySelector('.shimmer')) return;
     content.innerHTML = `
         <div style="text-align:center;padding:60px 20px;color:var(--text-tertiary,#888)">
-            <div style="font-size:2.5rem;margin-bottom:14px">📡</div>
-            <p style="margin-bottom:6px;font-size:1rem;color:var(--text-secondary,#ccc)">Не удалось загрузить матчи</p>
-            <p style="margin-bottom:22px;font-size:.85rem;opacity:.7">Проверьте подключение к интернету</p>
-            <button onclick="loadData()" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;cursor:pointer;font-size:.95rem;font-weight:600;letter-spacing:.02em">🔄 Повторить</button>
+            <div style="font-size:2.5rem;margin-bottom:14px">??</div>
+            <p style="margin-bottom:6px;font-size:1rem;color:var(--text-secondary,#ccc)">${t('loadErrorTitle')}</p>
+            <p style="margin-bottom:22px;font-size:.85rem;opacity:.7">${t('loadErrorText')}</p>
+            <button onclick="loadData()" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;cursor:pointer;font-size:.95rem;font-weight:600;letter-spacing:.02em">?? ${t('retry')}</button>
         </div>`;
 }
 

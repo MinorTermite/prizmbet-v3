@@ -3,6 +3,7 @@
  */
 import { showToast } from './notifications.js';
 import { escapeHtml } from './utils.js';
+import { formatDateTime as formatDateTimeI18n, formatNumber as formatNumberI18n, formatOutcomeLabel, t } from './i18n.js';
 import {
     getWalletAddress,
     saveWalletAddress,
@@ -14,23 +15,29 @@ const MASTER_WALLET = 'PRIZM-4N7T-L2A7-RQZA-5BETW';
 const MIN_BET = 1500;
 const MAX_BET = 200000;
 const INTENT_TTL_MS = 15 * 60 * 1000;
-const STATUS_LABELS = {
-    draft: 'Подготовка',
-    awaiting_payment: 'Ждём перевод',
-    accepted: 'Принята',
-    rejected: 'Отклонена',
-    expired: 'Истёк',
-    won: 'Выиграла',
-    lost: 'Проиграла',
-};
 const REJECT_LABELS = {
-    LATE_BET: 'Ставка пришла позже безопасного окна',
-    SENDER_MISMATCH: 'Перевод пришёл с другого кошелька',
-    INVALID_INTENT: 'Код ставки не распознан',
-    INTENT_EXPIRED: 'Срок жизни кода истёк',
+    LATE_BET: { ru: '?????? ?????? ????? ??????????? ????', en: 'The transfer arrived too late' },
+    SENDER_MISMATCH: { ru: '??????? ?????? ? ??????? ????????', en: 'The transfer came from another wallet' },
+    INVALID_INTENT: { ru: '??? ?????? ?? ?????????', en: 'The bet code was not recognized' },
+    INTENT_EXPIRED: { ru: '???? ????? ???? ?????', en: 'The code expired' },
 };
 
+function isEnglish() {
+    return document.documentElement.lang === 'en';
+}
+
+function getStatusLabel(status) {
+    return t(`status.${status}`);
+}
+
+function getRejectLabel(code) {
+    const item = REJECT_LABELS[code];
+    if (!item) return code || '';
+    return isEnglish() ? item.en : item.ru;
+}
+
 export let currentBet = null;
+
 
 let activeIntent = null;
 let apiBase = '';
@@ -87,6 +94,12 @@ function bindDom() {
         transferInstructions: document.getElementById('bsTransferInstructions'),
         timeline: document.getElementById('bsTimeline'),
         primaryAction: document.getElementById('bsPrimaryAction'),
+        lockedMatch: document.getElementById('bsLockedMatch'),
+        lockedOutcome: document.getElementById('bsLockedOutcome'),
+        lockedOdds: document.getElementById('bsLockedOdds'),
+        lockedAmount: document.getElementById('bsLockedAmount'),
+        lockedPayout: document.getElementById('bsLockedPayout'),
+        lockedExpiry: document.getElementById('bsLockedExpiry'),
     });
 
     dom.walletInput?.addEventListener('input', () => {
@@ -405,6 +418,7 @@ function renderCoupon() {
         return;
     }
 
+    renderLockedSummary(form);
     if (dom.intentHash) dom.intentHash.textContent = activeIntent.intent_hash;
     if (dom.intentCountdown) dom.intentCountdown.textContent = formatCountdown(activeIntent.expires_at);
     if (dom.transferInstructions) dom.transferInstructions.textContent = buildTransferInstructions(activeIntent);
@@ -444,15 +458,16 @@ function syncIntentFromApi(payload) {
     });
     pushTimeline(
         activeIntent,
-        'Статус синхронизирован',
+        isEnglish() ? 'Status synchronized' : '?????? ???????????????',
         payload.bet
-            ? `Система вернула ${STATUS_LABELS[activeIntent.status] || activeIntent.status}.`
-            : `Intent пока без связанной транзакции, текущее состояние: ${STATUS_LABELS[activeIntent.status] || activeIntent.status}.`
+            ? `${isEnglish() ? 'System returned' : '??????? ???????'} ${getStatusLabel(activeIntent.status) || activeIntent.status}.`
+            : `${isEnglish() ? 'No transfer is linked yet, current state:' : 'Intent ???? ??? ????????? ??????????, ??????? ?????????:'} ${getStatusLabel(activeIntent.status) || activeIntent.status}.`
     );
     upsertIntentRecord(activeIntent);
     renderCoupon();
     dispatchIntentUpdate();
 }
+
 
 function dispatchIntentUpdate() {
     window.dispatchEvent(new CustomEvent('prizmbet:intent-updated', {
@@ -552,76 +567,84 @@ function mapOutcomeToApiOutcome(outcome) {
 }
 
 function getPrimaryActionLabel(form) {
-    if (!activeIntent?.intent_hash) return 'Выпустить код ставки';
+    if (!activeIntent?.intent_hash) return t('coupon.issue');
     if (isIntentInSync(activeIntent, form)) {
-        if (activeIntent.status === 'awaiting_payment') return 'Скопировать intent-код';
-        if (['accepted', 'rejected', 'expired', 'won', 'lost'].includes(activeIntent.status)) return 'Открыть кабинет';
+        if (activeIntent.status === 'awaiting_payment') return t('coupon.copyCode');
+        if (['accepted', 'rejected', 'expired', 'won', 'lost'].includes(activeIntent.status)) return t('coupon.openCabinet');
     }
-    return 'Выпустить новый код';
+    return isEnglish() ? 'Issue new code' : '????????? ????? ???';
 }
+
 
 function getFlowHint(form, statusMeta) {
     if (!activeIntent?.intent_hash) {
-        return 'Укажите кошелёк и сумму. Купон зафиксирует коэффициент и выпустит короткий код для перевода.';
+        return isEnglish() ? 'Enter the wallet and amount. The coupon will lock the odds and issue the transfer code.' : '??????? ??????? ? ?????. ????? ??????????? ??????????? ? ???????? ???????? ??? ??? ????????.';
     }
     if (activeIntent.status === 'awaiting_payment') {
         if (isIntentInSync(activeIntent, form)) {
-            return 'Код уже выпущен. Отправьте перевод с этого же кошелька и вставьте в сообщение только этот код.';
+            return isEnglish() ? 'The code is already issued. Send the transfer from the same wallet and use this code.' : '??? ??? ???????. ????????? ??????? ? ????? ?? ???????? ? ???????? ? ????????? ?????? ???? ???.';
         }
-        return 'Параметры ставки изменились. Выпустите новый код, чтобы заново зафиксировать купон.';
+        return isEnglish() ? 'The bet parameters changed. Issue a new code to lock the updated coupon.' : '????????? ?????? ??????????. ????????? ????? ???, ????? ?????? ????????????? ?????.';
     }
     return statusMeta.hint;
 }
 
+
 function getStatusMeta(status) {
     if (status === 'awaiting_payment') {
         return {
-            label: STATUS_LABELS.awaiting_payment,
+            label: getStatusLabel('awaiting_payment'),
             className: 'coupon-status--waiting',
-            hint: 'Код выпущен. Система ждёт перевод с указанным кодом и тем же кошельком.',
+            hint: isEnglish() ? 'The code is issued. The system is waiting for a transfer from the same wallet.' : '??? ???????. ??????? ???? ??????? ? ????????? ????? ? ??? ?? ?????????.',
         };
     }
     if (status === 'accepted') {
         return {
-            label: STATUS_LABELS.accepted,
+            label: getStatusLabel('accepted'),
             className: 'coupon-status--accepted',
-            hint: 'Перевод найден и ставка принята. Дальше следите за расчётом в кабинете.',
+            hint: isEnglish() ? 'The transfer was found and the bet is accepted. Follow settlement in the cabinet.' : '??????? ?????? ? ?????? ???????. ?????? ??????? ?? ???????? ? ????????.',
         };
     }
     if (status === 'rejected') {
         return {
-            label: STATUS_LABELS.rejected,
+            label: getStatusLabel('rejected'),
             className: 'coupon-status--rejected',
-            hint: REJECT_LABELS[activeIntent?.reject_reason] || 'Ставка была отклонена правилами системы.',
+            hint: getRejectLabel(activeIntent?.reject_reason) || (isEnglish() ? 'The bet was rejected by system rules.' : '?????? ???? ????????? ????????? ???????.'),
         };
     }
     if (status === 'expired') {
         return {
-            label: STATUS_LABELS.expired,
+            label: getStatusLabel('expired'),
             className: 'coupon-status--expired',
-            hint: 'Окно купона завершилось. Для новой попытки выпустите новый код.',
+            hint: isEnglish() ? 'The coupon window is over. Issue a new code for a new attempt.' : '???? ?????? ???????????. ??? ????? ??????? ????????? ????? ???.',
         };
     }
     if (status === 'won' || status === 'lost') {
         return {
-            label: STATUS_LABELS[status],
+            label: getStatusLabel(status),
             className: 'coupon-status--settled',
-            hint: status === 'won' ? 'Ставка рассчитана как выигрышная.' : 'Ставка рассчитана как проигрышная.',
+            hint: status === 'won'
+                ? (isEnglish() ? 'The bet is settled as a win.' : '?????? ?????????? ??? ??????????.')
+                : (isEnglish() ? 'The bet is settled as a loss.' : '?????? ?????????? ??? ???????????.'),
         };
     }
     return {
-        label: STATUS_LABELS.draft,
+        label: getStatusLabel('draft'),
         className: 'coupon-status--draft',
-        hint: 'Купон ещё не выпущен.',
+        hint: isEnglish() ? 'The coupon is not issued yet.' : '????? ??? ?? ???????.',
     };
 }
 
+
 function buildTransferInstructions(intent) {
-    const base = `Отправьте ${formatNumber(intent.amount_prizm)} PRIZM на ${MASTER_WALLET}. В сообщение перевода вставьте только код ${intent.intent_hash}.`;
+    const base = isEnglish()
+        ? `Send ${formatNumber(intent.amount_prizm)} PRIZM to ${MASTER_WALLET}. Put code ${intent.intent_hash} into the transfer message.`
+        : `????????? ${formatNumber(intent.amount_prizm)} PRIZM ?? ${MASTER_WALLET}. ? ????????? ???????? ???????? ?????? ??? ${intent.intent_hash}.`;
     return apiLive
-        ? `${base} После перевода откройте кабинет, чтобы увидеть статус.`
-        : `${base} Код и история уже сохранены на этом устройстве.`;
+        ? `${base} ${isEnglish() ? 'After the transfer open the cabinet to see the status.' : '????? ???????? ???????? ???????, ????? ??????? ??????.'}`
+        : `${base} ${isEnglish() ? 'The code and history are already saved on this device.' : '??? ? ??????? ??? ????????? ?? ???? ??????????.'}`;
 }
+
 
 function buildLocalCabinet(wallet) {
     const records = getIntentRecords()
@@ -642,32 +665,23 @@ function buildLocalCabinet(wallet) {
         if (record.status === 'rejected' || record.status === 'expired') rejected += 1;
         if (record.status === 'won') won += 1;
         if (record.status === 'lost') lost += 1;
-        if (['accepted', 'won', 'lost'].includes(record.status)) {
-            turnover_prizm += Number(record.amount_prizm || 0);
-        }
+        if (['accepted', 'won', 'lost'].includes(record.status)) turnover_prizm += Number(record.amount_prizm || 0);
     });
 
     return {
         wallet,
         mode: 'local',
         rank: deriveRank(turnover_prizm, accepted + won + lost),
-        stats: {
-            waiting_payment,
-            accepted,
-            rejected,
-            won,
-            lost,
-            turnover_prizm,
-            total_intents: records.length,
-        },
+        stats: { waiting_payment, accepted, rejected, won, lost, turnover_prizm, total_intents: records.length },
         feed: records.slice(0, 12).map((record) => ({
-            title: record.match_label || `Матч #${record.match_id}`,
-            subtitle: `${record.outcome} @ ${formatNumber(record.odds_fixed)} • ${formatNumber(record.amount_prizm)} PRIZM`,
-            meta: `${STATUS_LABELS[record.status] || record.status}${record.reject_reason ? ` • ${REJECT_LABELS[record.reject_reason] || record.reject_reason}` : ''} • ${formatDateTime(record.created_at)}`,
+            title: record.match_label || `${isEnglish() ? 'Match' : '????'} #${record.match_id}`,
+            subtitle: `${formatOutcomeLabel(record.outcome)} @ ${formatNumber(record.odds_fixed)} ? ${formatNumber(record.amount_prizm)} PRIZM`,
+            meta: `${getStatusLabel(record.status) || record.status}${record.reject_reason ? ` ? ${getRejectLabel(record.reject_reason) || record.reject_reason}` : ''} ? ${formatDateTime(record.created_at)}`,
             status: record.status,
         })),
     };
 }
+
 
 function mapDashboardToCabinet(wallet, payload) {
     const rank = payload.rank || deriveRank(Number(payload.stats?.turnover_prizm || 0), Number(payload.rank?.accepted_count || 0));
@@ -675,16 +689,16 @@ function mapDashboardToCabinet(wallet, payload) {
     const recentIntents = Array.isArray(payload.recent_intents) ? payload.recent_intents : [];
 
     const feedFromBets = recentBets.map((bet) => ({
-        title: bet.match_label || [bet.team1, bet.team2].filter(Boolean).join(' vs ') || `Матч #${bet.match_id || '—'}`,
-        subtitle: `${bet.outcome || bet.bet_type || 'Исход'} @ ${formatNumber(bet.odds_fixed || bet.coef)} • ${formatNumber(bet.amount_prizm || bet.amount || 0)} PRIZM`,
-        meta: `${STATUS_LABELS[bet.status] || bet.status || 'accepted'} • ${formatDateTime(bet.created_at)}`,
+        title: bet.match_label || [bet.team1, bet.team2].filter(Boolean).join(' vs ') || `${isEnglish() ? 'Match' : '????'} #${bet.match_id || '?'}`,
+        subtitle: `${formatOutcomeLabel(bet.outcome || bet.bet_type || (isEnglish() ? 'Outcome' : '?????'))} @ ${formatNumber(bet.odds_fixed || bet.coef)} ? ${formatNumber(bet.amount_prizm || bet.amount || 0)} PRIZM`,
+        meta: `${getStatusLabel(bet.status || 'accepted')} ? ${formatDateTime(bet.created_at)}`,
         status: bet.status || 'accepted',
     }));
 
     const feed = feedFromBets.length ? feedFromBets : recentIntents.map((intent) => ({
-        title: `${intent.intent_hash} • матч #${intent.match_id}`,
-        subtitle: `${intent.outcome} @ ${formatNumber(intent.odds_fixed)}`,
-        meta: `${STATUS_LABELS[intent.status] || intent.status} • ${formatDateTime(intent.created_at || intent.expires_at)}`,
+        title: `${intent.intent_hash} ? ${isEnglish() ? 'match' : '????'} #${intent.match_id}`,
+        subtitle: `${formatOutcomeLabel(intent.outcome)} @ ${formatNumber(intent.odds_fixed)}`,
+        meta: `${getStatusLabel(intent.status) || intent.status} ? ${formatDateTime(intent.created_at || intent.expires_at)}`,
         status: intent.status,
     }));
 
@@ -704,6 +718,7 @@ function mapDashboardToCabinet(wallet, payload) {
         feed: feed.slice(0, 12),
     };
 }
+
 
 function deriveRank(turnover, acceptedCount) {
     const tiers = [
@@ -765,21 +780,11 @@ function toNumber(value) {
 }
 
 function formatNumber(value) {
-    const number = Number(value || 0);
-    return Number.isFinite(number)
-        ? number.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-        : '0';
+    return formatNumberI18n(value, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 function formatDateTime(value) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value || '');
-    return date.toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    return formatDateTimeI18n(value);
 }
 
 function formatCountdown(expiresAt) {
