@@ -724,6 +724,26 @@
     .market-sidebar {
         position: sticky;
         top: 92px;
+        align-self: start;
+        max-height: calc(100vh - 104px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 6px;
+        scrollbar-gutter: stable;
+    }
+
+    .market-sidebar::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .market-sidebar::-webkit-scrollbar-thumb {
+        background: rgba(135, 110, 255, 0.34);
+        border-radius: 999px;
+    }
+
+    .market-sidebar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 999px;
     }
 
     .quick-start-card {
@@ -1855,6 +1875,13 @@ button.market-chip:hover {
 @media (max-width: 979px) {
     .top-stage {
         grid-template-columns: 1fr;
+    }
+
+    .market-sidebar {
+        position: static;
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
     }
 }
 @media (max-width: 767px) {
