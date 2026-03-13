@@ -84,12 +84,12 @@ export function getCountdownText(match) {
     if (diff <= 0) return t('status.finished');
 
     const minutes = Math.floor(diff / 60000);
-    if (minutes < 60) return getLanguage() === 'en' ? `${minutes} min` : `${minutes} ???`;
+    if (minutes < 60) return getLanguage() === 'en' ? `${minutes} min` : `${minutes} мин`;
 
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return getLanguage() === 'en' ? `${hours} h` : `${hours} ?`;
+    if (hours < 24) return getLanguage() === 'en' ? `${hours} h` : `${hours} ч`;
 
-    return getLanguage() === 'en' ? `${Math.floor(hours / 24)} d` : `${Math.floor(hours / 24)} ?`;
+    return getLanguage() === 'en' ? `${Math.floor(hours / 24)} d` : `${Math.floor(hours / 24)} д`;
 }
 
 export function initScrollProgress() {

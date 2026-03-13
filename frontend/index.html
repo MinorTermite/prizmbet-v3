@@ -178,7 +178,7 @@
 <button class="btn btn-primary" onclick="copyWallet(this)">📋 <span data-i18n="wallet.copy">Скопировать кошелёк</span></button>
 <p class="wallet-note wallet-note--lead" data-i18n="wallet.note">Сначала выпустите код в купоне. Затем отправьте перевод на кошелёк проекта и укажите этот код в сообщении.</p>
 </div>
-<section aria-label="??????? ???????? PRIZMBET" class="section rules-section">
+<section aria-label="Правила перевода PRIZMBET" class="section rules-section">
 <div class="rules-compact-card">
 <div class="smart-banner-eyebrow" data-i18n="rules.eyebrow">Перед переводом</div>
 <h2 class="smart-banner-title" data-i18n="rules.title">3 правила приёма перевода</h2>
@@ -208,9 +208,9 @@
 </div>
 <div class="bet-slip" id="betSlip">
 <div class="bet-slip-header"><div class="bet-slip-title" data-i18n="coupon.title">Умный купон</div><button aria-label="???????" class="bet-slip-close" onclick="closeBetSlip()">×</button></div>
-<div class="bet-slip-match" id="bsMatch">???? ????? ?????? ?? ?????</div>
-<div class="coupon-meta" id="bsMeta">???? ? ????? ???????</div>
-<div class="bet-slip-selection"><div class="bet-slip-outcome" id="bsOutcome">?1</div><div class="bet-slip-coef" id="bsCoef">2.45</div></div>
+<div class="bet-slip-match" id="bsMatch">Матч будет выбран из линии</div>
+<div class="coupon-meta" id="bsMeta">Лига и номер события</div>
+<div class="bet-slip-selection"><div class="bet-slip-outcome" id="bsOutcome">П1</div><div class="bet-slip-coef" id="bsCoef">2.45</div></div>
 <div class="coupon-grid">
 <label class="coupon-field"><span class="coupon-field-label" data-i18n="coupon.wallet">Кошелёк игрока</span><input class="coupon-input" id="bsWalletInput" placeholder="PRIZM-XXXX-XXXX-XXXX-XXXXX" type="text"/></label>
 <div class="coupon-field"><span class="coupon-field-label" data-i18n="coupon.amount">Сумма ставки</span><div class="bet-input-wrap"><input class="bet-input" id="bsInput" max="200000" min="1500" oninput="calcPayout()" placeholder="1500" type="number"/><span class="bet-currency">PZM</span></div></div>
@@ -219,8 +219,8 @@
 <div class="bet-calc-row"><span data-i18n="coupon.expected" style="color:var(--text-secondary); font-size:0.9rem;">Ожидаемая сумма:</span><span data-i18n="coupon.payout" style="color:var(--text-secondary); font-size:0.9rem;">Потенциальная выплата:</span></div>
 <div class="bet-calc-row" style="gap:16px; align-items:center;"><div data-i18n="coupon.window" style="font-weight:700; color:#fff;">До 15 минут на выпуск и перевод</div><div class="bet-payout" id="bsPayout">0.00</div></div>
 </div>
-<div class="coupon-helper-row"><span class="coupon-badge coupon-badge--local" data-i18n="coupon.ready" id="bsApiBadge">Купон готов</span><span class="coupon-status coupon-status--draft" id="bsStatusPill">????????</span></div>
-<p class="coupon-note" id="bsFlowHint">???????? ??????????? ? ?????, ????? ????????? ??? ??????.</p>
+<div class="coupon-helper-row"><span class="coupon-badge coupon-badge--local" data-i18n="coupon.ready" id="bsApiBadge">Купон готов</span><span class="coupon-status coupon-status--draft" id="bsStatusPill">Черновик</span></div>
+<p class="coupon-note" id="bsFlowHint">Выберите коэффициент в линии, чтобы выпустить код ставки.</p>
 <div class="coupon-issued hidden" id="bsIssuedBlock">
 <div class="coupon-code-card">
 <div class="coupon-code-head"><div><div class="coupon-field-label" data-i18n="coupon.nextStep">Следующий шаг</div><div class="coupon-countdown" id="bsIntentCountdown">15:00</div></div><button class="coupon-secondary-btn" data-i18n="coupon.copyCode" onclick="copyBetSlipCode()" type="button">Скопировать код</button></div>
@@ -237,7 +237,7 @@
 <div class="coupon-lock-item"><span class="coupon-lock-label" data-i18n="coupon.expires">Код действует до</span><strong class="coupon-lock-value" id="bsLockedExpiry">?</strong></div>
 </div>
 </div>
-<div class="coupon-transfer-card"><div class="coupon-field-label" data-i18n="coupon.nextStep">Следующий шаг</div><p class="coupon-transfer-copy" id="bsTransferInstructions"></p><div class="coupon-wallet-chip">??????? ???????: <strong>PRIZM-4N7T-L2A7-RQZA-5BETW</strong></div></div>
+<div class="coupon-transfer-card"><div class="coupon-field-label" data-i18n="coupon.nextStep">Следующий шаг</div><p class="coupon-transfer-copy" id="bsTransferInstructions"></p><div class="coupon-wallet-chip">Кошелёк проекта: <strong>PRIZM-4N7T-L2A7-RQZA-5BETW</strong></div></div>
 <div class="coupon-actions"><button class="coupon-secondary-btn" data-i18n="coupon.refreshStatus" onclick="refreshSlipStatus()" type="button">Обновить статус</button><button class="coupon-secondary-btn" data-i18n="coupon.openCabinet" onclick="openHistory()" type="button">Открыть кабинет</button></div>
 <div><div class="coupon-field-label" data-i18n="coupon.timeline" style="margin-bottom:8px;">Лента статуса</div><div class="coupon-timeline" id="bsTimeline"></div></div>
 </div>
@@ -250,8 +250,8 @@
 <div class="coupon-actions"><button class="btn btn-primary" data-i18n="cabinet.refresh" onclick="openHistory()" type="button">Обновить кабинет</button><button class="btn btn-outline" data-i18n="cabinet.clear" onclick="clearHistory()" type="button">Очистить историю устройства</button></div>
 </div>
 <div class="cabinet-headline">
-<div><div class="coupon-field-label" data-i18n="cabinet.source" style="margin-bottom:8px;">Источник статуса</div><span class="coupon-badge coupon-badge--local" id="cabinetModeBadge">??????? ?? ???? ??????????</span></div>
-<div class="cabinet-rank-box"><div class="coupon-field-label" data-i18n="cabinet.rank">Текущий уровень</div><div class="cabinet-rank-name" id="cabinetRankTitle">?????</div><div class="cabinet-rank-hint" id="cabinetRankHint">??????? ?????????? ????? ??????? ??????.</div></div>
+<div><div class="coupon-field-label" data-i18n="cabinet.source" style="margin-bottom:8px;">Источник статуса</div><span class="coupon-badge coupon-badge--local" id="cabinetModeBadge">История на этом устройстве</span></div>
+<div class="cabinet-rank-box"><div class="coupon-field-label" data-i18n="cabinet.rank">Текущий уровень</div><div class="cabinet-rank-name" id="cabinetRankTitle">Старт</div><div class="cabinet-rank-hint" id="cabinetRankHint">Кабинет заполнится после первого купона.</div></div>
 </div>
 <div class="cabinet-stats" id="cabinetStats"></div>
 <div class="cabinet-feed" id="historyList"></div>
