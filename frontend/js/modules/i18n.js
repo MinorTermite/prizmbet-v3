@@ -160,8 +160,8 @@ const DICTIONARY = {
     },
     en: {
         'app.tagline': 'Betting on PRIZM',
-        'header.timeLabel': 'Washington time',
-        'header.timeShort': 'DC',
+        'header.timeLabel': 'Moscow time',
+        'header.timeShort': 'MSK',
         'header.notifications': 'Notifications',
         'header.telegram': 'Telegram bot',
         'header.cabinet': 'Cabinet',
@@ -339,7 +339,7 @@ export function getLocale() {
 }
 
 export function getTimeZone() {
-    return getLanguage() === 'en' ? 'America/New_York' : 'Europe/Moscow';
+    return 'Europe/Moscow';
 }
 
 export function t(key, vars = {}) {

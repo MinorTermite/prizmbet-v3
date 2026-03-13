@@ -12,7 +12,7 @@ function getLocale() {
     return getLang() === 'en' ? 'en-US' : 'ru-RU';
 }
 function getZone() {
-    return getLang() === 'en' ? 'America/New_York' : 'Europe/Moscow';
+    return 'Europe/Moscow';
 }
 function t(key, vars = {}) {
     const dict = {
