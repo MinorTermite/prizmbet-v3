@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="ru">
+﻿<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PRIZMBET — Операторская панель</title>
+<title>PRIZMBET Admin Redirect</title>
 <meta http-equiv="refresh" content="0; url=./operator.html">
 <style>
   :root {
@@ -13,7 +13,6 @@
     --text: #f8fafc;
     --muted: rgba(226, 232, 240, 0.74);
     --accent: #7c3aed;
-    --accent2: #22d3ee;
   }
   * { box-sizing: border-box; }
   body {
@@ -29,13 +28,13 @@
     color: var(--text);
     font: 16px/1.55 Inter, system-ui, sans-serif;
   }
-  .legacy-card {
+  .card {
     width: min(560px, 100%);
     padding: 28px;
     border-radius: 24px;
     border: 1px solid var(--border);
     background: var(--card);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 40px rgba(124, 58, 237, 0.16);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   }
   .eyebrow {
     color: #c4b5fd;
@@ -45,20 +44,9 @@
     font-weight: 800;
     margin-bottom: 10px;
   }
-  h1 {
-    margin: 0 0 10px;
-    font-size: clamp(1.8rem, 4vw, 2.5rem);
-    line-height: 1.05;
-  }
-  p {
-    margin: 0 0 18px;
-    color: var(--muted);
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
+  h1 { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.05; }
+  p { margin: 0 0 18px; color: var(--muted); }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
   .btn {
     display: inline-flex;
     align-items: center;
@@ -82,13 +70,13 @@
 </script>
 </head>
 <body>
-  <main class="legacy-card">
+  <main class="card">
     <div class="eyebrow">Legacy route</div>
-    <h1>Старая админка выведена из обращения</h1>
-    <p>В v3 больше не используется публичная HTML-админка с локальным паролем. Рабочий операторский контур перенесён в отдельную панель и подключается к backend API через ключ доступа.</p>
+    <h1>Operator panel moved</h1>
+    <p>The active admin surface for v3 lives at <strong>operator.html</strong>. This page only keeps the old route working.</p>
     <div class="actions">
-      <a class="btn btn-primary" href="./operator.html">Открыть операторскую панель</a>
-      <a class="btn" href="./index.html">Вернуться на сайт</a>
+      <a class="btn btn-primary" href="./operator.html">Open operator panel</a>
+      <a class="btn" href="./index.html">Back to site</a>
     </div>
   </main>
 </body>

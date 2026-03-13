@@ -1,200 +1,31 @@
-<!DOCTYPE html>
-<html lang="ru">
+﻿<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRIZMBET Intent Lab</title>
-    <meta name="description" content="Прототип intent-купона и кабинета кошелька для PRIZMBET.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>PRIZMBET Prototype Archive</title>
+    <meta name="description" content="Archived prototype route for PRIZMBET v3.">
     <link rel="stylesheet" href="css/intent-lab.css">
+    <style>
+      .archive-shell { min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; }
+      .archive-card { width: min(720px, 100%); }
+      .archive-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+      .archive-actions a { text-decoration: none; }
+    </style>
 </head>
 <body>
-    <div class="lab-shell">
-        <header class="hero-card">
-            <div>
-                <a href="index.html" class="back-link">← Назад к текущему сайту</a>
-                <div class="eyebrow">Prototype Lab</div>
-                <h1>Intent-купон и кабинет кошелька</h1>
-                <p class="hero-copy">Отдельный безопасный контур. Текущий сайт не ломается: здесь мы смотрим, как может выглядеть переход от выбора коэффициента к коду ставки, статусу транзакции и кабинету пользователя.</p>
-            </div>
-            <div class="hero-aside">
-                <div class="aside-note">
-                    <span class="note-label">Что показывает прототип</span>
-                    <span class="note-value">intent-код, фиксированный коэффициент, состояние ставки, кабинет и preview рангов</span>
-                </div>
-                <div class="aside-note">
-                    <span class="note-label">Что намеренно не делаем здесь</span>
-                    <span class="note-value">внутренний баланс кошелька и переписывание текущего index.html</span>
-                </div>
-            </div>
-        </header>
-
-        <section class="panel controls-panel">
+    <div class="archive-shell">
+        <main class="panel archive-card">
             <div class="section-head">
-                <h2>1. Базовые параметры</h2>
-                <span id="apiModeBadge" class="status-pill status-pill--demo">DEMO MODE</span>
+                <h1>Prototype route archived</h1>
+                <span class="muted-chip">v3 release mode</span>
             </div>
-            <div class="control-grid">
-                <label class="field">
-                    <span>Кошелёк игрока</span>
-                    <input id="walletInput" type="text" placeholder="PRIZM-XXXX-XXXX-XXXX-XXXXX">
-                </label>
-                <label class="field">
-                    <span>Сумма ставки, PRIZM</span>
-                    <input id="amountInput" type="number" min="10" step="1" value="1500">
-                </label>
-                <label class="field field--wide">
-                    <span>Intent API base URL</span>
-                    <div class="field-row">
-                        <input id="apiBaseInput" type="text" value="" placeholder="http://localhost:8081">
-                        <button id="checkApiBtn" class="ghost-btn" type="button">Проверить API</button>
-                    </div>
-                </label>
+            <p class="helper-text">The old intent lab is no longer part of the public flow. The working v3 path now lives on the main site: line, coupon, cabinet and operator panel.</p>
+            <div class="archive-actions">
+                <a class="primary-btn" href="./index.html">Open main site</a>
+                <a class="ghost-btn" href="./operator.html">Open operator panel</a>
             </div>
-            <p id="apiHint" class="helper-text">Если API доступен, страница сможет создавать реальный intent и опрашивать его статус. Если нет — включается интерактивный demo flow.</p>
-        </section>
-
-        <section class="content-grid">
-            <div class="panel match-panel">
-                <div class="section-head">
-                    <h2>2. Выбор события</h2>
-                    <span class="muted-chip">Берём реальные матчи из matches-today.json</span>
-                </div>
-                <div id="matchesGrid" class="match-grid">
-                    <div class="empty-box">Загрузка линии...</div>
-                </div>
-            </div>
-
-            <div class="panel intent-panel">
-                <div class="section-head">
-                    <h2>3. Intent-купон</h2>
-                    <span id="selectedSource" class="muted-chip">Ожидает выбора</span>
-                </div>
-
-                <div id="intentEmpty" class="empty-box empty-box--tall">
-                    Выберите исход слева. После этого прототип выпустит одноразовый код ставки, зафиксирует коэффициент и покажет, что именно игрок должен отправить в сеть.
-                </div>
-
-                <div id="intentCard" class="intent-card hidden">
-                    <div class="intent-topline">
-                        <span id="intentStatusPill" class="status-pill status-pill--waiting">Ожидает перевода</span>
-                        <span id="intentCountdown" class="countdown-pill">15:00</span>
-                    </div>
-
-                    <div class="summary-block">
-                        <div class="summary-label">Матч</div>
-                        <div id="intentMatch" class="summary-value"></div>
-                    </div>
-
-                    <div class="ticket-grid">
-                        <div>
-                            <div class="summary-label">Outcome</div>
-                            <div id="intentOutcome" class="summary-value summary-value--accent"></div>
-                        </div>
-                        <div>
-                            <div class="summary-label">Коэффициент</div>
-                            <div id="intentOdds" class="summary-value"></div>
-                        </div>
-                        <div>
-                            <div class="summary-label">Сумма</div>
-                            <div id="intentAmount" class="summary-value"></div>
-                        </div>
-                        <div>
-                            <div class="summary-label">Режим</div>
-                            <div id="intentMode" class="summary-value"></div>
-                        </div>
-                    </div>
-
-                    <div class="code-block">
-                        <div class="summary-label">Intent code</div>
-                        <div class="code-row">
-                            <code id="intentHash"></code>
-                            <button id="copyCodeBtn" class="ghost-btn" type="button">Скопировать</button>
-                        </div>
-                    </div>
-
-                    <div class="transfer-card">
-                        <div class="summary-label">Что должен сделать игрок</div>
-                        <p id="transferInstructions" class="transfer-copy"></p>
-                        <div class="wallet-chip">Кошелёк проекта: <strong>PRIZM-4N7T-L2A7-RQZA-5BETW</strong></div>
-                    </div>
-
-                    <div class="action-row">
-                        <button id="refreshStatusBtn" class="primary-btn" type="button">Обновить статус из API</button>
-                        <button id="simulateAcceptBtn" class="ghost-btn" type="button">Симулировать accepted</button>
-                        <button id="simulateLateBtn" class="ghost-btn" type="button">Симулировать late bet</button>
-                        <button id="simulateMismatchBtn" class="ghost-btn" type="button">Симулировать mismatch</button>
-                        <button id="simulateWonBtn" class="ghost-btn hidden" type="button">Симулировать win</button>
-                        <button id="simulateLostBtn" class="ghost-btn hidden" type="button">Симулировать loss</button>
-                    </div>
-
-                    <div>
-                        <div class="summary-label">Лента статусов</div>
-                        <div id="intentTimeline" class="timeline"></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="content-grid content-grid--bottom">
-            <div class="panel cabinet-panel">
-                <div class="section-head">
-                    <h2>4. Кабинет кошелька</h2>
-                    <span id="cabinetModeBadge" class="muted-chip">Локальный preview</span>
-                </div>
-
-                <div class="cabinet-head">
-                    <div>
-                        <div class="summary-label">Текущий кошелёк</div>
-                        <div id="cabinetWallet" class="wallet-title">Не выбран</div>
-                    </div>
-                    <div class="rank-card">
-                        <div class="summary-label">Текущий rank</div>
-                        <div id="rankName" class="rank-name">Observer</div>
-                        <div id="rankHint" class="rank-hint">Введите кошелёк и примите хотя бы одну ставку</div>
-                    </div>
-                </div>
-
-                <div id="statsGrid" class="stats-grid"></div>
-
-                <div class="progress-wrap">
-                    <div class="progress-head">
-                        <span>Прогресс к следующему рангу</span>
-                        <span id="rankProgressText">0%</span>
-                    </div>
-                    <div class="progress-bar"><div id="rankProgressBar"></div></div>
-                </div>
-
-                <div>
-                    <div class="summary-label">Последние действия</div>
-                    <div id="cabinetFeed" class="feed-list">
-                        <div class="empty-box">Кабинет заполнится после выпуска первого intent.</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel notes-panel">
-                <div class="section-head">
-                    <h2>Что видно в прототипе</h2>
-                    <span class="muted-chip">Без переписывания основного сайта</span>
-                </div>
-                <ul class="note-list">
-                    <li>Клик по коэффициенту превращается не в свободный комментарий, а в <strong>одноразовый intent code</strong>.</li>
-                    <li>Коэффициент фиксируется на момент выпуска купона и отображается пользователю сразу.</li>
-                    <li>Сайт начинает объяснять пользователю следующий шаг: какой код вставить в сообщение и на какой кошелёк отправлять перевод.</li>
-                    <li>Кабинет строится вокруг кошелька: статусы, история, turnover и будущая rank-геймификация.</li>
-                    <li>Даже без живого API можно руками прогнать сценарии accepted / late / mismatch / win / loss и посмотреть UX.</li>
-                </ul>
-                <div class="prototype-warning">
-                    Это именно прототип UX-логики. Он не заменяет текущий поток на основном сайте и не включает внутренний баланс пользователя.
-                </div>
-            </div>
-        </section>
+        </main>
     </div>
-
-    <div id="toast" class="toast hidden"></div>
-    <script type="module" src="js/intent-lab.js"></script>
 </body>
 </html>
