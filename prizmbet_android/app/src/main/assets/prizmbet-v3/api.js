@@ -1,7 +1,7 @@
-// ===== CONFIG =====
+﻿// ===== CONFIG =====
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 const LS_CACHE_KEY = 'prizmbet_matches_cache';
-const LS_FULL_KEY  = 'prizmbet_matches_full_cache';
+const LS_FULL_KEY = 'prizmbet_matches_full_cache';
 const LANG_KEY = 'prizmbet_lang_v1';
 const STALE_SNAPSHOT_MS = 8 * 60 * 60 * 1000;
 
@@ -17,14 +17,14 @@ function getZone() {
 function t(key, vars = {}) {
     const dict = {
         ru: {
-            updated: '?????????: {value}',
-            cache: '???',
-            full: '???',
-            line: '?????',
-            archive: '???????? ??????',
-            loadErrorTitle: '?? ??????? ????????? ?????',
-            loadErrorText: '????????? ??????????? ? ?????????',
-            retry: '?????????',
+            updated: 'Обновлено: {value}',
+            cache: 'кэш',
+            full: 'полный',
+            line: 'линия',
+            archive: 'архивный срез',
+            loadErrorTitle: 'Не удалось загрузить матчи',
+            loadErrorText: 'Проверьте подключение и повторите попытку',
+            retry: 'Повторить',
         },
         en: {
             updated: 'Updated: {value}',
@@ -115,10 +115,10 @@ function _showLoadError() {
     if (!content || !content.querySelector('.shimmer')) return;
     content.innerHTML = `
         <div style="text-align:center;padding:60px 20px;color:var(--text-tertiary,#888)">
-            <div style="font-size:2.5rem;margin-bottom:14px">??</div>
+            <div style="font-size:2.5rem;margin-bottom:14px">&#9888;</div>
             <p style="margin-bottom:6px;font-size:1rem;color:var(--text-secondary,#ccc)">${t('loadErrorTitle')}</p>
             <p style="margin-bottom:22px;font-size:.85rem;opacity:.7">${t('loadErrorText')}</p>
-            <button onclick="loadData()" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;cursor:pointer;font-size:.95rem;font-weight:600;letter-spacing:.02em">?? ${t('retry')}</button>
+            <button onclick="loadData()" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;cursor:pointer;font-size:.95rem;font-weight:600;letter-spacing:.02em">${t('retry')}</button>
         </div>`;
 }
 

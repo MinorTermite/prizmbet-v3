@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = 'prizmbet_operator_console_v2';
+﻿const STORAGE_KEY = 'prizmbet_operator_console_v3';
 const AUTO_REFRESH_MS = 20000;
 
 const state = {
@@ -56,7 +56,7 @@ function bindEvents() {
     state.autoRefresh = dom.autoRefreshToggle.checked;
     persistState();
     syncAutoRefresh();
-    renderStatus(state.autoRefresh ? 'Автообновление включено.' : 'Автообновление остановлено.', 'neutral');
+    renderStatus(state.autoRefresh ? 'Автообновление включено.' : 'Автообновление выключено.', 'neutral');
   });
 
   let debounceId = null;
@@ -74,15 +74,22 @@ function bindEvents() {
   });
 
   dom.feedList.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-copy]');
-    if (!button) return;
-    const value = button.getAttribute('data-copy') || '';
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      renderStatus(`Скопировано: ${value}`, 'good');
-    } catch {
-      renderStatus('Не удалось записать значение в буфер обмена.', 'warn');
+    const copyButton = event.target.closest('[data-copy]');
+    if (copyButton) {
+      const value = copyButton.getAttribute('data-copy') || '';
+      if (!value) return;
+      try {
+        await navigator.clipboard.writeText(value);
+        renderStatus(`Скопировано: ${value}`, 'good');
+      } catch {
+        renderStatus('Не удалось скопировать значение в буфер обмена.', 'warn');
+      }
+      return;
+    }
+
+    const paidButton = event.target.closest('[data-mark-paid]');
+    if (paidButton) {
+      await handleMarkPaid(paidButton);
     }
   });
 }
@@ -146,23 +153,23 @@ async function fetchFeed() {
   if (!state.apiBase) {
     state.items = [];
     state.stats = null;
-    renderStatus('Укажите API base. Для локального запуска обычно используется http://127.0.0.1:8081.', 'warn');
+    renderStatus('Укажите API base. Для локальной проверки обычно используется http://127.0.0.1:8081.', 'warn');
     render();
     return;
   }
 
   if (window.location.protocol === 'https:' && state.apiBase.startsWith('http://127.0.0.1')) {
-    renderStatus('Публичная HTTPS-страница не может читать локальный HTTP API. Откройте панель локально или поднимите HTTPS API.', 'bad');
+    renderStatus('HTTPS-страница не может безопасно читать локальный HTTP API. Откройте панель локально или используйте HTTPS API.', 'bad');
     return;
   }
 
   state.loading = true;
-  renderStatus('Загружаю операторскую ленту...', 'neutral');
+  renderStatus('Загружаем операторский поток...', 'neutral');
   render();
 
   try {
     const url = new URL(`${state.apiBase}/api/admin/feed`);
-    url.searchParams.set('limit', '60');
+    url.searchParams.set('limit', '80');
     if (state.query) url.searchParams.set('q', state.query);
     if (state.status) url.searchParams.set('status', state.status);
 
@@ -172,7 +179,7 @@ async function fetchFeed() {
     const response = await fetch(url.toString(), { headers });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(payload.error || `API вернул ${response.status}`);
+      throw new Error(payload.error || `API returned ${response.status}`);
     }
 
     state.items = Array.isArray(payload.items) ? payload.items : [];
@@ -184,7 +191,7 @@ async function fetchFeed() {
     state.items = [];
     state.stats = null;
     state.meta = null;
-    renderStatus(error.message || 'Не удалось загрузить операторскую ленту.', 'bad');
+    renderStatus(error.message || 'Не удалось загрузить операторский поток.', 'bad');
   } finally {
     state.loading = false;
     render();
@@ -193,15 +200,51 @@ async function fetchFeed() {
 
 function buildSuccessMessage() {
   if (state.meta && state.meta.db_configured === false) {
-    return state.meta.message || 'Supabase не подключён: лента пока пустая.';
+    return state.meta.message || 'Supabase не настроен: поток пока пустой.';
   }
-  const keyNote = state.meta?.admin_key_required ? 'Admin key обязателен.' : 'Admin key не требуется.';
-  return `Лента обновлена. ${keyNote}`;
+  const keyNote = state.meta?.admin_key_required ? 'Admin key требуется.' : 'Admin key не требуется.';
+  return `Поток обновлён. ${keyNote}`;
+}
+
+async function handleMarkPaid(button) {
+  const txId = button.getAttribute('data-mark-paid') || '';
+  const payoutAmount = Number(button.getAttribute('data-payout') || 0);
+  if (!txId) return;
+  if (!state.apiBase || !state.adminKey) {
+    renderStatus('Для выплаты нужны API base и admin key.', 'warn');
+    return;
+  }
+
+  const payoutTxId = window.prompt('Укажите payout TX ID. Поле можно оставить пустым, если перевод будет зафиксирован позже.', '') || '';
+  button.disabled = true;
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/bets/${encodeURIComponent(txId)}/mark-paid`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': state.adminKey,
+      },
+      body: JSON.stringify({
+        payout_tx_id: payoutTxId.trim(),
+        payout_amount: payoutAmount || undefined,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || `API returned ${response.status}`);
+    }
+    renderStatus(`Ставка ${txId} отмечена как выплаченная.`, 'good');
+    await fetchFeed();
+  } catch (error) {
+    renderStatus(error.message || 'Не удалось отметить выплату.', 'bad');
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function renderStatus(message, tone) {
   state.message = String(message || '');
-  dom.operatorStatus.textContent = state.message || 'Операторская панель готова.';
+  dom.operatorStatus.textContent = state.message || 'Ожидание подключения к API.';
   dom.operatorStatus.dataset.tone = tone || 'neutral';
 }
 
@@ -216,8 +259,9 @@ function renderStats() {
   if (!stats) {
     dom.statsGrid.innerHTML = [
       buildStatCard('Ставок в ленте', '0'),
-      buildStatCard('Принятые', '0'),
-      buildStatCard('Отклонённые', '0'),
+      buildStatCard('Принято', '0'),
+      buildStatCard('К выплате', '0'),
+      buildStatCard('Выплачено', '0'),
       buildStatCard('Оборот', '0 PRIZM'),
     ].join('');
     return;
@@ -225,8 +269,9 @@ function renderStats() {
 
   dom.statsGrid.innerHTML = [
     buildStatCard('Ставок в ленте', formatNumber(stats.total_items)),
-    buildStatCard('Принятые', formatNumber(stats.accepted_count)),
-    buildStatCard('Отклонённые', formatNumber(stats.rejected_count)),
+    buildStatCard('Принято', formatNumber(stats.accepted_count)),
+    buildStatCard('К выплате', formatNumber(stats.to_payout_count ?? stats.won_count ?? 0)),
+    buildStatCard('Выплачено', formatNumber(stats.paid_count ?? 0)),
     buildStatCard('Оборот', `${formatNumber(stats.turnover_prizm)} PRIZM`),
   ].join('');
 }
@@ -246,16 +291,18 @@ function renderFeedMeta() {
   if (state.generatedAt) parts.push(`Обновлено ${formatDate(state.generatedAt)}`);
   if (state.items.length) parts.push(`${state.items.length} записей`);
   const liveItems = state.items.filter((item) => item.match_state === 'live').length;
+  const payoutItems = state.items.filter((item) => item.status === 'won').length;
   if (liveItems) parts.push(`LIVE: ${liveItems}`);
-  dom.feedMeta.textContent = parts.join(' • ') || 'Лента ещё не загружена.';
+  if (payoutItems) parts.push(`К выплате: ${payoutItems}`);
+  dom.feedMeta.textContent = parts.join(' - ') || 'Поток ещё не загружен.';
 }
 
 function renderFeed() {
   if (!state.items.length) {
     dom.feedList.innerHTML = `
       <div class="operator-empty">
-        <strong>Пустая лента.</strong><br>
-        После подключения API здесь появятся обработанные переводы и расшифрованные intent-коды.
+        <strong>Ставок пока нет.</strong><br>
+        Когда listener или API найдут подтверждённые ставки, они появятся в этой ленте.
       </div>
     `;
     return;
@@ -269,28 +316,38 @@ function renderCard(item) {
     ? `<div class="operator-reject">${escapeHtml(item.reject_label)}</div>`
     : '';
 
+  const payoutAction = item.status === 'won'
+    ? `<button class="operator-chip" type="button" data-mark-paid="${escapeAttr(item.tx_id || '')}" data-payout="${escapeAttr(item.potential_payout_prizm || 0)}">Отметить выплату</button>`
+    : '';
+
+  const payoutTxChip = item.payout_tx_id
+    ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.payout_tx_id)}">Payout TX</button>`
+    : '';
+
   return `
     <article class="operator-card">
       <div class="operator-card-head">
         <div>
           <div class="operator-badges">
-            <span class="operator-badge" data-tone="${escapeHtml(item.status_tone || 'neutral')}">${escapeHtml(item.status_label || item.status || '—')}</span>
+            <span class="operator-badge" data-tone="${escapeHtml(item.status_tone || 'neutral')}">${escapeHtml(item.status_label || item.status || '?')}</span>
             <span class="operator-badge" data-tone="${escapeHtml(item.match_state_tone || 'neutral')}">${escapeHtml(item.match_state_label || 'Матч')}</span>
           </div>
           <h3 class="operator-card-title">${escapeHtml(item.match_label || 'Матч без расшифровки')}</h3>
           <p class="operator-card-copy">${escapeHtml(item.operator_summary || '')}</p>
         </div>
         <div class="operator-actions">
-          <button class="operator-chip" type="button" data-copy="${escapeAttr(item.intent_hash || '')}">Код</button>
+          <button class="operator-chip" type="button" data-copy="${escapeAttr(item.intent_hash || '')}">Intent</button>
           <button class="operator-chip" type="button" data-copy="${escapeAttr(item.tx_id || '')}">TX</button>
+          ${payoutTxChip}
+          ${payoutAction}
         </div>
       </div>
       <div class="operator-card-grid">
-        ${renderMeta('Intent', item.intent_hash || '—')}
-        ${renderMeta('Кошелёк', item.sender_wallet || '—')}
-        ${renderMeta('Исход', `${item.outcome_label || '—'} @ ${item.odds_label || '0.00'}`)}
+        ${renderMeta('Intent', item.intent_hash || '?')}
+        ${renderMeta('Кошелёк', item.sender_wallet || '?')}
+        ${renderMeta('Исход', `${item.outcome_label || '?'} @ ${item.odds_label || '0.00'}`)}
         ${renderMeta('Сумма', `${formatNumber(item.amount_prizm)} PRIZM`)}
-        ${renderMeta('Потенциально', `${formatNumber(item.potential_payout_prizm)} PRIZM`)}
+        ${renderMeta('Потенциал', `${formatNumber(item.potential_payout_prizm)} PRIZM`)}
         ${renderMeta('Время', formatDate(item.block_timestamp || item.created_at))}
       </div>
       ${rejectBlock}
@@ -302,7 +359,7 @@ function renderMeta(label, value) {
   return `
     <div class="operator-meta">
       <div class="operator-meta-label">${escapeHtml(label)}</div>
-      <div class="operator-meta-value">${escapeHtml(value || '—')}</div>
+      <div class="operator-meta-value">${escapeHtml(value || '?')}</div>
     </div>
   `;
 }
@@ -315,7 +372,7 @@ function formatNumber(value) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '?';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleString('ru-RU', {

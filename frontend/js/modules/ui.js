@@ -118,7 +118,7 @@ function buildMatchMarketStrip(match, options) {
     }
 
     if (doubleChance) {
-        parts.push('<span class="market-chip market-chip--secondary">1X ? 12 ? X2</span>');
+        parts.push('<span class="market-chip market-chip--secondary">1X • 12 • X2</span>');
     }
 
     if (externalUrl) {
@@ -208,8 +208,8 @@ export function createMatchCard(match, favorites) {
         <div class="match-header">
             <a class="match-id" href="#match-${matchId}" onclick="window.shareMatch('${matchId}');return false;" title="ID: ${matchId}">#${shortId}</a>
             <div class="match-actions">
-                <button class="share-btn" onclick="window.shareMatch('${matchId}')" title="Share">??</button>
-                <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="window.toggleFavorite('${matchId}')" title="${isFavorite ? '?' : '?'}">?</button>
+                <button class="share-btn" onclick="window.shareMatch('${matchId}')" title="Share">🔗</button>
+                <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="window.toggleFavorite('${matchId}')" title="${isFavorite ? 'Unfavorite' : 'Favorite'}">★</button>
             </div>
         </div>
         <div class="match-time">
@@ -218,14 +218,14 @@ export function createMatchCard(match, favorites) {
             ${imminent ? `<span class="match-imminent-badge">${escapeHtml(t('status.imminent'))}</span>` : ''}
         </div>
         ${buildMatchMarketStrip(match, { isLive, externalUrl, totalMarket, doubleChance, teams, dateTimeText })}
-        <div class="match-teams">${team1} <span class="vs">?</span> ${team2}</div>
+        <div class="match-teams">${team1} <span class="vs">—</span> ${team2}</div>
         <div class="odds-container${totalMarket ? ' odds-container--with-totals' : ''}">
             <div class="odds-section-title">${escapeHtml(t('common.mainMarkets'))}</div>
-            ${buildOddButton('?1', match.p1 || match.odds_home, match, teams, dateTimeText)}
+            ${buildOddButton('П1', match.p1 || match.odds_home, match, teams, dateTimeText)}
             ${buildOddButton('X', match.x || match.odds_draw, match, teams, dateTimeText)}
-            ${buildOddButton('?2', match.p2 || match.odds_away, match, teams, dateTimeText)}
+            ${buildOddButton('П2', match.p2 || match.odds_away, match, teams, dateTimeText)}
             ${doubleChance ? `<div class="odds-section-title">${escapeHtml(t('common.doubleChance'))}</div>${buildOddButton('1X', match.p1x, match, teams, dateTimeText)}${buildOddButton('12', match.p12, match, teams, dateTimeText)}${buildOddButton('X2', match.px2, match, teams, dateTimeText)}` : ''}
-            ${totalMarket ? `<div class="odds-section-title odds-section-title--accent">${escapeHtml(t('common.total'))} (${escapeHtml(String(match.total_value))})</div>${buildOddButton(`?? ${match.total_value}`, match.total_over, match, teams, dateTimeText)}${buildOddButton(`?? ${match.total_value}`, match.total_under, match, teams, dateTimeText)}<div></div>` : ''}
+            ${totalMarket ? `<div class="odds-section-title odds-section-title--accent">${escapeHtml(t('common.total'))} (${escapeHtml(String(match.total_value))})</div>${buildOddButton(`ТБ ${match.total_value}`, match.total_over, match, teams, dateTimeText)}${buildOddButton(`ТМ ${match.total_value}`, match.total_under, match, teams, dateTimeText)}<div></div>` : ''}
         </div>
     `;
 
@@ -247,14 +247,14 @@ export function patchCardOdds(card, match, favorites) {
     }
 
     const oddMap = {
-        '?1': match.p1 || match.odds_home,
+        'П1': match.p1 || match.odds_home,
         'X': match.x || match.odds_draw,
-        '?2': match.p2 || match.odds_away,
+        'П2': match.p2 || match.odds_away,
         '1X': match.p1x,
         '12': match.p12,
         'X2': match.px2,
-        [`?? ${match.total_value}`]: match.total_over,
-        [`?? ${match.total_value}`]: match.total_under,
+        [`ТБ ${match.total_value}`]: match.total_over,
+        [`ТМ ${match.total_value}`]: match.total_under,
     };
 
     card.querySelectorAll('[data-bet]').forEach((button) => {

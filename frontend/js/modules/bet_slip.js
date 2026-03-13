@@ -16,10 +16,10 @@ const MIN_BET = 1500;
 const MAX_BET = 200000;
 const INTENT_TTL_MS = 15 * 60 * 1000;
 const REJECT_LABELS = {
-    LATE_BET: { ru: '?????? ?????? ????? ??????????? ????', en: 'The transfer arrived too late' },
-    SENDER_MISMATCH: { ru: '??????? ?????? ? ??????? ????????', en: 'The transfer came from another wallet' },
-    INVALID_INTENT: { ru: '??? ?????? ?? ?????????', en: 'The bet code was not recognized' },
-    INTENT_EXPIRED: { ru: '???? ????? ???? ?????', en: 'The code expired' },
+    LATE_BET: { ru: 'Перевод пришёл после старта события', en: 'The transfer arrived too late' },
+    SENDER_MISMATCH: { ru: 'Перевод пришёл с другого кошелька', en: 'The transfer came from another wallet' },
+    INVALID_INTENT: { ru: 'Код ставки не распознан', en: 'The bet code was not recognized' },
+    INTENT_EXPIRED: { ru: 'Срок действия кода истёк', en: 'The code expired' },
 };
 
 function isEnglish() {
@@ -458,10 +458,10 @@ function syncIntentFromApi(payload) {
     });
     pushTimeline(
         activeIntent,
-        isEnglish() ? 'Status synchronized' : '?????? ???????????????',
+        isEnglish() ? 'Status synchronized' : 'Статус синхронизирован',
         payload.bet
-            ? `${isEnglish() ? 'System returned' : '??????? ???????'} ${getStatusLabel(activeIntent.status) || activeIntent.status}.`
-            : `${isEnglish() ? 'No transfer is linked yet, current state:' : 'Intent ???? ??? ????????? ??????????, ??????? ?????????:'} ${getStatusLabel(activeIntent.status) || activeIntent.status}.`
+            ? `${isEnglish() ? 'System returned' : 'Система вернула'} ${getStatusLabel(activeIntent.status) || activeIntent.status}.`
+            : `${isEnglish() ? 'No transfer is linked yet, current state:' : 'Перевод ещё не найден, текущий статус:'} ${getStatusLabel(activeIntent.status) || activeIntent.status}.`
     );
     upsertIntentRecord(activeIntent);
     renderCoupon();
@@ -572,19 +572,19 @@ function getPrimaryActionLabel(form) {
         if (activeIntent.status === 'awaiting_payment') return t('coupon.copyCode');
         if (['accepted', 'rejected', 'expired', 'won', 'lost'].includes(activeIntent.status)) return t('coupon.openCabinet');
     }
-    return isEnglish() ? 'Issue new code' : '????????? ????? ???';
+    return isEnglish() ? 'Issue new code' : 'Выпустить новый код';
 }
 
 
 function getFlowHint(form, statusMeta) {
     if (!activeIntent?.intent_hash) {
-        return isEnglish() ? 'Enter the wallet and amount. The coupon will lock the odds and issue the transfer code.' : '??????? ??????? ? ?????. ????? ??????????? ??????????? ? ???????? ???????? ??? ??? ????????.';
+        return isEnglish() ? 'Enter the wallet and amount. The coupon will lock the odds and issue the transfer code.' : 'Введите кошелёк и сумму. Купон зафиксирует коэффициент и выпустит код для перевода.';
     }
     if (activeIntent.status === 'awaiting_payment') {
         if (isIntentInSync(activeIntent, form)) {
-            return isEnglish() ? 'The code is already issued. Send the transfer from the same wallet and use this code.' : '??? ??? ???????. ????????? ??????? ? ????? ?? ???????? ? ???????? ? ????????? ?????? ???? ???.';
+            return isEnglish() ? 'The code is already issued. Send the transfer from the same wallet and use this code.' : 'Код уже выпущен. Отправьте перевод с этого же кошелька и укажите только этот код.';
         }
-        return isEnglish() ? 'The bet parameters changed. Issue a new code to lock the updated coupon.' : '????????? ?????? ??????????. ????????? ????? ???, ????? ?????? ????????????? ?????.';
+        return isEnglish() ? 'The bet parameters changed. Issue a new code to lock the updated coupon.' : 'Параметры ставки изменились. Выпустите новый код, чтобы зафиксировать обновлённый купон.';
     }
     return statusMeta.hint;
 }
@@ -595,28 +595,28 @@ function getStatusMeta(status) {
         return {
             label: getStatusLabel('awaiting_payment'),
             className: 'coupon-status--waiting',
-            hint: isEnglish() ? 'The code is issued. The system is waiting for a transfer from the same wallet.' : '??? ???????. ??????? ???? ??????? ? ????????? ????? ? ??? ?? ?????????.',
+            hint: isEnglish() ? 'The code is issued. The system is waiting for a transfer from the same wallet.' : 'Код выпущен. Система ждёт перевод с указанного кошелька.',
         };
     }
     if (status === 'accepted') {
         return {
             label: getStatusLabel('accepted'),
             className: 'coupon-status--accepted',
-            hint: isEnglish() ? 'The transfer was found and the bet is accepted. Follow settlement in the cabinet.' : '??????? ?????? ? ?????? ???????. ?????? ??????? ?? ???????? ? ????????.',
+            hint: isEnglish() ? 'The transfer was found and the bet is accepted. Follow settlement in the cabinet.' : 'Перевод найден, ставка принята. Следите за расчётом в кабинете.',
         };
     }
     if (status === 'rejected') {
         return {
             label: getStatusLabel('rejected'),
             className: 'coupon-status--rejected',
-            hint: getRejectLabel(activeIntent?.reject_reason) || (isEnglish() ? 'The bet was rejected by system rules.' : '?????? ???? ????????? ????????? ???????.'),
+            hint: getRejectLabel(activeIntent?.reject_reason) || (isEnglish() ? 'The bet was rejected by system rules.' : 'Ставка отклонена системными правилами.'),
         };
     }
     if (status === 'expired') {
         return {
             label: getStatusLabel('expired'),
             className: 'coupon-status--expired',
-            hint: isEnglish() ? 'The coupon window is over. Issue a new code for a new attempt.' : '???? ?????? ???????????. ??? ????? ??????? ????????? ????? ???.',
+            hint: isEnglish() ? 'The coupon window is over. Issue a new code for a new attempt.' : 'Окно купона закрыто. Для новой попытки выпустите новый код.',
         };
     }
     if (status === 'won' || status === 'lost') {
@@ -624,14 +624,14 @@ function getStatusMeta(status) {
             label: getStatusLabel(status),
             className: 'coupon-status--settled',
             hint: status === 'won'
-                ? (isEnglish() ? 'The bet is settled as a win.' : '?????? ?????????? ??? ??????????.')
-                : (isEnglish() ? 'The bet is settled as a loss.' : '?????? ?????????? ??? ???????????.'),
+                ? (isEnglish() ? 'The bet is settled as a win.' : 'Ставка рассчитана как выигрыш.')
+                : (isEnglish() ? 'The bet is settled as a loss.' : 'Ставка рассчитана как проигрыш.'),
         };
     }
     return {
         label: getStatusLabel('draft'),
         className: 'coupon-status--draft',
-        hint: isEnglish() ? 'The coupon is not issued yet.' : '????? ??? ?? ???????.',
+        hint: isEnglish() ? 'The coupon is not issued yet.' : 'Код ещё не выпущен.',
     };
 }
 
@@ -639,10 +639,10 @@ function getStatusMeta(status) {
 function buildTransferInstructions(intent) {
     const base = isEnglish()
         ? `Send ${formatNumber(intent.amount_prizm)} PRIZM to ${MASTER_WALLET}. Put code ${intent.intent_hash} into the transfer message.`
-        : `????????? ${formatNumber(intent.amount_prizm)} PRIZM ?? ${MASTER_WALLET}. ? ????????? ???????? ???????? ?????? ??? ${intent.intent_hash}.`;
+        : `Отправьте ${formatNumber(intent.amount_prizm)} PRIZM на ${MASTER_WALLET}. В сообщении перевода укажите код ${intent.intent_hash}.`;
     return apiLive
-        ? `${base} ${isEnglish() ? 'After the transfer open the cabinet to see the status.' : '????? ???????? ???????? ???????, ????? ??????? ??????.'}`
-        : `${base} ${isEnglish() ? 'The code and history are already saved on this device.' : '??? ? ??????? ??? ????????? ?? ???? ??????????.'}`;
+        ? `${base} ${isEnglish() ? 'After the transfer open the cabinet to see the status.' : 'После перевода откройте кабинет, чтобы увидеть статус.'}`
+        : `${base} ${isEnglish() ? 'The code and history are already saved on this device.' : 'Код и история уже сохранены на этом устройстве.'}`;
 }
 
 
@@ -674,9 +674,9 @@ function buildLocalCabinet(wallet) {
         rank: deriveRank(turnover_prizm, accepted + won + lost),
         stats: { waiting_payment, accepted, rejected, won, lost, turnover_prizm, total_intents: records.length },
         feed: records.slice(0, 12).map((record) => ({
-            title: record.match_label || `${isEnglish() ? 'Match' : '????'} #${record.match_id}`,
-            subtitle: `${formatOutcomeLabel(record.outcome)} @ ${formatNumber(record.odds_fixed)} ? ${formatNumber(record.amount_prizm)} PRIZM`,
-            meta: `${getStatusLabel(record.status) || record.status}${record.reject_reason ? ` ? ${getRejectLabel(record.reject_reason) || record.reject_reason}` : ''} ? ${formatDateTime(record.created_at)}`,
+            title: record.match_label || `${isEnglish() ? 'Match' : 'Матч'} #${record.match_id}`,
+            subtitle: `${formatOutcomeLabel(record.outcome)} @ ${formatNumber(record.odds_fixed)} - ${formatNumber(record.amount_prizm)} PRIZM`,
+            meta: `${getStatusLabel(record.status) || record.status}${record.reject_reason ? ` - ${getRejectLabel(record.reject_reason) || record.reject_reason}` : ''} - ${formatDateTime(record.created_at)}`,
             status: record.status,
         })),
     };
@@ -689,16 +689,16 @@ function mapDashboardToCabinet(wallet, payload) {
     const recentIntents = Array.isArray(payload.recent_intents) ? payload.recent_intents : [];
 
     const feedFromBets = recentBets.map((bet) => ({
-        title: bet.match_label || [bet.team1, bet.team2].filter(Boolean).join(' vs ') || `${isEnglish() ? 'Match' : '????'} #${bet.match_id || '?'}`,
-        subtitle: `${formatOutcomeLabel(bet.outcome || bet.bet_type || (isEnglish() ? 'Outcome' : '?????'))} @ ${formatNumber(bet.odds_fixed || bet.coef)} ? ${formatNumber(bet.amount_prizm || bet.amount || 0)} PRIZM`,
-        meta: `${getStatusLabel(bet.status || 'accepted')} ? ${formatDateTime(bet.created_at)}`,
+        title: bet.match_label || [bet.team1, bet.team2].filter(Boolean).join(' vs ') || `${isEnglish() ? 'Match' : 'Матч'} #${bet.match_id || '?'}`,
+        subtitle: `${formatOutcomeLabel(bet.outcome || bet.bet_type || (isEnglish() ? 'Outcome' : 'Исход'))} @ ${formatNumber(bet.odds_fixed || bet.coef)} - ${formatNumber(bet.amount_prizm || bet.amount || 0)} PRIZM`,
+        meta: `${getStatusLabel(bet.status || 'accepted')} - ${formatDateTime(bet.created_at)}`,
         status: bet.status || 'accepted',
     }));
 
     const feed = feedFromBets.length ? feedFromBets : recentIntents.map((intent) => ({
-        title: `${intent.intent_hash} ? ${isEnglish() ? 'match' : '????'} #${intent.match_id}`,
+        title: `${intent.intent_hash} - ${isEnglish() ? 'match' : 'матч'} #${intent.match_id}`,
         subtitle: `${formatOutcomeLabel(intent.outcome)} @ ${formatNumber(intent.odds_fixed)}`,
-        meta: `${getStatusLabel(intent.status) || intent.status} ? ${formatDateTime(intent.created_at || intent.expires_at)}`,
+        meta: `${getStatusLabel(intent.status) || intent.status} - ${formatDateTime(intent.created_at || intent.expires_at)}`,
         status: intent.status,
     }));
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PRIZMBET — операторская панель</title>
+<title>PRIZMBET - операторская панель</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/smart-flow.css">
 <link rel="stylesheet" href="css/operator.css">
@@ -16,8 +16,8 @@
     <div class="operator-hero-card">
       <div>
         <div class="smart-banner-eyebrow">Операторская панель</div>
-        <h1 class="operator-title">Входящие ставки и автоматический live-контур</h1>
-        <p class="operator-copy">Лента показывает расшифровку intent-кода, состояние матча, сумму, потенциальную выплату, TX и причину отклонения. Обновление идёт автоматически.</p>
+        <h1 class="operator-title">Входящие ставки, статусы и очередь выплат</h1>
+        <p class="operator-copy">Панель показывает подтверждённые ставки, расшифровывает код купона, помогает отслеживать статусы матчей и отмечать выплаты после отправки.</p>
       </div>
       <a class="operator-back" href="./index.html">На главную</a>
     </div>
@@ -32,12 +32,12 @@
         </label>
         <label class="operator-field">
           <span class="operator-label">Admin key</span>
-          <input id="adminKeyInput" class="operator-input" type="password" placeholder="Ключ оператора из .env">
+          <input id="adminKeyInput" class="operator-input" type="password" placeholder="ключ доступа из .env">
         </label>
       </div>
       <div class="operator-actions">
         <button id="connectBtn" class="operator-btn operator-btn--primary" type="button">Подключить</button>
-        <button id="refreshBtn" class="operator-btn" type="button">Обновить ленту</button>
+        <button id="refreshBtn" class="operator-btn" type="button">Обновить поток</button>
         <label class="operator-toggle">
           <input id="autoRefreshToggle" type="checkbox" checked>
           <span>Автообновление</span>
@@ -53,17 +53,17 @@
 
   <section class="section operator-feed-section">
     <div class="operator-feed-toolbar">
-      <input id="queryInput" class="operator-input operator-input--search" type="search" placeholder="Поиск по матчу, TX, кошельку, intent или статусу">
+      <input id="queryInput" class="operator-input operator-input--search" type="search" placeholder="Поиск по матчу, TX, кошельку, intent или лиге">
       <select id="statusFilter" class="operator-select">
         <option value="">Все статусы</option>
-        <option value="accepted">Принятые</option>
-        <option value="rejected">Отклонённые</option>
-        <option value="won">Выигравшие</option>
-        <option value="lost">Проигравшие</option>
-        <option value="refund_pending">Ждут возврат</option>
-        <option value="paid">Выплаченные</option>
+        <option value="accepted">Принята</option>
+        <option value="rejected">Отклонена</option>
+        <option value="won">Выиграла</option>
+        <option value="lost">Проиграла</option>
+        <option value="refund_pending">Ждёт возврата</option>
+        <option value="paid">Выплачена</option>
       </select>
-      <div id="feedMeta" class="operator-feed-meta">Лента ещё не загружена.</div>
+      <div id="feedMeta" class="operator-feed-meta">Поток ещё не загружен.</div>
     </div>
     <div id="feedList" class="operator-feed-list"></div>
   </section>

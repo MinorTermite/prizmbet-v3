@@ -9,19 +9,19 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192x192.png">
-    <meta name="description" content="PRIZMBET - ?????? ?? ??????? PRIZM. ??????, ??????, ????????? ? ??????????">
+    <meta name="description" content="PRIZMBET - sports line on PRIZM. Matches, coupon flow and wallet cabinet.">
     <title>PRIZMBET</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;900&display=swap" rel="stylesheet">
-    <meta property="og:title" content="PRIZMBET - ?????? ?? PRIZM">
-    <meta property="og:description" content="?????? ?? ??????? PRIZM. ??????, ??????, ????????? ? ??????????">
+    <meta property="og:title" content="PRIZMBET - sports line on PRIZM">
+    <meta property="og:description" content="PRIZMBET - sports line on PRIZM. Matches, coupon flow and wallet cabinet.">
     <meta property="og:image" content="https://prizmbet.com/prizmbet-info-1.webp">
     <meta property="og:url" content="https://prizmbet.com/">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="https://prizmbet.com/">
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"PRIZMBET","url":"https://prizmbet.com/","description":"?????? ?? ??????? PRIZM. ??????, ??????, ????????? ? ??????????"}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"PRIZMBET","url":"https://prizmbet.com/","description":"PRIZMBET - sports line on PRIZM. Matches, coupon flow and wallet cabinet."}</script>
     <link rel="preload" href="css/base.min.css" as="style">
     <link rel="stylesheet" href="css/base.min.css?v=2">
     <link rel="stylesheet" href="css/smart-flow.css?v=20260312-mobile-shell">
@@ -62,14 +62,14 @@
                 </div>
 
                 <div class="header-actions header-actions--desktop">
-                    <button id="notifBtn" class="btn-icon" onclick="requestNotificationPermission()" data-i18n-aria="header.notifications" data-i18n-title="header.notifications" aria-label="???????????" title="???????????">??</button>
-                    <a href="https://t.me/prizmbet_v3_bot" target="_blank" rel="noopener" class="btn-icon" data-i18n-title="header.telegram" title="Telegram Bot">??</a>
-                    <button class="btn-icon" onclick="openHistory()" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" aria-label="???????" title="???????">??</button>
-                    <button class="btn-icon" onclick="refreshData()" data-i18n-aria="header.refresh" data-i18n-title="header.refresh" aria-label="????????" title="????????">?</button>
+                    <button id="notifBtn" class="btn-icon" onclick="requestNotificationPermission()" data-i18n-aria="header.notifications" data-i18n-title="header.notifications" aria-label="Уведомления" title="Уведомления">&#128276;</button>
+                    <a href="https://t.me/prizmbet_v3_bot" target="_blank" rel="noopener" class="btn-icon" data-i18n-title="header.telegram" title="Telegram Bot">&#129302;</a>
+                    <button class="btn-icon" onclick="openHistory()" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" aria-label="Кабинет" title="Кабинет">&#128221;</button>
+                    <button class="btn-icon" onclick="refreshData()" data-i18n-aria="header.refresh" data-i18n-title="header.refresh" aria-label="Обновить линию" title="Обновить линию">&#8635;</button>
                 </div>
 
-                <button class="btn-icon btn-icon--mobile" id="mobileCabinetBtn" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" aria-label="???????" title="???????">??</button>
-                <button class="btn-icon btn-icon--mobile" id="menuToggleBtn" data-i18n-aria="header.menu" data-i18n-title="header.menu" aria-label="????" title="????">?</button>
+                <button class="btn-icon btn-icon--mobile" id="mobileCabinetBtn" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" aria-label="Кабинет" title="Кабинет">&#128221;</button>
+                <button class="btn-icon btn-icon--mobile" id="menuToggleBtn" data-i18n-aria="header.menu" data-i18n-title="header.menu" aria-label="Меню" title="Меню">&#9776;</button>
             </div>
         </header>
 
@@ -83,9 +83,9 @@
                 </div>
             </div>
             <div class="mobile-menu-grid">
-                <button id="mobileNotifBtn" class="mobile-menu-action" type="button"><span>??</span><span data-i18n="header.notifications">???????????</span></button>
-                <a href="https://t.me/prizmbet_v3_bot" target="_blank" rel="noopener" class="mobile-menu-action"><span>??</span><span data-i18n="header.telegram">Telegram-???</span></a>
-                <button id="mobileRefreshBtn" class="mobile-menu-action" type="button"><span>?</span><span data-i18n="header.refresh">???????? ?????</span></button>
+                <button id="mobileNotifBtn" class="mobile-menu-action" type="button"><span>&#128276;</span><span data-i18n="header.notifications">???????????</span></button>
+                <a href="https://t.me/prizmbet_v3_bot" target="_blank" rel="noopener" class="mobile-menu-action"><span>&#129302;</span><span data-i18n="header.telegram">Telegram-???</span></a>
+                <button id="mobileRefreshBtn" class="mobile-menu-action" type="button"><span>&#8635;</span><span data-i18n="header.refresh">???????? ?????</span></button>
             </div>
         </aside>
 
@@ -135,7 +135,7 @@
 
         <div class="search-container">
             <input id="searchInput" class="search-premium" data-i18n-placeholder="search.placeholder" placeholder="????? ???????, ???? ??? ID ?????..." oninput="onSearchInput()"/>
-            <div class="search-icon">??</div>
+            <div class="search-icon">&#128269;</div>
         </div>
 
         <div class="filters-bar">
@@ -182,17 +182,17 @@
 
             <aside class="market-sidebar">
                 <div class="wallet-section">
-                    <h2 class="section-title" style="justify-content:center;">?? <span data-i18n="wallet.title">??? 2. ??????? ?? ????</span></h2>
-                    <img src="qr_wallet.webp" alt="QR-??? ????????" class="qr-code" loading="lazy" decoding="async" width="300" height="300">
+                    <h2 class="section-title" style="justify-content:center;">&#128179; <span data-i18n="wallet.title">??? 2. ??????? ?? ????</span></h2>
+                    <img src="qr_wallet.webp" alt="QR code for project wallet" class="qr-code" loading="lazy" decoding="async" width="300" height="300">
                     <div class="wallet-box">
                         <div class="wallet-label" data-i18n="wallet.addressLabel">????? ???????</div>
                         <div class="wallet-address" id="walletAddress">PRIZM-4N7T-L2A7-RQZA-5BETW</div>
                     </div>
-                    <button class="btn btn-primary" onclick="copyWallet(this)">?? <span data-i18n="wallet.copy">??????????? ?????</span></button>
+                    <button class="btn btn-primary" onclick="copyWallet(this)">&#128203; <span data-i18n="wallet.copy">??????????? ?????</span></button>
                     <p class="wallet-note wallet-note--lead" data-i18n="wallet.note">??????? ????????? ??? ? ??????. ????? ????????? ??????? ?? ????? ??????? ? ???????? ? ????????? ???? ???.</p>
                 </div>
 
-                <section class="section rules-section" aria-label="???????? ??????? PRIZMBET">
+                <section class="section rules-section" aria-label="Правила перевода PRIZMBET">
                     <div class="rules-compact-card">
                         <div class="smart-banner-eyebrow" data-i18n="rules.eyebrow">????? ?????????</div>
                         <h2 class="smart-banner-title" data-i18n="rules.title">3 ???????, ?? ??????? ??????? ????????</h2>
@@ -224,10 +224,10 @@
     </div>
 
     <div class="bet-slip" id="betSlip">
-        <div class="bet-slip-header"><div class="bet-slip-title" data-i18n="coupon.title">????? ?????</div><button class="bet-slip-close" onclick="closeBetSlip()" aria-label="???????">?</button></div>
-        <div class="bet-slip-match" id="bsMatch">???????? ? ????</div>
-        <div class="coupon-meta" id="bsMeta">???? ????????? ? #12345</div>
-        <div class="bet-slip-selection"><div class="bet-slip-outcome" id="bsOutcome">?1</div><div class="bet-slip-coef" id="bsCoef">2.45</div></div>
+        <div class="bet-slip-header"><div class="bet-slip-title" data-i18n="coupon.title">????? ?????</div><button class="bet-slip-close" onclick="closeBetSlip()" aria-label="Закрыть">&times;</button></div>
+        <div class="bet-slip-match" id="bsMatch">Матч будет выбран из линии</div>
+        <div class="coupon-meta" id="bsMeta">Лига и номер события</div>
+        <div class="bet-slip-selection"><div class="bet-slip-outcome" id="bsOutcome">П1</div><div class="bet-slip-coef" id="bsCoef">2.45</div></div>
         <div class="coupon-grid">
             <label class="coupon-field"><span class="coupon-field-label" data-i18n="coupon.wallet">??????? ??????</span><input type="text" id="bsWalletInput" class="coupon-input" placeholder="PRIZM-XXXX-XXXX-XXXX-XXXXX"></label>
             <div class="coupon-field"><span class="coupon-field-label" data-i18n="coupon.amount">????? ??????</span><div class="bet-input-wrap"><input type="number" id="bsInput" class="bet-input" placeholder="1500" min="1500" max="200000" oninput="calcPayout()"><span class="bet-currency">PZM</span></div></div>
@@ -236,8 +236,8 @@
             <div class="bet-calc-row"><span style="color:var(--text-secondary); font-size:0.9rem;" data-i18n="coupon.expected">????????? ?????:</span><span style="color:var(--text-secondary); font-size:0.9rem;" data-i18n="coupon.payout">????????????? ???????:</span></div>
             <div class="bet-calc-row" style="gap:16px; align-items:center;"><div style="font-weight:700; color:#fff;" data-i18n="coupon.window">?? 15 ????? ?? ?????? ? ???????</div><div class="bet-payout" id="bsPayout">0.00</div></div>
         </div>
-        <div class="coupon-helper-row"><span class="coupon-badge coupon-badge--local" id="bsApiBadge" data-i18n="coupon.ready">????? ????? ? ???????</span><span class="coupon-status coupon-status--draft" id="bsStatusPill">??????????</span></div>
-        <p class="coupon-note" id="bsFlowHint">.</p>
+        <div class="coupon-helper-row"><span class="coupon-badge coupon-badge--local" id="bsApiBadge" data-i18n="coupon.ready">Купон готов</span><span class="coupon-status coupon-status--draft" id="bsStatusPill">Черновик</span></div>
+        <p class="coupon-note" id="bsFlowHint">Выберите коэффициент в линии, чтобы выпустить код ставки.</p>
         <div class="coupon-issued hidden" id="bsIssuedBlock">
             <div class="coupon-code-card">
                 <div class="coupon-code-head"><div><div class="coupon-field-label" data-i18n="coupon.nextStep">????????? ???</div><div class="coupon-countdown" id="bsIntentCountdown">15:00</div></div><button class="coupon-secondary-btn" type="button" onclick="copyBetSlipCode()" data-i18n="coupon.copyCode">??????????? ???</button></div>
@@ -254,7 +254,7 @@
                     <div class="coupon-lock-item"><span class="coupon-lock-label" data-i18n="coupon.expires">??? ????????? ??</span><strong class="coupon-lock-value" id="bsLockedExpiry">?</strong></div>
                 </div>
             </div>
-            <div class="coupon-transfer-card"><div class="coupon-field-label" data-i18n="coupon.nextStep">????????? ???</div><p class="coupon-transfer-copy" id="bsTransferInstructions"></p><div class="coupon-wallet-chip">??????? ???????: <strong>PRIZM-4N7T-L2A7-RQZA-5BETW</strong></div></div>
+            <div class="coupon-transfer-card"><div class="coupon-field-label" data-i18n="coupon.nextStep">????????? ???</div><p class="coupon-transfer-copy" id="bsTransferInstructions"></p><div class="coupon-wallet-chip">Кошелёк проекта: <strong>PRIZM-4N7T-L2A7-RQZA-5BETW</strong></div></div>
             <div class="coupon-actions"><button class="coupon-secondary-btn" type="button" onclick="refreshSlipStatus()" data-i18n="coupon.refreshStatus">???????? ??????</button><button class="coupon-secondary-btn" type="button" onclick="openHistory()" data-i18n="coupon.openCabinet">??????? ???????</button></div>
             <div><div class="coupon-field-label" style="margin-bottom:8px;" data-i18n="coupon.timeline">????? ????????</div><div class="coupon-timeline" id="bsTimeline"></div></div>
         </div>
@@ -262,14 +262,14 @@
     </div>
 
     <div class="bet-slip cabinet-sheet" id="historyModal">
-        <div class="bet-slip-header"><div class="bet-slip-title" data-i18n="cabinet.title">??????? ????????</div><button class="bet-slip-close" onclick="closeHistory()" aria-label="???????">?</button></div>
+        <div class="bet-slip-header"><div class="bet-slip-title" data-i18n="cabinet.title">??????? ????????</div><button class="bet-slip-close" onclick="closeHistory()" aria-label="Закрыть">&times;</button></div>
         <div class="cabinet-toolbar">
             <label class="coupon-field"><span class="coupon-field-label" data-i18n="cabinet.wallet">??????? ??????</span><input type="text" id="cabinetWalletInput" class="coupon-input" placeholder="PRIZM-XXXX-XXXX-XXXX-XXXXX"></label>
             <div class="coupon-actions"><button class="btn btn-primary" type="button" onclick="openHistory()" data-i18n="cabinet.refresh">???????? ???????</button><button class="btn btn-outline" type="button" onclick="clearHistory()" data-i18n="cabinet.clear">???????? ??????? ?? ??????????</button></div>
         </div>
         <div class="cabinet-headline">
-            <div><div class="coupon-field-label" style="margin-bottom:8px;" data-i18n="cabinet.source">???????? ????????</div><span class="coupon-badge coupon-badge--local" id="cabinetModeBadge">??????? ?? ???? ??????????</span></div>
-            <div class="cabinet-rank-box"><div class="coupon-field-label" data-i18n="cabinet.rank">??????? ???????</div><div class="cabinet-rank-name" id="cabinetRankTitle">?????</div><div class="cabinet-rank-hint" id="cabinetRankHint">.</div></div>
+            <div><div class="coupon-field-label" style="margin-bottom:8px;" data-i18n="cabinet.source">Источник статуса</div><span class="coupon-badge coupon-badge--local" id="cabinetModeBadge">История на этом устройстве</span></div>
+            <div class="cabinet-rank-box"><div class="coupon-field-label" data-i18n="cabinet.rank">Текущий уровень</div><div class="cabinet-rank-name" id="cabinetRankTitle">Старт</div><div class="cabinet-rank-hint" id="cabinetRankHint">Кабинет заполнится после первого купона.</div></div>
         </div>
         <div class="cabinet-stats" id="cabinetStats"></div>
         <div class="cabinet-feed" id="historyList"></div>

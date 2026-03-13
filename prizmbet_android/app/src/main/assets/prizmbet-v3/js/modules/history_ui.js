@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PrizmBet v3 - Wallet Cabinet UI
  */
 import { clearIntentRecords, getWalletAddress, saveWalletAddress } from './storage.js';
@@ -16,11 +16,11 @@ const RANK_LABELS = {
     Operator: 'rank.tactic',
     Strategist: 'rank.pro',
     Imperator: 'rank.emperor',
-    '?????': 'rank.start',
-    '?????': 'rank.player',
-    '??????': 'rank.tactic',
-    '?????': 'rank.pro',
-    '?????????': 'rank.emperor',
+    'Старт': 'rank.start',
+    'Игрок': 'rank.player',
+    'Тактик': 'rank.tactic',
+    'Профи': 'rank.pro',
+    'Император': 'rank.emperor',
 };
 
 export function initHistoryUI() {
@@ -206,62 +206,66 @@ function getClearedText() {
     return t('cabinet.clear') + '.';
 }
 function getWalletPrompt() {
-    return t('cabinet.wallet') + ' PRIZM, ????? ??????? ??????? ? ??????? ??????? ?? ???????.';
+    return getIsEn()
+        ? 'Enter a PRIZM wallet to open issued codes and bet statuses.'
+        : 'Введите PRIZM-кошелёк, чтобы увидеть выпущенные коды и статусы ставок.';
 }
 function getCabinetErrorText() {
-    return t('cabinet.title') + ': ?????? ???????? ??????????.';
+    return getIsEn()
+        ? 'The cabinet data could not be loaded.'
+        : 'Не удалось загрузить данные кабинета.';
 }
 function getLiveModeText() {
-    return getIsEn() ? 'Live system statuses' : '??????? ?? ???????';
+    return getIsEn() ? 'Live system statuses' : 'Статусы из live-системы';
 }
 function getLocalModeText() {
-    return getIsEn() ? 'History on this device' : '??????? ?? ???? ??????????';
+    return getIsEn() ? 'History on this device' : 'История на этом устройстве';
 }
 function getNextRankText(name, remaining) {
     return getIsEn()
         ? `${formatNumber(remaining, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PRIZM turnover left to ${translateRank(name)}.`
-        : `?? ?????? ${translateRank(name)} ???????? ${formatNumber(remaining, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PRIZM ???????.`;
+        : `До уровня ${translateRank(name)} осталось ${formatNumber(remaining, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PRIZM оборота.`;
 }
 function getMaxRankText() {
-    return getIsEn() ? 'Maximum cabinet level reached.' : '???????????? ??????? ???????? ??? ?????????.';
+    return getIsEn() ? 'Maximum cabinet level reached.' : 'Максимальный уровень кабинета уже достигнут.';
 }
 function getFirstCouponHint() {
-    return getIsEn() ? 'The cabinet will fill after the first issued bet code.' : '??????? ?????????? ????? ??????? ??????? ???? ??????.';
+    return getIsEn() ? 'The cabinet will fill after the first issued bet code.' : 'Кабинет заполнится после выпуска первого кода ставки.';
 }
 function getPreviewText() {
-    return getIsEn() ? 'Issued codes, statuses and settlement will appear here after the first coupon.' : '????? ??????? ?????? ????? ???????? ????, ???????, ?????? ? ??????? ?? ?????? ????????.';
+    return getIsEn() ? 'Issued codes, statuses and settlement will appear here after the first coupon.' : 'После первого купона здесь появятся коды, статусы и результаты расчёта.';
 }
 function getPreviewHeadline() {
-    return getIsEn() ? 'The cabinet appears after the first coupon.' : '??????? ???????? ????? ??????? ??????.';
+    return getIsEn() ? 'The cabinet appears after the first coupon.' : 'Кабинет станет активным после первого купона.';
 }
 function getPreviewCodeLabel() {
-    return getIsEn() ? 'Bet code' : '??? ??????';
+    return getIsEn() ? 'Bet code' : 'Код ставки';
 }
 function getPreviewCodeValue() {
-    return getIsEn() ? 'waiting for transfer' : '??????? ???????';
+    return getIsEn() ? 'waiting for transfer' : 'ожидает перевод';
 }
 function getPreviewAcceptanceLabel() {
-    return getIsEn() ? 'Acceptance' : '????????';
+    return getIsEn() ? 'Acceptance' : 'Принятие';
 }
 function getPreviewAcceptanceValue() {
-    return getIsEn() ? 'after transfer validation' : '????? ???????? ????????';
+    return getIsEn() ? 'after transfer validation' : 'после проверки перевода';
 }
 function getPreviewSettlementLabel() {
-    return getIsEn() ? 'Settlement' : '??????';
+    return getIsEn() ? 'Settlement' : 'Расчёт';
 }
 function getPreviewSettlementValue() {
-    return getIsEn() ? 'win, loss or rejected' : 'win, loss ??? ??????????';
+    return getIsEn() ? 'win, loss or rejected' : 'выигрыш, проигрыш или отклонение';
 }
-function getStatCoupons() { return getIsEn() ? 'Coupons' : '??????'; }
-function getStatCouponsHint() { return getIsEn() ? 'Issued codes' : '???????? ?????'; }
-function getStatWaiting() { return getIsEn() ? 'Waiting' : '????'; }
-function getStatWaitingHint() { return getIsEn() ? 'Waiting for transfer' : '??????? ???????'; }
-function getStatAccepted() { return getIsEn() ? 'Accepted' : '???????'; }
-function getStatAcceptedHint() { return getIsEn() ? 'Confirmed by system' : '???????????? ????????'; }
-function getStatRejected() { return getIsEn() ? 'Rejected' : '?????????'; }
-function getStatRejectedHint() { return getIsEn() ? 'Did not pass validation' : '?? ?????? ????????'; }
-function getStatWon() { return getIsEn() ? 'Won' : '????????'; }
-function getStatWonHint() { return getIsEn() ? 'Settled as wins' : '?????????? ??? ???????'; }
-function getStatTurnover() { return getIsEn() ? 'Turnover' : '??????'; }
-function getStatTurnoverHint() { return getIsEn() ? 'Counted betting volume' : '???????? ????? ??????'; }
+function getStatCoupons() { return getIsEn() ? 'Coupons' : 'Купоны'; }
+function getStatCouponsHint() { return getIsEn() ? 'Issued codes' : 'Выпущенные коды'; }
+function getStatWaiting() { return getIsEn() ? 'Waiting' : 'Ожидание'; }
+function getStatWaitingHint() { return getIsEn() ? 'Waiting for transfer' : 'Ожидает перевод'; }
+function getStatAccepted() { return getIsEn() ? 'Accepted' : 'Приняты'; }
+function getStatAcceptedHint() { return getIsEn() ? 'Confirmed by system' : 'Подтверждены системой'; }
+function getStatRejected() { return getIsEn() ? 'Rejected' : 'Отклонены'; }
+function getStatRejectedHint() { return getIsEn() ? 'Did not pass validation' : 'Не прошли проверку'; }
+function getStatWon() { return getIsEn() ? 'Won' : 'Выиграли'; }
+function getStatWonHint() { return getIsEn() ? 'Settled as wins' : 'Рассчитаны как выигрыш'; }
+function getStatTurnover() { return getIsEn() ? 'Turnover' : 'Оборот'; }
+function getStatTurnoverHint() { return getIsEn() ? 'Counted betting volume' : 'Учтённый объём ставок'; }
 function getIsEn() { return document.documentElement.lang === 'en'; }
