@@ -1,7 +1,7 @@
 /**
  * PrizmBet v3 - Utils Module
  */
-import { formatDate, formatTime, getLanguage, t } from './i18n.js';
+import { formatDate, formatTime, getLanguage, getTimeZone, t } from './i18n.js';
 
 export function escapeHtml(text) {
     const div = document.createElement('div');
@@ -52,6 +52,25 @@ export function parseMatchDateTime(match) {
     }
 
     return new Date(0);
+}
+
+export function getMoscowDayIndex(value) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: getTimeZone(),
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(date);
+
+    const year = Number(parts.find((part) => part.type === 'year')?.value || 0);
+    const month = Number(parts.find((part) => part.type === 'month')?.value || 0);
+    const day = Number(parts.find((part) => part.type === 'day')?.value || 0);
+    if (!year || !month || !day) return null;
+
+    return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
 }
 
 export function getMinutesToStart(match) {

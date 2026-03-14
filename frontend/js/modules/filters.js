@@ -1,7 +1,7 @@
-﻿/**
+/**
  * PrizmBet v2 - Filters Module
  */
-import { parseMatchDateTime } from './utils.js';
+import { parseMatchDateTime, getMoscowDayIndex } from './utils.js';
 import { getFavorites } from './storage.js';
 
 export let currentSportFilter = 'football';
@@ -70,13 +70,22 @@ export function getFilterState() {
     };
 }
 
+export function matchPassesDateFilter(matchOrDate, dateFilter, nowDate = new Date()) {
+    if (!dateFilter || dateFilter === 'all') return true;
+
+    const matchDate = matchOrDate instanceof Date ? matchOrDate : parseMatchDateTime(matchOrDate);
+    const matchDayIndex = getMoscowDayIndex(matchDate);
+    const nowDayIndex = getMoscowDayIndex(nowDate);
+
+    if (matchDayIndex === null || nowDayIndex === null) return false;
+    if (dateFilter === 'today') return matchDayIndex === nowDayIndex;
+    if (dateFilter === 'tomorrow') return matchDayIndex === nowDayIndex + 1;
+    if (dateFilter === 'later') return matchDayIndex > nowDayIndex + 1;
+    return true;
+}
+
 export function filterMatches(matches, state) {
     const now = new Date();
-    // Date boundaries (local midnight)
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd   = new Date(todayStart.getTime() + 86400000);
-    const tomorrowEnd = new Date(todayEnd.getTime() + 86400000);
-
     const favIds = state.sport === 'favs' ? getFavorites() : null;
 
     return matches.filter(m => {
@@ -112,13 +121,8 @@ export function filterMatches(matches, state) {
         // so matches don't disappear between scheduled data refreshes.
         if (diffMs > (8 * 60 * 60 * 1000)) return false;
 
-        // Date filter
-        if (state.date !== 'all') {
-            const t = start.getTime();
-            if (state.date === 'today'    && (t < todayStart.getTime() || t >= todayEnd.getTime()))   return false;
-            if (state.date === 'tomorrow' && (t < todayEnd.getTime()   || t >= tomorrowEnd.getTime())) return false;
-            if (state.date === 'later'    &&  t < tomorrowEnd.getTime())                               return false;
-        }
+        // Date filter (always in Moscow time)
+        if (!matchPassesDateFilter(start, state.date, now)) return false;
 
         // League filter
         const mLeagueGroup = getMatchGame(m);

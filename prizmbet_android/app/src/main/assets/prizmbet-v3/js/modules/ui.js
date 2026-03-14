@@ -353,6 +353,16 @@ function attachSentinel(container, pendingLeagues, matchesMap) {
     observer.observe(sentinel);
 }
 
+function renderFlatMatchSections(container, matches, favorites) {
+    matches.forEach((match) => {
+        const section = document.createElement('div');
+        section.className = 'section';
+        section.innerHTML = `<h2 class="section-title">${escapeHtml(match.league || t('common.noLeague'))}</h2>`;
+        section.appendChild(createMatchCard(match, favorites));
+        container.appendChild(section);
+    });
+}
+
 export function renderMatches(matches, options = {}) {
     const container = document.getElementById('content');
     if (!container) return;
@@ -404,6 +414,11 @@ export function renderMatches(matches, options = {}) {
             const anchor = document.getElementById(anchorId);
             if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
+        return;
+    }
+
+    if (options.sort === 'time') {
+        renderFlatMatchSections(container, matches, favorites);
         return;
     }
 

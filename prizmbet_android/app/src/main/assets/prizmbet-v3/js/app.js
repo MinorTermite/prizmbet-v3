@@ -26,6 +26,7 @@ function hasTotalMarket(match) {
 function getStaleFallbackMatches(matches, state) {
     const favIds = state.sport === 'favs' ? storage.getFavorites() : null;
     const now = Date.now();
+    const nowDate = new Date(now);
 
     return matches.filter((match) => {
         if (!filters.isValidMatch(match)) return false;
@@ -34,6 +35,7 @@ function getStaleFallbackMatches(matches, state) {
         if (match.score) return false;
         if (Boolean(match.is_live)) return false;
         if (utils.parseMatchDateTime(match).getTime() <= now) return false;
+        if (!filters.matchPassesDateFilter(match, state.date, nowDate)) return false;
 
         const matchSport = filters.getMatchSport(match);
         if (state.sport === 'totals') {
@@ -91,7 +93,7 @@ function updateApp(newMatches) {
 
     ui.buildGameFilter(gameFilterSource);
     ui.updateStats(displayMatches, { sourceMatches: displayMatches, meta, staleFallback });
-    ui.renderMatches(displayMatches, { sourceMatches: allMatches, meta, staleFallback });
+    ui.renderMatches(displayMatches, { sourceMatches: allMatches, meta, staleFallback, sort: state.sort });
 }
 
 function updateHeaderClock() {
