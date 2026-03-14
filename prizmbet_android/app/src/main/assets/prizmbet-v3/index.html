@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="ru">
 <head>
@@ -60,13 +59,13 @@
 <button class="lang-option" data-lang-option="en" type="button">EN</button>
 </div>
 <div class="header-actions header-actions--desktop">
-<button aria-label="Уведомления" class="btn-icon" data-i18n-aria="header.notifications" data-i18n-title="header.notifications" id="notifBtn" onclick="requestNotificationPermission()" title="Уведомления">🔔</button>
-<a class="btn-icon" data-i18n-title="header.telegram" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank" title="Telegram-бот">🤖</a>
-<button aria-label="Кабинет" class="btn-icon" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" onclick="openHistory()" title="Кабинет">📝</button>
-<button aria-label="Обновить линию" class="btn-icon" data-i18n-aria="header.refresh" data-i18n-title="header.refresh" onclick="refreshData()" title="Обновить линию">↻</button>
+<button aria-label="Уведомления" class="btn-icon" data-i18n-aria="header.notifications" data-i18n-title="header.notifications" id="notifBtn" onclick="requestNotificationPermission()" title="Уведомления"><span aria-hidden="true" class="btn-icon-glyph" data-notif-glyph="true">&#128276;</span></button>
+<a class="btn-icon" data-i18n-title="header.telegram" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank" title="Telegram-бот"><span aria-hidden="true" class="btn-icon-glyph">&#129302;</span></a>
+<button aria-label="Кабинет" class="btn-icon" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" onclick="openHistory()" title="Кабинет"><span aria-hidden="true" class="btn-icon-glyph">&#128203;</span></button>
+<button aria-label="Обновить линию" class="btn-icon" data-i18n-aria="header.refresh" data-i18n-title="header.refresh" onclick="refreshData()" title="Обновить линию"><span aria-hidden="true" class="btn-icon-glyph">&#8635;</span></button>
 </div>
-<button aria-label="Кабинет" class="btn-icon btn-icon--mobile" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" id="mobileCabinetBtn" title="Кабинет">📝</button>
-<button aria-label="Меню" class="btn-icon btn-icon--mobile" data-i18n-aria="header.menu" data-i18n-title="header.menu" id="menuToggleBtn" title="Меню">☰</button>
+<button aria-label="Кабинет" class="btn-icon btn-icon--mobile" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" id="mobileCabinetBtn" title="Кабинет"><span aria-hidden="true" class="btn-icon-glyph">&#128203;</span></button>
+<button aria-label="Меню" class="btn-icon btn-icon--mobile" data-i18n-aria="header.menu" data-i18n-title="header.menu" id="menuToggleBtn" title="Меню"><span aria-hidden="true" class="btn-icon-glyph">&#9776;</span></button>
 </div>
 </header>
 <div class="mobile-menu-backdrop" id="mobileMenuBackdrop"></div>
@@ -79,9 +78,9 @@
 </div>
 </div>
 <div class="mobile-menu-grid">
-<button class="mobile-menu-action" id="mobileNotifBtn" type="button"><span>🔔</span><span data-i18n="header.notifications">Уведомления</span></button>
-<a class="mobile-menu-action" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank"><span>🤖</span><span data-i18n="header.telegram">Telegram-бот</span></a>
-<button class="mobile-menu-action" id="mobileRefreshBtn" type="button"><span>↻</span><span data-i18n="header.refresh">Обновить линию</span></button>
+<button class="mobile-menu-action" id="mobileNotifBtn" type="button"><span aria-hidden="true" class="mobile-menu-action__icon" data-notif-glyph="true">&#128276;</span><span data-i18n="header.notifications">Уведомления</span></button>
+<a class="mobile-menu-action" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank"><span aria-hidden="true" class="mobile-menu-action__icon">&#129302;</span><span data-i18n="header.telegram">Telegram-бот</span></a>
+<button class="mobile-menu-action" id="mobileRefreshBtn" type="button"><span aria-hidden="true" class="mobile-menu-action__icon">&#8635;</span><span data-i18n="header.refresh">Обновить линию</span></button>
 </div>
 </aside>
 <section aria-label="PRIZMBET home" class="top-stage">
@@ -268,3 +267,4 @@
     </script>
 </body>
 </html>
+

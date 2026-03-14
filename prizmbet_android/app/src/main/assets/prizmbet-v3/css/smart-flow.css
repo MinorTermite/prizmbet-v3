@@ -1411,6 +1411,20 @@
     background: rgba(255, 255, 255, 0.12);
 }
 
+.btn-icon-glyph,
+.mobile-menu-action__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: 1.05rem;
+}
+
+.mobile-menu-action__icon {
+    width: 20px;
+    flex: 0 0 20px;
+}
+
 @media (max-width: 767px) {
     .header {
         top: 8px;
@@ -1999,3 +2013,5 @@ button.market-chip:hover {
         padding-right: 14px;
     }
 }
+
+

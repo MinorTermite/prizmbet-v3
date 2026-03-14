@@ -1,5 +1,5 @@
 ﻿// ── PrizmBet Service Worker ───────────────────────────────────────────────────
-const VERSION     = 'v30';
+const VERSION     = 'v31';
 const SHELL_CACHE = `prizmbet-shell-${VERSION}`;
 const DATA_CACHE  = 'prizmbet-data';   // вечный, обновляется по контенту
 
@@ -142,6 +142,7 @@ self.addEventListener('fetch', event => {
     // Всё остальное (Google Fonts, внешние CDN): сеть, без кэша
     // (браузер сам их кэширует по Cache-Control заголовкам)
 });
+
 
 
 

@@ -1,21 +1,14 @@
-/**
+﻿/**
  * PrizmBet v3 - Notifications Module
  */
 import { getFavDetails, saveFavDetails } from './storage.js';
 import { t } from './i18n.js';
 
 export function updateNotifBell() {
-    const btn = document.getElementById('notifBtn');
-    const mobileBtn = document.getElementById('mobileNotifBtn');
-    [btn, mobileBtn].forEach((node) => {
-        if (!node) return;
-        if (Notification.permission === 'granted') {
-            node.textContent = '??';
-            node.style.opacity = '1';
-        } else {
-            node.textContent = '??';
-            node.style.opacity = '0.7';
-        }
+    document.querySelectorAll('[data-notif-glyph="true"]').forEach((node) => {
+        const isGranted = Notification.permission === 'granted';
+        node.innerHTML = isGranted ? '&#128276;' : '&#128277;';
+        node.closest('button, a')?.style.setProperty('opacity', isGranted ? '1' : '0.7');
     });
 }
 
@@ -70,3 +63,5 @@ export function showToast(msg) {
         setTimeout(() => tLabel.classList.remove('show'), 3500);
     }
 }
+
+
