@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Helpers for decoding intent-based bets into operator-friendly views."""
 
 from __future__ import annotations
@@ -43,6 +43,8 @@ REJECT_LABELS = {
     "SENDER_MISMATCH": "Кошелёк отправителя не совпал с купоном",
     "INTENT_EXPIRED": "Купон просрочен",
     "MATCH_NOT_FOUND": "Матч не найден в актуальном кэше",
+    "LIVE_DISABLED": "Live-ставки отключены в публичной версии",
+    "MATCH_ALREADY_STARTED": "Событие уже началось",
     "LATE_BET": "Ставка пришла после безопасного окна",
 }
 

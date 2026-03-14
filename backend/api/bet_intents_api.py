@@ -82,11 +82,11 @@ def _parse_dt(value):
 
 def _rank_preview(turnover: float, accepted_count: int) -> dict:
     tiers = [
-        ("Observer", 0),
-        ("Runner", 1500),
-        ("Operator", 5000),
-        ("Strategist", 15000),
-        ("Imperator", 50000),
+        ("Beginner", 0),
+        ("Player", 1500),
+        ("Regular", 5000),
+        ("Pro", 15000),
+        ("Master", 50000),
     ]
     current = tiers[0]
     next_tier = None
@@ -146,6 +146,13 @@ async def create_intent(request: web.Request):
     match = matches.get(match_id)
     if not match:
         return _json_response({"error": "match not found in current cache"}, status=404)
+
+    match_time = _parse_dt(match.get("match_time"))
+    now = datetime.now(timezone.utc)
+    if bool(match.get("is_live")):
+        return _json_response({"error": "LIVE_DISABLED"}, status=400)
+    if match_time and match_time.astimezone(timezone.utc) <= now:
+        return _json_response({"error": "MATCH_ALREADY_STARTED"}, status=400)
 
     odds = _extract_odds(match, outcome)
     if not odds:

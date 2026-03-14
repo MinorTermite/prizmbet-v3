@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PrizmBet v3 - Smart Coupon Module
  */
 import { showToast } from './notifications.js';
@@ -16,7 +16,9 @@ const MIN_BET = 1500;
 const MAX_BET = 200000;
 const INTENT_TTL_MS = 15 * 60 * 1000;
 const REJECT_LABELS = {
-    LATE_BET: { ru: 'Перевод пришёл после старта события', en: 'The transfer arrived too late' },
+    LATE_BET: { ru: 'Перевод пришёл после безопасного окна', en: 'The transfer arrived after the safe prematch window' },
+    LIVE_DISABLED: { ru: 'Live-ставки отключены в публичной версии', en: 'Live betting is disabled in the public version' },
+    MATCH_ALREADY_STARTED: { ru: 'Событие уже началось', en: 'The event has already started' },
     SENDER_MISMATCH: { ru: 'Перевод пришёл с другого кошелька', en: 'The transfer came from another wallet' },
     INVALID_INTENT: { ru: 'Код ставки не распознан', en: 'The bet code was not recognized' },
     INTENT_EXPIRED: { ru: 'Срок действия кода истёк', en: 'The code expired' },
@@ -28,6 +30,40 @@ function isEnglish() {
 
 function getStatusLabel(status) {
     return t(`status.${status}`);
+}
+
+function getCurrentMatchRecord() {
+    const allMatches = Array.isArray(window.__ALL_MATCHES__) ? window.__ALL_MATCHES__ : [];
+    return allMatches.find((item) => String(item.id || '') === String(currentBet?.id || '')) || null;
+}
+
+function isPublicBetUnavailable(match) {
+    if (!match) return false;
+    if (Boolean(match.is_live)) return true;
+    const matchTime = new Date(match.match_time || 0).getTime();
+    return Boolean(matchTime) && matchTime <= Date.now();
+}
+
+function getPublicBetUnavailableMessage(match) {
+    if (Boolean(match?.is_live)) {
+        return isEnglish() ? 'Live betting is disabled in the public version.' : 'Live-ставки отключены в публичной версии.';
+    }
+    return isEnglish() ? 'This event is no longer available for prematch betting.' : 'Это событие уже недоступно для prematch-ставки.';
+}
+
+function getIntentIssueErrorMessage(code) {
+    const raw = String(code || '').trim().toUpperCase();
+    return getRejectLabel(raw) || raw || (isEnglish() ? 'The code could not be issued.' : 'Не удалось выпустить код.');
+}
+
+function getPayoutFormulaText(amount, coef) {
+    const safeAmount = Number(amount || 0);
+    const safeCoef = Number(coef || 0);
+    const payout = safeAmount * safeCoef;
+    if (!safeAmount || !safeCoef) {
+        return isEnglish() ? 'Enter amount to see the payout.' : 'Введите сумму, чтобы увидеть выплату.';
+    }
+    return `${formatNumber(safeAmount)} × ${formatOdd(safeCoef)} = ${formatNumber(payout)} PRIZM`;
 }
 
 function getRejectLabel(code) {
@@ -165,7 +201,7 @@ export function calcPayout() {
     const amount = Number(dom.amountInput?.value || 0);
     const coef = Number(dom.coef?.textContent || 0);
     if (dom.payout) {
-        dom.payout.textContent = formatNumber(amount * coef);
+        dom.payout.textContent = getPayoutFormulaText(amount, coef);
     }
 }
 
@@ -174,6 +210,11 @@ export async function copyBetSlipData() {
     if (!currentBet) return;
 
     const form = getFormState();
+    const currentMatch = getCurrentMatchRecord();
+    if (currentMatch && isPublicBetUnavailable(currentMatch)) {
+        showToast(getPublicBetUnavailableMessage(currentMatch));
+        return;
+    }
     if (!form.wallet) {
         dom.walletInput?.focus();
         showToast('Введите кошелёк игрока, чтобы выпустить код ставки.');
@@ -221,7 +262,7 @@ export async function refreshSlipStatus() {
             dom.timeline.innerHTML = `
                 <div class="coupon-timeline-item">
                     <strong>Следующий шаг</strong>
-                    <div>Укажите кошелёк и сумму, затем выпустите короткий код. После этого в переводе нужен только этот код, без длинного комментария.</div>
+                    <div>Введите кошелёк и сумму, выпустите код ставки и отправьте перевод на кошелёк проекта с этим кодом.</div>
                 </div>
             `;
         }
@@ -323,14 +364,31 @@ async function issueIntent(form) {
                     sender_wallet: form.wallet,
                 }),
             });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) {
+                let errorCode = `HTTP_${response.status}`;
+                try {
+                    const errorPayload = await response.json();
+                    errorCode = String(errorPayload.error || errorCode);
+                } catch (_) {
+                    // Ignore payload parsing errors for validation messages.
+                }
+                if (response.status >= 400 && response.status < 500) {
+                    throw new Error(`VALIDATION:${errorCode}`);
+                }
+                throw new Error(`HTTP ${response.status}`);
+            }
             const payload = await response.json();
             intent.intent_hash = payload.intent_hash || intent.intent_hash;
             intent.odds_fixed = Number(payload.odds_fixed || intent.odds_fixed);
             intent.expires_at = payload.expires_at || intent.expires_at;
             intent.mode = 'live';
             pushTimeline(intent, 'Код сохранён в системе', 'Код сохранён в системе и будет проверен при поступлении перевода.');
-        } catch (_) {
+        } catch (error) {
+            const message = String(error?.message || '');
+            if (message.startsWith('VALIDATION:')) {
+                showToast(getIntentIssueErrorMessage(message.slice('VALIDATION:'.length)));
+                return;
+            }
             intent.mode = 'local';
             pushTimeline(intent, 'Переход в локальный режим', 'Intent API недоступен, поэтому купон временно работает локально.');
         }
@@ -375,6 +433,11 @@ function renderCoupon() {
 
     activeIntent = normalizeIntentRecord(activeIntent);
     const form = getFormState();
+    const currentMatch = getCurrentMatchRecord();
+    if (currentMatch && isPublicBetUnavailable(currentMatch)) {
+        showToast(getPublicBetUnavailableMessage(currentMatch));
+        return;
+    }
     const statusMeta = getStatusMeta(activeIntent?.status || 'draft');
 
     if (dom.match) dom.match.textContent = currentBet.teams || form.matchLabel;
@@ -640,9 +703,11 @@ function buildTransferInstructions(intent) {
     const base = isEnglish()
         ? `Send ${formatNumber(intent.amount_prizm)} PRIZM to ${MASTER_WALLET}. Put code ${intent.intent_hash} into the transfer message.`
         : `Отправьте ${formatNumber(intent.amount_prizm)} PRIZM на ${MASTER_WALLET}. В сообщении перевода укажите код ${intent.intent_hash}.`;
-    return apiLive
-        ? `${base} ${isEnglish() ? 'After the transfer open the cabinet to see the status.' : 'После перевода откройте кабинет, чтобы увидеть статус.'}`
-        : `${base} ${isEnglish() ? 'The code and history are already saved on this device.' : 'Код и история уже сохранены на этом устройстве.'}`;
+    const tail = apiLive
+        ? (isEnglish() ? 'After the transfer open the cabinet to see the status.' : 'После перевода откройте кабинет, чтобы увидеть статус.')
+        : (isEnglish() ? 'The code and history are already saved on this device.' : 'Код и история уже сохранены на этом устройстве.');
+    const formula = getPayoutFormulaText(intent.amount_prizm, intent.odds_fixed);
+    return `${formula}. ${base} ${tail}`;
 }
 
 
@@ -722,11 +787,11 @@ function mapDashboardToCabinet(wallet, payload) {
 
 function deriveRank(turnover, acceptedCount) {
     const tiers = [
-        { name: 'Старт', threshold: 0 },
+        { name: 'Начинающий игрок', threshold: 0 },
         { name: 'Игрок', threshold: 1500 },
-        { name: 'Тактик', threshold: 5000 },
+        { name: 'Постоянный игрок', threshold: 5000 },
         { name: 'Профи', threshold: 15000 },
-        { name: 'Император', threshold: 50000 },
+        { name: 'Мастер', threshold: 50000 },
     ];
 
     let current = tiers[0];

@@ -104,6 +104,8 @@ export function filterMatches(matches, state) {
 
         // Hide ALL scored matches from main list (they belong in Results tab)
         if (m.score) return false;
+        if (Boolean(m.is_live)) return false;
+        if (start.getTime() <= now.getTime()) return false;
 
         // Hide matches without score that started more than 8h ago.
         // 8h threshold matches the workflow update interval (3x/day ≈ every 8h),
@@ -177,7 +179,7 @@ export function sortMatches(matches, sortType) {
             if (pa !== pb) return pa - pb;
             return (a.league || "").localeCompare(b.league || "");
         }
-        return 0;
+        return parseMatchDateTime(a) - parseMatchDateTime(b);
     });
     return sorted;
 }

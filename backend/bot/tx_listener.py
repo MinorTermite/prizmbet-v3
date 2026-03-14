@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """PRIZM Tx Listener + Anti-fraud."""
 import asyncio
@@ -102,6 +102,8 @@ async def _process_tx(tx: dict):
             bet_row["reject_reason"] = "INTENT_EXPIRED"
         elif not match:
             bet_row["reject_reason"] = "MATCH_NOT_FOUND"
+        elif bool(match.get("is_live")):
+            bet_row["reject_reason"] = "LIVE_DISABLED"
         else:
             match_time = datetime.fromisoformat(str(match["match_time"]).replace("Z", "+00:00")).astimezone(timezone.utc)
             cutoff = match_time - timedelta(seconds=SAFETY_WINDOW_SECONDS)

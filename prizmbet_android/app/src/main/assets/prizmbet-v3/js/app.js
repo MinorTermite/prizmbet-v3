@@ -25,12 +25,15 @@ function hasTotalMarket(match) {
 
 function getStaleFallbackMatches(matches, state) {
     const favIds = state.sport === 'favs' ? storage.getFavorites() : null;
+    const now = Date.now();
 
     return matches.filter((match) => {
         if (!filters.isValidMatch(match)) return false;
         if (favIds !== null) return favIds.includes(match.id);
         if (state.sport === 'results') return Boolean(match.score);
         if (match.score) return false;
+        if (Boolean(match.is_live)) return false;
+        if (utils.parseMatchDateTime(match).getTime() <= now) return false;
 
         const matchSport = filters.getMatchSport(match);
         if (state.sport === 'totals') {
@@ -54,11 +57,7 @@ function getStaleFallbackMatches(matches, state) {
         }
 
         return true;
-    }).sort((a, b) => {
-        const liveDelta = Number(Boolean(b.is_live)) - Number(Boolean(a.is_live));
-        if (liveDelta !== 0) return liveDelta;
-        return utils.parseMatchDateTime(a) - utils.parseMatchDateTime(b);
-    });
+    }).sort((a, b) => utils.parseMatchDateTime(a) - utils.parseMatchDateTime(b));
 }
 
 function updateApp(newMatches) {
@@ -91,7 +90,7 @@ function updateApp(newMatches) {
         : filters.filterMatches(allMatches, { ...state, league: 'all' });
 
     ui.buildGameFilter(gameFilterSource);
-    ui.updateStats(displayMatches, { sourceMatches: allMatches, meta, staleFallback });
+    ui.updateStats(displayMatches, { sourceMatches: displayMatches, meta, staleFallback });
     ui.renderMatches(displayMatches, { sourceMatches: allMatches, meta, staleFallback });
 }
 

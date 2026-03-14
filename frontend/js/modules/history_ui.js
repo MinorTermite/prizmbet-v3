@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PrizmBet v3 - Wallet Cabinet UI
  */
 import { clearIntentRecords, getWalletAddress, saveWalletAddress } from './storage.js';
@@ -16,11 +16,19 @@ const RANK_LABELS = {
     Operator: 'rank.tactic',
     Strategist: 'rank.pro',
     Imperator: 'rank.emperor',
+    Beginner: 'rank.start',
+    Player: 'rank.player',
+    Regular: 'rank.tactic',
+    Pro: 'rank.pro',
+    Master: 'rank.emperor',
     'Старт': 'rank.start',
+    'Начинающий игрок': 'rank.start',
     'Игрок': 'rank.player',
     'Тактик': 'rank.tactic',
+    'Постоянный игрок': 'rank.tactic',
     'Профи': 'rank.pro',
     'Император': 'rank.emperor',
+    'Мастер': 'rank.emperor',
 };
 
 export function initHistoryUI() {
@@ -161,7 +169,7 @@ function renderEmptyCabinet(message) {
         dom.modeBadge.textContent = getLocalModeText();
         dom.modeBadge.className = 'coupon-badge coupon-badge--local';
     }
-    if (dom.rankTitle) dom.rankTitle.textContent = translateRank('Observer');
+    if (dom.rankTitle) dom.rankTitle.textContent = translateRank('Beginner');
     if (dom.rankHint) dom.rankHint.textContent = getFirstCouponHint();
     if (dom.stats) dom.stats.innerHTML = '';
     if (dom.feed) dom.feed.innerHTML = previewMarkup(message);
@@ -216,7 +224,7 @@ function getCabinetErrorText() {
         : 'Не удалось загрузить данные кабинета.';
 }
 function getLiveModeText() {
-    return getIsEn() ? 'Live system statuses' : 'Статусы из live-системы';
+    return getIsEn() ? 'System statuses' : 'Статусы из системы';
 }
 function getLocalModeText() {
     return getIsEn() ? 'History on this device' : 'История на этом устройстве';
