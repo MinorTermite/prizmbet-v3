@@ -10,6 +10,7 @@ from typing import Any
 
 from backend.db.supabase_client import db
 from backend.utils.bet_views import load_matches_cache, normalize_outcome_label
+from backend.utils.operator_audit import log_operator_event
 from backend.utils.operator_alerts import notify_bet_settled
 
 POLL_INTERVAL_SECONDS = 180
@@ -127,6 +128,13 @@ async def run_once(limit: int = SETTLEMENT_FETCH_LIMIT) -> int:
         payout_amount = round(amount * odds_fixed, 2) if verdict else 0.0
         updated_rows = await db.update_bet_settlement(str(bet.get('tx_id') or ''), status=status, payout_amount=payout_amount)
         updated = updated_rows[0] if updated_rows else {**bet, 'status': status, 'payout_amount': payout_amount}
+        await log_operator_event(
+            'bet_won' if verdict else 'bet_lost',
+            updated,
+            intent=dict(intent) if intent else None,
+            match=dict(match) if match else None,
+            extra={'score': match.get('score')},
+        )
         await notify_bet_settled(updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
         settled += 1
         log.info('[SETTLED] tx=%s status=%s score=%s', str(bet.get('tx_id') or '')[:18], status, match.get('score'))

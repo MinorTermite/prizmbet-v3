@@ -150,6 +150,37 @@ class Database:
             print(f"Error fetching recent bets: {exc}")
             return []
 
+    async def get_bets_by_status(self, statuses: list[str], limit: int = 100):
+        if not self.initialized:
+            return []
+        cleaned = [str(item or "").strip().lower() for item in statuses if str(item or "").strip()]
+        if not cleaned:
+            return []
+        try:
+            response = (
+                self.client
+                .table("bets")
+                .select("*")
+                .in_("status", cleaned)
+                .order("created_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+            return response.data or []
+        except Exception as exc:
+            print(f"Error fetching bets by status: {exc}")
+            return []
+
+    async def get_bet_by_tx_id(self, tx_id: str):
+        if not self.initialized:
+            return None
+        try:
+            response = self.client.table("bets").select("*").eq("tx_id", tx_id).limit(1).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching bet by tx_id: {exc}")
+            return None
+
     async def update_bet_status(self, tx_id: str, status: str, reason: str = None):
         if not self.initialized:
             return None
@@ -160,6 +191,68 @@ class Database:
         if reason:
             payload["reject_reason"] = reason
         return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+
+    async def update_bet_settlement(
+        self,
+        tx_id: str,
+        status: str,
+        payout_amount: float = 0.0,
+        reason: str | None = None,
+    ):
+        if not self.initialized:
+            return None
+        payload = {
+            "status": status,
+            "payout_amount": round(float(payout_amount or 0), 2),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "reject_reason": reason,
+        }
+        return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+
+    async def mark_bet_paid(
+        self,
+        tx_id: str,
+        payout_tx_id: str = "",
+        payout_amount: float | None = None,
+    ):
+        if not self.initialized:
+            return None
+        payload = {
+            "status": "paid",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        payout_tx_id = str(payout_tx_id or "").strip()
+        if payout_tx_id:
+            payload["payout_tx_id"] = payout_tx_id
+        if payout_amount is not None:
+            payload["payout_amount"] = round(float(payout_amount or 0), 2)
+        return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+
+    async def insert_operator_audit_log(self, audit_row: dict):
+        if not self.initialized:
+            return None
+        try:
+            return self.client.table("operator_audit_log").insert(audit_row).execute().data
+        except Exception as exc:
+            print(f"Error inserting operator audit log: {exc}")
+            return None
+
+    async def get_operator_audit_log(self, limit: int = 80):
+        if not self.initialized:
+            return []
+        try:
+            response = (
+                self.client
+                .table("operator_audit_log")
+                .select("*")
+                .order("created_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+            return response.data or []
+        except Exception as exc:
+            print(f"Error fetching operator audit log: {exc}")
+            return []
 
     async def get_match_by_id(self, match_id: str):
         cache_row = _frontend_match_row(match_id)

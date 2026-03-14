@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 from backend.config import config
 from backend.db.supabase_client import db
 from backend.bot import prizm_api
+from backend.utils.operator_audit import log_operator_event
 from backend.utils.operator_alerts import notify_bet_processed
 WALLET = prizm_api.WALLET
 SAFETY_WINDOW_SECONDS = 120
@@ -119,6 +120,14 @@ async def _process_tx(tx: dict):
             log.info("[ACCEPTED] Tx %s amount=%.2f intent=%s", tx_id[:16], amount, intent_hash)
         else:
             log.info("[REJECTED] Tx %s Reason: %s", tx_id[:16], bet_row["reject_reason"])
+
+        await log_operator_event(
+            "bet_accepted" if bet_row["status"] == "accepted" else "bet_rejected",
+            dict(bet_row),
+            intent=dict(intent) if intent else None,
+            match=dict(match) if match else None,
+            reason=bet_row.get("reject_reason"),
+        )
 
         asyncio.create_task(
             notify_bet_processed(

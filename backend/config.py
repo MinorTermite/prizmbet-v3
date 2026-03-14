@@ -24,6 +24,9 @@ class Config:
     V3_TELEGRAM_MIN_ALERT_PRIZM = float(os.getenv('V3_TELEGRAM_MIN_ALERT_PRIZM', '1000'))
 
     ADMIN_VIEW_KEY = os.getenv('ADMIN_VIEW_KEY', '')
+    GOOGLE_SHEETS_MIRROR_ENABLED = os.getenv('GOOGLE_SHEETS_MIRROR_ENABLED', 'false').lower() == 'true'
+    GOOGLE_SHEETS_WEBHOOK_URL = os.getenv('GOOGLE_SHEETS_WEBHOOK_URL', '')
+    GOOGLE_SHEETS_WEBHOOK_TOKEN = os.getenv('GOOGLE_SHEETS_WEBHOOK_TOKEN', '')
 
     ODDS_API_KEY = os.getenv('ODDS_API_KEY', '')
     API_FOOTBALL_KEY = os.getenv('API_FOOTBALL_KEY', '')

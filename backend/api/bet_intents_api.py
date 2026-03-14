@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Bet Intent API (Hash-Coupon + Prototype Dashboard)."""
 import json
 import random
@@ -10,7 +10,9 @@ from aiohttp import web
 
 from backend.config import config
 from backend.db.supabase_client import db
+from backend.utils.operator_audit import log_operator_event
 from backend.utils.bet_views import ACCEPTED_STATUSES, build_bet_view, search_blob
+from backend.utils.operator_alerts import notify_payout_sent
 
 
 OUTCOME_MAP = {
@@ -307,6 +309,8 @@ async def operator_feed(request: web.Request):
                 "won_count": 0,
                 "lost_count": 0,
                 "refund_count": 0,
+                "to_payout_count": 0,
+                "paid_count": 0,
                 "turnover_prizm": 0,
                 "potential_payout_prizm": 0,
             },
@@ -366,6 +370,8 @@ async def operator_feed(request: web.Request):
         "won_count": sum(1 for item in items if item["status"] == "won"),
         "lost_count": sum(1 for item in items if item["status"] == "lost"),
         "refund_count": sum(1 for item in items if item["status"] in {"refund_pending", "refunded"}),
+        "to_payout_count": sum(1 for item in items if item["status"] == "won"),
+        "paid_count": sum(1 for item in items if item["status"] == "paid"),
         "turnover_prizm": turnover,
         "potential_payout_prizm": potential,
     }
@@ -380,6 +386,85 @@ async def operator_feed(request: web.Request):
             "status_filter": status_filter,
         },
     })
+
+
+async def operator_audit_log(request: web.Request):
+    db_ready = await _ensure_db_ready()
+    if not _admin_authorized(request):
+        return _json_response({"error": "Admin key is invalid or missing"}, status=401)
+
+    mirror_enabled = bool(config.GOOGLE_SHEETS_MIRROR_ENABLED and config.GOOGLE_SHEETS_WEBHOOK_URL)
+    if not db_ready:
+        return _json_response({
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "items": [],
+            "meta": {
+                "admin_key_required": bool(config.ADMIN_VIEW_KEY),
+                "db_configured": False,
+                "sheets_mirror_enabled": mirror_enabled,
+            },
+        })
+
+    try:
+        limit = int(request.query.get("limit", "80"))
+    except ValueError:
+        limit = 80
+    limit = min(max(limit, 1), 200)
+
+    items = await db.get_operator_audit_log(limit)
+    return _json_response({
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "items": items,
+        "meta": {
+            "admin_key_required": bool(config.ADMIN_VIEW_KEY),
+            "db_configured": True,
+            "sheets_mirror_enabled": mirror_enabled,
+        },
+    })
+
+
+async def mark_bet_paid(request: web.Request):
+    db_ready = await _ensure_db_ready()
+    if not _admin_authorized(request):
+        return _json_response({"error": "Admin key is invalid or missing"}, status=401)
+    if not db_ready:
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    tx_id = str(request.match_info.get("tx_id", "")).strip()
+    if not tx_id:
+        return _json_response({"error": "tx_id is required"}, status=400)
+
+    current = await db.get_bet_by_tx_id(tx_id)
+    if not current:
+        return _json_response({"error": "bet not found"}, status=404)
+
+    current_status = str(current.get("status") or "").strip().lower()
+    if current_status not in {"won", "paid"}:
+        return _json_response({"error": "Only won or paid bets can be marked as paid"}, status=400)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    payout_tx_id = str(payload.get("payout_tx_id", "")).strip()
+    raw_payout_amount = payload.get("payout_amount")
+    if raw_payout_amount in (None, ""):
+        payout_amount = float(current.get("payout_amount") or 0) or round(float(current.get("amount_prizm") or 0) * float(current.get("odds_fixed") or 0), 2)
+    else:
+        try:
+            payout_amount = round(float(raw_payout_amount), 2)
+        except (TypeError, ValueError):
+            return _json_response({"error": "payout_amount must be numeric"}, status=400)
+
+    updated_rows = await db.mark_bet_paid(tx_id, payout_tx_id=payout_tx_id, payout_amount=payout_amount)
+    updated = (updated_rows or [current])[0]
+    intent = await db.get_bet_intent(str(updated.get("intent_hash") or "").strip().upper()) if updated.get("intent_hash") else None
+    match = await db.get_match_by_id(str(updated.get("match_id") or (intent or {}).get("match_id") or "").strip())
+    await notify_payout_sent(updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
+    await log_operator_event("bet_paid", updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
+    view = build_bet_view(updated, intent=intent, match=match, match_cache=_load_matches_cache())
+    return _json_response({"ok": True, "item": view})
 
 
 async def health(_: web.Request):
@@ -398,6 +483,8 @@ def create_app() -> web.Application:
     app.router.add_get("/api/intents/{intent_hash}", get_intent_status)
     app.router.add_get("/api/wallets/{wallet}/dashboard", wallet_dashboard)
     app.router.add_get("/api/admin/feed", operator_feed)
+    app.router.add_get("/api/admin/audit-log", operator_audit_log)
+    app.router.add_post("/api/admin/bets/{tx_id}/mark-paid", mark_bet_paid)
     return app
 
 
