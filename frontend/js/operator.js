@@ -800,6 +800,7 @@ function renderAuditMeta() {
   if (state.loading) parts.push('Loading...');
   if (state.auditItems.length) parts.push(`${state.auditItems.length} events`);
   parts.push(state.auditMeta?.sheets_mirror_enabled ? 'Google Sheets: ON' : 'Google Sheets: OFF');
+  if (state.auditMeta?.audit_schema_ready === false && state.auditMeta?.message) parts.push(state.auditMeta.message);
   dom.auditMeta.textContent = parts.join(' • ') || 'Audit log not loaded yet.';
 }
 
