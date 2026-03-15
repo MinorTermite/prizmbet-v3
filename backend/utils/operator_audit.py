@@ -35,6 +35,7 @@ def _build_payload(
     match: dict[str, Any] | None = None,
     reason: str | None = None,
     extra: dict[str, Any] | None = None,
+    actor: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     view = build_bet_view(bet_row, intent=intent, match=match, match_cache=load_matches_cache())
     payload = {
@@ -55,6 +56,13 @@ def _build_payload(
         "reject_reason": str(reason or bet_row.get("reject_reason") or "").strip(),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    if actor:
+        payload["actor"] = {
+            "id": actor.get("id"),
+            "login": actor.get("login"),
+            "role": actor.get("role"),
+            "auth_mode": actor.get("auth_mode"),
+        }
     if extra:
         payload["extra"] = _json_safe(extra)
     return _json_safe(payload)
@@ -62,9 +70,7 @@ def _build_payload(
 
 def _post_json(url: str, payload: dict[str, Any], token: str = "") -> None:
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    headers = {
-        "Content-Type": "application/json; charset=utf-8",
-    }
+    headers = {"Content-Type": "application/json; charset=utf-8"}
     if token:
         headers["X-Audit-Token"] = token
     request = Request(url, data=body, headers=headers, method="POST")
@@ -75,10 +81,7 @@ def _post_json(url: str, payload: dict[str, Any], token: str = "") -> None:
 async def mirror_operator_event(payload: dict[str, Any]) -> bool:
     if not config.GOOGLE_SHEETS_MIRROR_ENABLED or not config.GOOGLE_SHEETS_WEBHOOK_URL:
         return False
-    envelope = {
-        "source": "prizmbet_v3",
-        "event": payload,
-    }
+    envelope = {"source": "prizmbet_v3", "event": payload}
     try:
         await asyncio.to_thread(
             _post_json,
@@ -99,8 +102,9 @@ async def log_operator_event(
     match: dict[str, Any] | None = None,
     reason: str | None = None,
     extra: dict[str, Any] | None = None,
+    actor: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    payload = _build_payload(event_type, bet_row, intent=intent, match=match, reason=reason, extra=extra)
+    payload = _build_payload(event_type, bet_row, intent=intent, match=match, reason=reason, extra=extra, actor=actor)
     audit_row = {
         "event_type": payload["event_type"],
         "tx_id": payload["tx_id"] or None,

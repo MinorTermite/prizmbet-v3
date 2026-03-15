@@ -1,7 +1,9 @@
-﻿# -*- coding: utf-8 -*-
-"""Supabase Database Client."""
+# -*- coding: utf-8 -*-
+"""Supabase database client for PrizmBet v3."""
+from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from supabase import create_client
 
@@ -26,8 +28,6 @@ def _frontend_match_row(match_id: str):
 
 
 class Database:
-    """Database client for Supabase."""
-
     def __init__(self):
         self.client = None
         self.initialized = False
@@ -46,7 +46,7 @@ class Database:
         if not self.initialized:
             return None
         try:
-            data = match_data.copy()
+            data = dict(match_data or {})
             try:
                 response = self.client.table("matches").insert(data).execute()
                 return response.data
@@ -79,30 +79,39 @@ class Database:
             print(f"Unexpected error in insert_match: {exc}")
             return None
 
-    async def get_matches(self, sport="football", limit=100):
+    async def get_matches(self, sport: str = "football", limit: int = 100):
         if not self.initialized:
             return []
         try:
-            response = self.client.table("matches").select("*").eq("sport", sport).order("match_time", desc=False).limit(limit).execute()
+            response = (
+                self.client
+                .table("matches")
+                .select("*")
+                .eq("sport", sport)
+                .order("match_time", desc=False)
+                .limit(limit)
+                .execute()
+            )
             return response.data
         except Exception as exc:
             print(f"Error fetching matches: {exc}")
             return []
 
-    async def log_parser_run(self, parser_name: str, status: str, matches_count: int = 0, error_message: str = None):
+    async def log_parser_run(self, parser_name: str, status: str, matches_count: int = 0, error_message: str | None = None):
         if not self.initialized:
-            return
+            return None
         try:
-            self.client.table("parser_logs").insert({
+            return self.client.table("parser_logs").insert({
                 "parser_name": parser_name,
                 "status": status,
                 "matches_count": matches_count,
                 "error_message": error_message,
-            }).execute()
+            }).execute().data
         except Exception as exc:
             print(f"Error logging parser run: {exc}")
+            return None
 
-    async def create_bet_intent(self, intent_hash: str, match_id: str, sender_wallet: str, outcome: str, odds_fixed: float, expires_at: str = None):
+    async def create_bet_intent(self, intent_hash: str, match_id: str, sender_wallet: str, outcome: str, odds_fixed: float, expires_at: str | None = None):
         if not self.initialized:
             return None
         payload = {
@@ -119,8 +128,12 @@ class Database:
     async def get_bet_intent(self, intent_hash: str):
         if not self.initialized:
             return None
-        response = self.client.table("bet_intents").select("*").eq("intent_hash", intent_hash).limit(1).execute().data
-        return response[0] if response else None
+        try:
+            response = self.client.table("bet_intents").select("*").eq("intent_hash", intent_hash).limit(1).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching bet intent: {exc}")
+            return None
 
     async def get_bet_intents_map(self, intent_hashes: list[str]):
         if not self.initialized:
@@ -130,15 +143,19 @@ class Database:
             return {}
         try:
             response = self.client.table("bet_intents").select("*").in_("intent_hash", cleaned).execute().data
+            return {str(row.get("intent_hash")).upper(): row for row in response if row.get("intent_hash")}
         except Exception as exc:
             print(f"Error fetching bet intents: {exc}")
             return {}
-        return {str(row.get("intent_hash")).upper(): row for row in response if row.get("intent_hash")}
 
     async def insert_bet(self, bet_row: dict):
         if not self.initialized:
             return None
-        return self.client.table("bets").insert(bet_row).execute().data
+        try:
+            return self.client.table("bets").insert(bet_row).execute().data
+        except Exception as exc:
+            print(f"Error inserting bet: {exc}")
+            return None
 
     async def get_recent_bets(self, limit: int = 100):
         if not self.initialized:
@@ -181,7 +198,7 @@ class Database:
             print(f"Error fetching bet by tx_id: {exc}")
             return None
 
-    async def update_bet_status(self, tx_id: str, status: str, reason: str = None):
+    async def update_bet_status(self, tx_id: str, status: str, reason: str | None = None):
         if not self.initialized:
             return None
         payload = {
@@ -190,15 +207,13 @@ class Database:
         }
         if reason:
             payload["reject_reason"] = reason
-        return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+        try:
+            return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+        except Exception as exc:
+            print(f"Error updating bet status: {exc}")
+            return None
 
-    async def update_bet_settlement(
-        self,
-        tx_id: str,
-        status: str,
-        payout_amount: float = 0.0,
-        reason: str | None = None,
-    ):
+    async def update_bet_settlement(self, tx_id: str, status: str, payout_amount: float = 0.0, reason: str | None = None):
         if not self.initialized:
             return None
         payload = {
@@ -207,17 +222,16 @@ class Database:
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "reject_reason": reason,
         }
-        return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+        try:
+            return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+        except Exception as exc:
+            print(f"Error updating bet settlement: {exc}")
+            return None
 
-    async def mark_bet_paid(
-        self,
-        tx_id: str,
-        payout_tx_id: str = "",
-        payout_amount: float | None = None,
-    ):
+    async def mark_bet_paid(self, tx_id: str, payout_tx_id: str = "", payout_amount: float | None = None):
         if not self.initialized:
             return None
-        payload = {
+        payload: dict[str, Any] = {
             "status": "paid",
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -226,7 +240,129 @@ class Database:
             payload["payout_tx_id"] = payout_tx_id
         if payout_amount is not None:
             payload["payout_amount"] = round(float(payout_amount or 0), 2)
-        return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+        try:
+            return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+        except Exception as exc:
+            print(f"Error marking bet paid: {exc}")
+            return None
+
+    async def has_admin_users(self) -> bool:
+        if not self.initialized:
+            return False
+        try:
+            response = self.client.table("admin_users").select("id").limit(1).execute().data
+            return bool(response)
+        except Exception as exc:
+            print(f"Error checking admin users: {exc}")
+            return False
+
+    async def get_admin_user_by_login(self, login: str):
+        if not self.initialized:
+            return None
+        try:
+            response = self.client.table("admin_users").select("*").eq("login", str(login).strip().lower()).limit(1).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching admin user by login: {exc}")
+            return None
+
+    async def get_admin_user_by_email(self, email: str):
+        if not self.initialized:
+            return None
+        try:
+            response = self.client.table("admin_users").select("*").eq("email", str(email).strip().lower()).limit(1).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching admin user by email: {exc}")
+            return None
+
+    async def get_admin_user_by_id(self, user_id: int | str):
+        if not self.initialized:
+            return None
+        try:
+            response = self.client.table("admin_users").select("*").eq("id", user_id).limit(1).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching admin user by id: {exc}")
+            return None
+
+    async def list_admin_users(self):
+        if not self.initialized:
+            return []
+        try:
+            response = self.client.table("admin_users").select("id,login,email,role,is_active,created_at,last_login_at").order("created_at", desc=False).execute()
+            return response.data or []
+        except Exception as exc:
+            print(f"Error listing admin users: {exc}")
+            return []
+
+    async def create_admin_user(self, user_row: dict):
+        if not self.initialized:
+            return None
+        try:
+            response = self.client.table("admin_users").insert(user_row).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error creating admin user: {exc}")
+            return None
+
+    async def update_admin_user(self, user_id: int | str, payload: dict):
+        if not self.initialized:
+            return None
+        try:
+            response = self.client.table("admin_users").update(payload).eq("id", user_id).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error updating admin user: {exc}")
+            return None
+
+    async def insert_admin_session(self, session_row: dict):
+        if not self.initialized:
+            return None
+        try:
+            return self.client.table("admin_sessions").insert(session_row).execute().data
+        except Exception as exc:
+            print(f"Error creating admin session: {exc}")
+            return None
+
+    async def get_admin_session(self, token_hash: str):
+        if not self.initialized:
+            return None
+        try:
+            response = self.client.table("admin_sessions").select("*").eq("token_hash", token_hash).limit(1).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching admin session: {exc}")
+            return None
+
+    async def touch_admin_session(self, token_hash: str):
+        if not self.initialized:
+            return None
+        try:
+            payload = {"last_seen_at": datetime.now(timezone.utc).isoformat()}
+            return self.client.table("admin_sessions").update(payload).eq("token_hash", token_hash).execute().data
+        except Exception as exc:
+            print(f"Error touching admin session: {exc}")
+            return None
+
+    async def delete_admin_session(self, token_hash: str):
+        if not self.initialized:
+            return None
+        try:
+            return self.client.table("admin_sessions").delete().eq("token_hash", token_hash).execute().data
+        except Exception as exc:
+            print(f"Error deleting admin session: {exc}")
+            return None
+
+    async def delete_expired_admin_sessions(self):
+        if not self.initialized:
+            return None
+        try:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            return self.client.table("admin_sessions").delete().lt("expires_at", now_iso).execute().data
+        except Exception as exc:
+            print(f"Error deleting expired admin sessions: {exc}")
+            return None
 
     async def insert_operator_audit_log(self, audit_row: dict):
         if not self.initialized:
@@ -241,14 +377,7 @@ class Database:
         if not self.initialized:
             return []
         try:
-            response = (
-                self.client
-                .table("operator_audit_log")
-                .select("*")
-                .order("created_at", desc=True)
-                .limit(limit)
-                .execute()
-            )
+            response = self.client.table("operator_audit_log").select("*").order("created_at", desc=True).limit(limit).execute()
             return response.data or []
         except Exception as exc:
             print(f"Error fetching operator audit log: {exc}")
@@ -274,7 +403,7 @@ class Database:
         if not cleaned:
             return {}
 
-        rows = {}
+        rows: dict[str, Any] = {}
         if self.initialized:
             try:
                 response = self.client.table("matches").select("id,match_time,team1,team2,league,sport,is_live,score").in_("id", cleaned).execute().data
@@ -307,8 +436,12 @@ class Database:
     async def get_listener_state(self):
         if not self.initialized:
             return None
-        response = self.client.table("tx_listener_state").select("*").eq("id", 1).limit(1).execute().data
-        return response[0] if response else None
+        try:
+            response = self.client.table("tx_listener_state").select("*").eq("id", 1).limit(1).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching listener state: {exc}")
+            return None
 
     async def upsert_listener_state(self, last_prizm_timestamp: int, last_tx_id: str):
         if not self.initialized:
@@ -319,7 +452,11 @@ class Database:
             "last_tx_id": last_tx_id,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
-        return self.client.table("tx_listener_state").upsert(row).execute().data
+        try:
+            return self.client.table("tx_listener_state").upsert(row).execute().data
+        except Exception as exc:
+            print(f"Error upserting listener state: {exc}")
+            return None
 
 
 db = Database()
