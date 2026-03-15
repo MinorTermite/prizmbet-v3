@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
-<html lang="ru">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PRIZMBET - операторская панель</title>
+<title>PRIZMBET - Operator Console</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/smart-flow.css">
 <link rel="stylesheet" href="css/operator.css">
@@ -15,11 +15,11 @@
   <section class="section operator-hero">
     <div class="operator-hero-card">
       <div>
-        <div class="smart-banner-eyebrow">Операторская панель</div>
-        <h1 class="operator-title">Входящие ставки, статусы и очередь выплат</h1>
-        <p class="operator-copy">Панель показывает подтверждённые ставки, расшифровывает код купона, помогает отслеживать статусы матчей и отмечать выплаты после отправки.</p>
+        <div class="smart-banner-eyebrow">Operator Console</div>
+        <h1 class="operator-title">Bets, statuses and audit trail</h1>
+        <p class="operator-copy">This panel tracks accepted and rejected bets, payout candidates, completed payouts and backend audit events in one place.</p>
       </div>
-      <a class="operator-back" href="./index.html">На главную</a>
+      <a class="operator-back" href="./index.html">Back to site</a>
     </div>
   </section>
 
@@ -32,18 +32,18 @@
         </label>
         <label class="operator-field">
           <span class="operator-label">Admin key</span>
-          <input id="adminKeyInput" class="operator-input" type="password" placeholder="ключ доступа из .env">
+          <input id="adminKeyInput" class="operator-input" type="password" placeholder="Admin key from .env">
         </label>
       </div>
       <div class="operator-actions">
-        <button id="connectBtn" class="operator-btn operator-btn--primary" type="button">Подключить</button>
-        <button id="refreshBtn" class="operator-btn" type="button">Обновить поток</button>
+        <button id="connectBtn" class="operator-btn operator-btn--primary" type="button">Connect</button>
+        <button id="refreshBtn" class="operator-btn" type="button">Refresh</button>
         <label class="operator-toggle">
           <input id="autoRefreshToggle" type="checkbox" checked>
-          <span>Автообновление</span>
+          <span>Auto refresh</span>
         </label>
       </div>
-      <div id="operatorStatus" class="operator-status-line">Укажите API base и admin key, затем подключитесь.</div>
+      <div id="operatorStatus" class="operator-status-line">Set API base and admin key, then connect.</div>
     </div>
   </section>
 
@@ -53,19 +53,31 @@
 
   <section class="section operator-feed-section">
     <div class="operator-feed-toolbar">
-      <input id="queryInput" class="operator-input operator-input--search" type="search" placeholder="Поиск по матчу, TX, кошельку, intent или лиге">
+      <input id="queryInput" class="operator-input operator-input--search" type="search" placeholder="Search by match, TX, wallet, intent or league">
       <select id="statusFilter" class="operator-select">
-        <option value="">Все статусы</option>
-        <option value="accepted">Принята</option>
-        <option value="rejected">Отклонена</option>
-        <option value="won">Выиграла</option>
-        <option value="lost">Проиграла</option>
-        <option value="refund_pending">Ждёт возврата</option>
-        <option value="paid">Выплачена</option>
+        <option value="">All statuses</option>
+        <option value="accepted">Accepted</option>
+        <option value="rejected">Rejected</option>
+        <option value="won">Won</option>
+        <option value="lost">Lost</option>
+        <option value="refund_pending">Refund pending</option>
+        <option value="paid">Paid</option>
       </select>
-      <div id="feedMeta" class="operator-feed-meta">Поток ещё не загружен.</div>
+      <div id="feedMeta" class="operator-feed-meta">Feed not loaded yet.</div>
     </div>
     <div id="feedList" class="operator-feed-list"></div>
+  </section>
+
+  <section class="section operator-audit-section">
+    <div class="operator-audit-head">
+      <div>
+        <div class="smart-banner-eyebrow">Audit Log</div>
+        <h2 class="operator-subtitle">Recent backend and operator events</h2>
+        <p class="operator-copy operator-copy--compact">Accepted, rejected, settled and paid events are listed here. If the webhook is enabled, the same events can be mirrored to Google Sheets.</p>
+      </div>
+      <div id="auditMeta" class="operator-feed-meta">Audit log not loaded yet.</div>
+    </div>
+    <div id="auditList" class="operator-audit-list"></div>
   </section>
 </main>
 

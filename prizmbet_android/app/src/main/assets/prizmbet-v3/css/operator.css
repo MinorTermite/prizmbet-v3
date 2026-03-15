@@ -1,4 +1,4 @@
-﻿.operator-shell {
+.operator-shell {
     display: grid;
     gap: 18px;
     padding-bottom: 48px;
@@ -25,11 +25,21 @@
     line-height: 1.05;
 }
 
+.operator-subtitle {
+    margin: 8px 0 10px;
+    font-size: clamp(1.25rem, 3vw, 1.7rem);
+    line-height: 1.1;
+}
+
 .operator-copy {
     margin: 0;
     max-width: 760px;
     color: rgba(255, 255, 255, 0.78);
     line-height: 1.7;
+}
+
+.operator-copy--compact {
+    max-width: 860px;
 }
 
 .operator-back,
@@ -78,7 +88,8 @@
 .operator-actions,
 .operator-feed-toolbar,
 .operator-card-head,
-.operator-card-grid {
+.operator-card-grid,
+.operator-audit-head {
     display: grid;
     gap: 12px;
 }
@@ -190,13 +201,19 @@
     color: rgba(255, 255, 255, 0.68);
 }
 
-.operator-feed-list {
+.operator-feed-list,
+.operator-audit-list,
+.operator-audit-section {
     display: grid;
     gap: 14px;
 }
 
 .operator-card {
     padding: 18px;
+}
+
+.operator-card--audit {
+    border-color: rgba(99, 102, 241, 0.14);
 }
 
 .operator-card-head {
@@ -293,6 +310,12 @@
     color: rgba(255, 255, 255, 0.62);
 }
 
+.operator-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 @media (min-width: 860px) {
     .operator-hero-card {
         grid-template-columns: 1.3fr auto;
@@ -324,12 +347,9 @@
     .operator-card-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+
+    .operator-audit-head {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+    }
 }
-
-
-.operator-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
