@@ -1,26 +1,45 @@
 # -*- coding: utf-8 -*-
-"""Bet Intent API (Hash-Coupon + Prototype Dashboard)."""
+"""Bet Intent API for public v3 flow and operator auth."""
+from __future__ import annotations
+
 import json
 import random
 import secrets
 import string
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
+from typing import Any
+
 from aiohttp import web
 
 from backend.config import config
 from backend.db.supabase_client import db
-from backend.utils.operator_audit import log_operator_event
+from backend.utils.admin_auth import (
+    client_ip,
+    hash_password,
+    issue_session_token,
+    normalize_email,
+    normalize_login,
+    normalize_role,
+    role_can_manage_users,
+    role_can_mark_paid,
+    serialize_admin_user,
+    session_expires_at,
+    session_token_hash,
+    validate_email,
+    validate_login,
+    validate_password,
+    verify_password,
+)
 from backend.utils.bet_views import ACCEPTED_STATUSES, build_bet_view, search_blob
 from backend.utils.operator_alerts import notify_payout_sent
+from backend.utils.operator_audit import log_operator_event, mirror_operator_event
 
 
 OUTCOME_MAP = {
-    "П1": "p1",
     "P1": "p1",
     "1": "p1",
     "X": "x",
-    "П2": "p2",
     "P2": "p2",
     "2": "p2",
     "1X": "p1x",
@@ -31,8 +50,10 @@ OUTCOME_MAP = {
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, X-Admin-Session, Authorization",
 }
+
+MATCHES_CACHE_PATH = Path(__file__).resolve().parents[2] / "frontend" / "matches.json"
 
 
 def _with_cors(response: web.StreamResponse) -> web.StreamResponse:
@@ -40,30 +61,29 @@ def _with_cors(response: web.StreamResponse) -> web.StreamResponse:
     return response
 
 
-def _json_response(payload: dict, status: int = 200) -> web.Response:
+def _json_response(payload: dict[str, Any], status: int = 200) -> web.Response:
     return _with_cors(web.json_response(payload, status=status))
 
 
-def _load_matches_cache() -> dict:
-    p = Path(__file__).resolve().parents[2] / "frontend" / "matches.json"
-    if not p.exists():
+def _load_matches_cache() -> dict[str, dict[str, Any]]:
+    if not MATCHES_CACHE_PATH.exists():
         return {}
     try:
-        data = json.loads(p.read_text(encoding="utf-8"))
+        data = json.loads(MATCHES_CACHE_PATH.read_text(encoding="utf-8"))
     except Exception:
         return {}
-    return {str(m.get("id")): m for m in data.get("matches", []) if m.get("id")}
+    return {str(match.get("id")): match for match in data.get("matches", []) if match.get("id")}
 
 
-def _extract_odds(match: dict, outcome: str):
-    key = OUTCOME_MAP.get(outcome)
+def _extract_odds(match: dict[str, Any], outcome: str) -> float | None:
+    key = OUTCOME_MAP.get(str(outcome or "").strip().upper())
     if not key:
         return None
-    val = match.get(key)
-    if not val or val in ("—", "-", "0", "0.00"):
+    value = match.get(key)
+    if not value or value in ("-", "—", "0", "0.00"):
         return None
     try:
-        return round(float(val), 2)
+        return round(float(value), 2)
     except Exception:
         return None
 
@@ -73,7 +93,7 @@ def _intent_hash(length: int = 6) -> str:
     return "".join(random.choice(chars) for _ in range(length))
 
 
-def _parse_dt(value):
+def _parse_dt(value: Any) -> datetime | None:
     if not value:
         return None
     try:
@@ -82,7 +102,7 @@ def _parse_dt(value):
         return None
 
 
-def _rank_preview(turnover: float, accepted_count: int) -> dict:
+def _rank_preview(turnover: float, accepted_count: int) -> dict[str, Any]:
     tiers = [
         ("Beginner", 0),
         ("Player", 1500),
@@ -118,28 +138,377 @@ def _rank_preview(turnover: float, accepted_count: int) -> dict:
     }
 
 
-def _admin_authorized(request: web.Request) -> bool:
+def _bootstrap_key_valid(request: web.Request, payload: dict[str, Any] | None = None) -> bool:
     required_key = str(config.ADMIN_VIEW_KEY or "").strip()
     if not required_key:
-        return True
-    provided_key = str(request.headers.get("X-Admin-Key") or request.query.get("admin_key") or "").strip()
-    return bool(provided_key) and secrets.compare_digest(provided_key, required_key)
+        return False
+    payload = payload or {}
+    provided = str(
+        request.headers.get("X-Admin-Key")
+        or request.query.get("admin_key")
+        or payload.get("bootstrap_key")
+        or ""
+    ).strip()
+    return bool(provided) and secrets.compare_digest(provided, required_key)
 
 
-async def _ensure_db_ready():
+def _extract_session_token(request: web.Request) -> str:
+    header_token = str(request.headers.get("X-Admin-Session") or "").strip()
+    if header_token:
+        return header_token
+    auth_header = str(request.headers.get("Authorization") or "").strip()
+    if auth_header.lower().startswith("bearer "):
+        return auth_header[7:].strip()
+    return str(request.query.get("session_token") or "").strip()
+
+
+def _mask_email(email: str) -> str:
+    email = normalize_email(email)
+    if "@" not in email:
+        return ""
+    local, domain = email.split("@", 1)
+    if len(local) <= 2:
+        masked_local = local[:1] + "*"
+    else:
+        masked_local = local[:2] + "*" * max(len(local) - 2, 1)
+    return f"{masked_local}@{domain}"
+
+
+def _actor_from_user(user: dict[str, Any] | None, auth_mode: str = "session") -> dict[str, Any] | None:
+    if not user:
+        return None
+    return {
+        "id": user.get("id"),
+        "login": user.get("login"),
+        "role": user.get("role"),
+        "auth_mode": auth_mode,
+    }
+
+
+async def _log_admin_access_event(event_type: str, *, actor: dict[str, Any] | None = None, extra: dict[str, Any] | None = None) -> None:
+    timestamp = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "event_type": event_type,
+        "status": "admin",
+        "actor": actor or {},
+        "extra": extra or {},
+        "created_at": timestamp,
+    }
+    audit_row = {
+        "event_type": event_type,
+        "tx_id": None,
+        "intent_hash": None,
+        "match_id": None,
+        "status": "admin",
+        "sender_wallet": None,
+        "amount_prizm": 0,
+        "payload": payload,
+        "created_at": timestamp,
+    }
+    await db.insert_operator_audit_log(audit_row)
+    await mirror_operator_event(payload)
+
+
+async def _ensure_db_ready() -> bool:
     if not db.initialized:
         db.init()
     return db.initialized
 
 
-async def create_intent(request: web.Request):
+async def _create_session_for_user(user: dict[str, Any], request: web.Request) -> dict[str, Any]:
+    token = issue_session_token()
+    token_hash = session_token_hash(token)
+    expires_at = session_expires_at()
+    session_row = {
+        "token_hash": token_hash,
+        "admin_user_id": user.get("id"),
+        "expires_at": expires_at,
+        "user_agent": str(request.headers.get("User-Agent") or "")[:500],
+        "ip": client_ip(request)[:120],
+    }
+    await db.insert_admin_session(session_row)
+    return {
+        "token": token,
+        "expires_at": expires_at,
+    }
+
+
+async def _get_admin_context(request: web.Request) -> tuple[dict[str, Any] | None, web.Response | None]:
+    if not await _ensure_db_ready():
+        return None, _json_response({"error": "Database not configured"}, status=500)
+
+    token = _extract_session_token(request)
+    if not token:
+        return None, _json_response({"error": "Admin session is required"}, status=401)
+
+    await db.delete_expired_admin_sessions()
+    token_hash = session_token_hash(token)
+    session = await db.get_admin_session(token_hash)
+    if not session:
+        return None, _json_response({"error": "Admin session is invalid or expired"}, status=401)
+
+    expires_at = _parse_dt(session.get("expires_at"))
+    now = datetime.now(timezone.utc)
+    if expires_at and expires_at.astimezone(timezone.utc) <= now:
+        await db.delete_admin_session(token_hash)
+        return None, _json_response({"error": "Admin session is invalid or expired"}, status=401)
+
+    user = await db.get_admin_user_by_id(session.get("admin_user_id"))
+    if not user:
+        await db.delete_admin_session(token_hash)
+        return None, _json_response({"error": "Admin user not found"}, status=401)
+    if not bool(user.get("is_active", True)):
+        await db.delete_admin_session(token_hash)
+        return None, _json_response({"error": "Admin user is disabled"}, status=403)
+
+    await db.touch_admin_session(token_hash)
+    return {
+        "user": user,
+        "session": session,
+        "session_token": token,
+        "actor": _actor_from_user(user, "session"),
+    }, None
+
+
+async def _require_admin(request: web.Request, roles: set[str] | None = None) -> tuple[dict[str, Any] | None, web.Response | None]:
+    context, error = await _get_admin_context(request)
+    if error:
+        return None, error
+    role = str(context["user"].get("role") or "").strip().lower()
+    if roles and role not in roles:
+        return None, _json_response({"error": "Insufficient permissions"}, status=403)
+    return context, None
+
+
+async def bootstrap_state(_: web.Request) -> web.Response:
+    db_ready = await _ensure_db_ready()
+    has_users = await db.has_admin_users() if db_ready else False
+    bootstrap_allowed = bool(db_ready and not has_users and str(config.ADMIN_VIEW_KEY or "").strip())
+    return _json_response({
+        "db_configured": db_ready,
+        "has_admin_users": has_users,
+        "bootstrap_allowed": bootstrap_allowed,
+        "bootstrap_key_configured": bool(str(config.ADMIN_VIEW_KEY or "").strip()),
+        "owner_login": config.SUPER_ADMIN_LOGIN,
+        "owner_email_hint": _mask_email(config.SUPER_ADMIN_EMAIL),
+    })
+
+
+async def bootstrap_admin(request: web.Request) -> web.Response:
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+    if await db.has_admin_users():
+        return _json_response({"error": "Bootstrap is already completed"}, status=409)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    if not _bootstrap_key_valid(request, payload):
+        return _json_response({"error": "Bootstrap key is invalid or missing"}, status=401)
+
+    email = normalize_email(payload.get("email"))
+    login = normalize_login(payload.get("login"))
+    password = str(payload.get("password") or "")
+
+    if not validate_email(email):
+        return _json_response({"error": "A valid owner email is required"}, status=400)
+    if not validate_login(login):
+        return _json_response({"error": "Owner login must be 3-32 lowercase latin characters"}, status=400)
+    if not validate_password(password):
+        return _json_response({"error": "Password must contain at least 8 characters"}, status=400)
+    if email != config.SUPER_ADMIN_EMAIL or login != config.SUPER_ADMIN_LOGIN:
+        return _json_response({"error": "Bootstrap is restricted to the configured owner identity"}, status=403)
+
+    user = await db.create_admin_user({
+        "login": login,
+        "email": email,
+        "password_hash": hash_password(password),
+        "role": "super_admin",
+        "is_active": True,
+        "last_login_at": datetime.now(timezone.utc).isoformat(),
+    })
+    if not user:
+        return _json_response({"error": "Failed to create the owner account"}, status=500)
+
+    session = await _create_session_for_user(user, request)
+    await _log_admin_access_event(
+        "admin_bootstrap_completed",
+        actor=_actor_from_user(user, "bootstrap"),
+        extra={"owner_email": email, "owner_login": login},
+    )
+    return _json_response({"ok": True, "user": serialize_admin_user(user), "session": session})
+
+
+async def admin_login(request: web.Request) -> web.Response:
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+    if not await db.has_admin_users():
+        return _json_response({"error": "Bootstrap is required before login"}, status=409)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    identity = str(payload.get("identity") or "").strip()
+    password = str(payload.get("password") or "")
+    if not identity or not password:
+        return _json_response({"error": "identity and password are required"}, status=400)
+
+    user = await db.get_admin_user_by_login(normalize_login(identity))
+    if not user and "@" in identity:
+        user = await db.get_admin_user_by_email(normalize_email(identity))
+    if not user:
+        return _json_response({"error": "Invalid credentials"}, status=401)
+    if not bool(user.get("is_active", True)):
+        return _json_response({"error": "Admin user is disabled"}, status=403)
+    if not verify_password(password, str(user.get("password_hash") or "")):
+        return _json_response({"error": "Invalid credentials"}, status=401)
+
+    await db.delete_expired_admin_sessions()
+    await db.update_admin_user(user.get("id"), {"last_login_at": datetime.now(timezone.utc).isoformat()})
+    user = await db.get_admin_user_by_id(user.get("id")) or user
+    session = await _create_session_for_user(user, request)
+    await _log_admin_access_event(
+        "admin_login",
+        actor=_actor_from_user(user, "session"),
+        extra={"ip": client_ip(request)},
+    )
+    return _json_response({"ok": True, "user": serialize_admin_user(user), "session": session})
+
+
+async def admin_logout(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request)
+    if error:
+        return error
+
+    await db.delete_admin_session(session_token_hash(context["session_token"]))
+    await _log_admin_access_event(
+        "admin_logout",
+        actor=context["actor"],
+        extra={"ip": client_ip(request)},
+    )
+    return _json_response({"ok": True})
+
+
+async def admin_me(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request)
+    if error:
+        return error
+    return _json_response({
+        "ok": True,
+        "user": serialize_admin_user(context["user"]),
+        "session": {
+            "expires_at": context["session"].get("expires_at"),
+            "last_seen_at": context["session"].get("last_seen_at"),
+        },
+    })
+
+async def admin_users(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request, {"super_admin"})
+    if error:
+        return error
+    users = await db.list_admin_users()
+    return _json_response({
+        "ok": True,
+        "users": [serialize_admin_user(user) for user in users],
+        "current_user_id": context["user"].get("id"),
+    })
+
+
+async def admin_create_user(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request, {"super_admin"})
+    if error:
+        return error
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    login = normalize_login(payload.get("login"))
+    email = normalize_email(payload.get("email"))
+    password = str(payload.get("password") or "")
+    role = normalize_role(payload.get("role"), allow_super_admin=False)
+
+    if not validate_login(login):
+        return _json_response({"error": "Login must be 3-32 lowercase latin characters"}, status=400)
+    if email and not validate_email(email):
+        return _json_response({"error": "Email format is invalid"}, status=400)
+    if not validate_password(password):
+        return _json_response({"error": "Password must contain at least 8 characters"}, status=400)
+    if await db.get_admin_user_by_login(login):
+        return _json_response({"error": "Login is already used"}, status=409)
+    if email and await db.get_admin_user_by_email(email):
+        return _json_response({"error": "Email is already used"}, status=409)
+
+    user = await db.create_admin_user({
+        "login": login,
+        "email": email or None,
+        "password_hash": hash_password(password),
+        "role": role,
+        "is_active": True,
+    })
+    if not user:
+        return _json_response({"error": "Failed to create admin user"}, status=500)
+
+    await _log_admin_access_event(
+        "admin_user_created",
+        actor=context["actor"],
+        extra={"target_user_id": user.get("id"), "target_login": login, "target_role": role},
+    )
+    return _json_response({"ok": True, "user": serialize_admin_user(user)})
+
+
+async def admin_set_user_active(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request, {"super_admin"})
+    if error:
+        return error
+
+    user_id = str(request.match_info.get("user_id") or "").strip()
+    if not user_id:
+        return _json_response({"error": "user_id is required"}, status=400)
+    target = await db.get_admin_user_by_id(user_id)
+    if not target:
+        return _json_response({"error": "Admin user not found"}, status=404)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    is_active = bool(payload.get("is_active"))
+    if str(target.get("role") or "").strip().lower() == "super_admin" and not is_active:
+        return _json_response({"error": "The super admin cannot be disabled from the panel"}, status=400)
+    if str(target.get("id")) == str(context["user"].get("id")) and not is_active:
+        return _json_response({"error": "You cannot disable your own account"}, status=400)
+
+    updated = await db.update_admin_user(target.get("id"), {"is_active": is_active})
+    if not updated:
+        return _json_response({"error": "Failed to update admin user"}, status=500)
+
+    await _log_admin_access_event(
+        "admin_user_state_changed",
+        actor=context["actor"],
+        extra={
+            "target_user_id": target.get("id"),
+            "target_login": target.get("login"),
+            "is_active": is_active,
+        },
+    )
+    return _json_response({"ok": True, "user": serialize_admin_user(updated)})
+
+
+async def create_intent(request: web.Request) -> web.Response:
     if not await _ensure_db_ready():
         return _json_response({"error": "Database not configured"}, status=500)
 
     payload = await request.json()
-    match_id = str(payload.get("match_id", "")).strip()
-    outcome = str(payload.get("outcome", "")).strip().upper()
-    sender_wallet = str(payload.get("sender_wallet", "")).strip().upper()
+    match_id = str(payload.get("match_id") or "").strip()
+    outcome = str(payload.get("outcome") or "").strip().upper()
+    sender_wallet = str(payload.get("sender_wallet") or "").strip().upper()
 
     if not match_id or not outcome or not sender_wallet:
         return _json_response({"error": "match_id, outcome, sender_wallet are required"}, status=400)
@@ -162,11 +531,11 @@ async def create_intent(request: web.Request):
 
     intent = None
     for _ in range(10):
-        h = _intent_hash(6)
+        intent_hash = _intent_hash(6)
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
         try:
             await db.create_bet_intent(
-                intent_hash=h,
+                intent_hash=intent_hash,
                 match_id=match_id,
                 sender_wallet=sender_wallet,
                 outcome=outcome,
@@ -174,7 +543,7 @@ async def create_intent(request: web.Request):
                 expires_at=expires_at,
             )
             intent = {
-                "intent_hash": h,
+                "intent_hash": intent_hash,
                 "odds_fixed": odds,
                 "expires_at": expires_at,
                 "match_id": match_id,
@@ -190,11 +559,11 @@ async def create_intent(request: web.Request):
     return _json_response(intent)
 
 
-async def get_intent_status(request: web.Request):
+async def get_intent_status(request: web.Request) -> web.Response:
     if not await _ensure_db_ready():
         return _json_response({"error": "Database not configured"}, status=500)
 
-    intent_hash = str(request.match_info.get("intent_hash", "")).strip().upper()
+    intent_hash = str(request.match_info.get("intent_hash") or "").strip().upper()
     if not intent_hash:
         return _json_response({"error": "intent_hash is required"}, status=400)
 
@@ -202,7 +571,15 @@ async def get_intent_status(request: web.Request):
     if not intent:
         return _json_response({"error": "intent not found"}, status=404)
 
-    bet_rows = db.client.table("bets").select("*").eq("intent_hash", intent_hash).order("created_at", desc=True).limit(1).execute().data
+    bet_rows = (
+        db.client.table("bets")
+        .select("*")
+        .eq("intent_hash", intent_hash)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+    )
     bet = bet_rows[0] if bet_rows else None
     expires_at = _parse_dt(intent.get("expires_at"))
     now = datetime.now(timezone.utc)
@@ -214,28 +591,41 @@ async def get_intent_status(request: web.Request):
     else:
         status = "awaiting_payment"
 
-    return _json_response({
-        "status": status,
-        "intent": intent,
-        "bet": bet,
-    })
+    return _json_response({"status": status, "intent": intent, "bet": bet})
 
 
-async def wallet_dashboard(request: web.Request):
+async def wallet_dashboard(request: web.Request) -> web.Response:
     if not await _ensure_db_ready():
         return _json_response({"error": "Database not configured"}, status=500)
 
-    wallet = str(request.match_info.get("wallet", "")).strip().upper()
+    wallet = str(request.match_info.get("wallet") or "").strip().upper()
     if not wallet:
         return _json_response({"error": "wallet is required"}, status=400)
 
-    intents = db.client.table("bet_intents").select("*").eq("sender_wallet", wallet).order("created_at", desc=True).limit(10).execute().data
-    bets = db.client.table("bets").select("*").eq("sender_wallet", wallet).order("created_at", desc=True).limit(25).execute().data
+    intents = (
+        db.client.table("bet_intents")
+        .select("*")
+        .eq("sender_wallet", wallet)
+        .order("created_at", desc=True)
+        .limit(10)
+        .execute()
+        .data
+    )
+    bets = (
+        db.client.table("bets")
+        .select("*")
+        .eq("sender_wallet", wallet)
+        .order("created_at", desc=True)
+        .limit(25)
+        .execute()
+        .data
+    )
 
     now = datetime.now(timezone.utc)
-    bet_by_intent = {str(b.get("intent_hash")): b for b in bets if b.get("intent_hash")}
+    bet_by_intent = {str(bet.get("intent_hash")): bet for bet in bets if bet.get("intent_hash")}
     waiting_payment = 0
     active_intents = []
+
     for intent in intents:
         expires_at = _parse_dt(intent.get("expires_at"))
         linked_bet = bet_by_intent.get(str(intent.get("intent_hash")))
@@ -258,7 +648,6 @@ async def wallet_dashboard(request: web.Request):
 
     turnover = 0.0
     potential_payout = 0.0
-    accepted_statuses = {"accepted", "won", "lost", "paid", "refunded", "refund_pending"}
     counts = {
         "accepted": 0,
         "rejected": 0,
@@ -268,7 +657,7 @@ async def wallet_dashboard(request: web.Request):
         "paid": 0,
     }
     for bet in bets:
-        status = str(bet.get("status", "")).lower()
+        status = str(bet.get("status") or "").strip().lower()
         amount = float(bet.get("amount_prizm") or 0)
         odds_fixed = float(bet.get("odds_fixed") or 0)
         if status in ACCEPTED_STATUSES:
@@ -277,7 +666,10 @@ async def wallet_dashboard(request: web.Request):
         if status in counts:
             counts[status] += 1
 
-    rank = _rank_preview(turnover, counts["accepted"] + counts["won"] + counts["lost"] + counts["paid"])
+    rank = _rank_preview(
+        turnover,
+        counts["accepted"] + counts["won"] + counts["lost"] + counts["paid"],
+    )
 
     return _json_response({
         "wallet": wallet,
@@ -295,32 +687,10 @@ async def wallet_dashboard(request: web.Request):
     })
 
 
-async def operator_feed(request: web.Request):
-    db_ready = await _ensure_db_ready()
-    if not _admin_authorized(request):
-        return _json_response({"error": "Admin key is invalid or missing"}, status=401)
-    if not db_ready:
-        return _json_response({
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "stats": {
-                "total_items": 0,
-                "accepted_count": 0,
-                "rejected_count": 0,
-                "won_count": 0,
-                "lost_count": 0,
-                "refund_count": 0,
-                "to_payout_count": 0,
-                "paid_count": 0,
-                "turnover_prizm": 0,
-                "potential_payout_prizm": 0,
-            },
-            "items": [],
-            "meta": {
-                "admin_key_required": bool(config.ADMIN_VIEW_KEY),
-                "db_configured": False,
-                "message": "Supabase не подключён: лента пока пустая.",
-            },
-        })
+async def operator_feed(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request)
+    if error:
+        return error
 
     try:
         limit = int(request.query.get("limit", "60"))
@@ -328,11 +698,11 @@ async def operator_feed(request: web.Request):
         limit = 60
     limit = min(max(limit, 1), 200)
     fetch_limit = min(max(limit * 4, 80), 500)
-    status_filter = str(request.query.get("status", "")).strip().lower()
-    query = str(request.query.get("q", "")).strip().casefold()
+    status_filter = str(request.query.get("status") or "").strip().lower()
+    query = str(request.query.get("q") or "").strip().casefold()
 
     bets = await db.get_recent_bets(fetch_limit)
-    intent_map = await db.get_bet_intents_map([str(b.get("intent_hash") or "") for b in bets])
+    intent_map = await db.get_bet_intents_map([str(bet.get("intent_hash") or "") for bet in bets])
 
     match_ids = []
     for bet in bets:
@@ -344,14 +714,15 @@ async def operator_feed(request: web.Request):
         if match_id:
             match_ids.append(match_id)
 
+    match_cache = _load_matches_cache()
     match_map = await db.get_matches_map(match_ids)
     items = []
     for bet in bets:
         intent_hash = str(bet.get("intent_hash") or "").strip().upper()
         intent = intent_map.get(intent_hash)
         match_id = str(bet.get("match_id") or (intent or {}).get("match_id") or "").strip()
-        match = match_map.get(match_id) or _load_matches_cache().get(match_id)
-        view = build_bet_view(bet, intent=intent, match=match, match_cache=_load_matches_cache())
+        match = match_map.get(match_id) or match_cache.get(match_id)
+        view = build_bet_view(bet, intent=intent, match=match, match_cache=match_cache)
         if status_filter and view["status"] != status_filter:
             continue
         if query and query not in search_blob(view):
@@ -381,29 +752,18 @@ async def operator_feed(request: web.Request):
         "stats": stats,
         "items": items,
         "meta": {
-            "admin_key_required": bool(config.ADMIN_VIEW_KEY),
+            "auth_mode": "session",
             "query": query,
             "status_filter": status_filter,
+            "current_user": serialize_admin_user(context["user"]),
         },
     })
 
 
-async def operator_audit_log(request: web.Request):
-    db_ready = await _ensure_db_ready()
-    if not _admin_authorized(request):
-        return _json_response({"error": "Admin key is invalid or missing"}, status=401)
-
-    mirror_enabled = bool(config.GOOGLE_SHEETS_MIRROR_ENABLED and config.GOOGLE_SHEETS_WEBHOOK_URL)
-    if not db_ready:
-        return _json_response({
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "items": [],
-            "meta": {
-                "admin_key_required": bool(config.ADMIN_VIEW_KEY),
-                "db_configured": False,
-                "sheets_mirror_enabled": mirror_enabled,
-            },
-        })
+async def operator_audit_log(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request)
+    if error:
+        return error
 
     try:
         limit = int(request.query.get("limit", "80"))
@@ -416,21 +776,20 @@ async def operator_audit_log(request: web.Request):
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "items": items,
         "meta": {
-            "admin_key_required": bool(config.ADMIN_VIEW_KEY),
+            "auth_mode": "session",
             "db_configured": True,
-            "sheets_mirror_enabled": mirror_enabled,
+            "sheets_mirror_enabled": bool(config.GOOGLE_SHEETS_MIRROR_ENABLED and config.GOOGLE_SHEETS_WEBHOOK_URL),
+            "current_user": serialize_admin_user(context["user"]),
         },
     })
 
 
-async def mark_bet_paid(request: web.Request):
-    db_ready = await _ensure_db_ready()
-    if not _admin_authorized(request):
-        return _json_response({"error": "Admin key is invalid or missing"}, status=401)
-    if not db_ready:
-        return _json_response({"error": "Database not configured"}, status=500)
+async def mark_bet_paid(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request, {"super_admin", "finance"})
+    if error:
+        return error
 
-    tx_id = str(request.match_info.get("tx_id", "")).strip()
+    tx_id = str(request.match_info.get("tx_id") or "").strip()
     if not tx_id:
         return _json_response({"error": "tx_id is required"}, status=400)
 
@@ -447,10 +806,12 @@ async def mark_bet_paid(request: web.Request):
     except Exception:
         payload = {}
 
-    payout_tx_id = str(payload.get("payout_tx_id", "")).strip()
+    payout_tx_id = str(payload.get("payout_tx_id") or "").strip()
     raw_payout_amount = payload.get("payout_amount")
     if raw_payout_amount in (None, ""):
-        payout_amount = float(current.get("payout_amount") or 0) or round(float(current.get("amount_prizm") or 0) * float(current.get("odds_fixed") or 0), 2)
+        payout_amount = float(current.get("payout_amount") or 0) or round(
+            float(current.get("amount_prizm") or 0) * float(current.get("odds_fixed") or 0), 2
+        )
     else:
         try:
             payout_amount = round(float(raw_payout_amount), 2)
@@ -462,16 +823,22 @@ async def mark_bet_paid(request: web.Request):
     intent = await db.get_bet_intent(str(updated.get("intent_hash") or "").strip().upper()) if updated.get("intent_hash") else None
     match = await db.get_match_by_id(str(updated.get("match_id") or (intent or {}).get("match_id") or "").strip())
     await notify_payout_sent(updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
-    await log_operator_event("bet_paid", updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
+    await log_operator_event(
+        "bet_paid",
+        updated,
+        intent=dict(intent) if intent else None,
+        match=dict(match) if match else None,
+        actor=context["actor"],
+    )
     view = build_bet_view(updated, intent=intent, match=match, match_cache=_load_matches_cache())
     return _json_response({"ok": True, "item": view})
 
 
-async def health(_: web.Request):
+async def health(_: web.Request) -> web.Response:
     return _json_response({"ok": True})
 
 
-async def options_preflight(_: web.Request):
+async def options_preflight(_: web.Request) -> web.Response:
     return _with_cors(web.Response(status=204))
 
 
@@ -479,6 +846,14 @@ def create_app() -> web.Application:
     app = web.Application()
     app.router.add_route("OPTIONS", "/{tail:.*}", options_preflight)
     app.router.add_get("/health", health)
+    app.router.add_get("/api/admin/bootstrap-state", bootstrap_state)
+    app.router.add_post("/api/admin/bootstrap", bootstrap_admin)
+    app.router.add_post("/api/admin/login", admin_login)
+    app.router.add_post("/api/admin/logout", admin_logout)
+    app.router.add_get("/api/admin/me", admin_me)
+    app.router.add_get("/api/admin/users", admin_users)
+    app.router.add_post("/api/admin/users", admin_create_user)
+    app.router.add_post("/api/admin/users/{user_id}/set-active", admin_set_user_active)
     app.router.add_post("/api/intents", create_intent)
     app.router.add_get("/api/intents/{intent_hash}", get_intent_status)
     app.router.add_get("/api/wallets/{wallet}/dashboard", wallet_dashboard)

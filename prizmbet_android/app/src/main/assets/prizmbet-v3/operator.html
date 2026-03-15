@@ -16,8 +16,8 @@
     <div class="operator-hero-card">
       <div>
         <div class="smart-banner-eyebrow">Operator Console</div>
-        <h1 class="operator-title">Bets, statuses and audit trail</h1>
-        <p class="operator-copy">This panel tracks accepted and rejected bets, payout candidates, completed payouts and backend audit events in one place.</p>
+        <h1 class="operator-title">Bets, users and audit trail</h1>
+        <p class="operator-copy">This panel runs on named operator accounts. The owner bootstrap is fixed to the configured identity, and all payout actions stay tied to a specific user session.</p>
       </div>
       <a class="operator-back" href="./index.html">Back to site</a>
     </div>
@@ -30,11 +30,8 @@
           <span class="operator-label">API base</span>
           <input id="apiBaseInput" class="operator-input" type="text" placeholder="http://127.0.0.1:8081">
         </label>
-        <label class="operator-field">
-          <span class="operator-label">Admin key</span>
-          <input id="adminKeyInput" class="operator-input" type="password" placeholder="Admin key from .env">
-        </label>
       </div>
+
       <div class="operator-actions">
         <button id="connectBtn" class="operator-btn operator-btn--primary" type="button">Connect</button>
         <button id="refreshBtn" class="operator-btn" type="button">Refresh</button>
@@ -43,7 +40,118 @@
           <span>Auto refresh</span>
         </label>
       </div>
-      <div id="operatorStatus" class="operator-status-line">Set API base and admin key, then connect.</div>
+
+      <div id="operatorStatus" class="operator-status-line">Set API base and connect.</div>
+      <div id="authStateMeta" class="operator-status-line">Auth state is unknown.</div>
+
+      <div class="operator-auth-stack">
+        <section id="bootstrapSection" class="operator-auth-block operator-hidden">
+          <div>
+            <div class="smart-banner-eyebrow">Owner Bootstrap</div>
+            <h2 class="operator-subtitle">Create the only super admin</h2>
+            <p class="operator-copy operator-copy--compact">This step works only once and only for the configured owner identity.</p>
+          </div>
+          <div class="operator-access-grid">
+            <label class="operator-field">
+              <span class="operator-label">Owner email</span>
+              <input id="ownerEmailInput" class="operator-input" type="email" placeholder="owner@example.com">
+            </label>
+            <label class="operator-field">
+              <span class="operator-label">Owner login</span>
+              <input id="ownerLoginInput" class="operator-input" type="text" placeholder="owner">
+            </label>
+            <label class="operator-field">
+              <span class="operator-label">Password</span>
+              <input id="bootstrapPasswordInput" class="operator-input" type="password" placeholder="Minimum 8 characters">
+            </label>
+            <label class="operator-field">
+              <span class="operator-label">Bootstrap key</span>
+              <input id="bootstrapKeyInput" class="operator-input" type="password" placeholder="ADMIN_VIEW_KEY from .env">
+            </label>
+          </div>
+          <div class="operator-actions">
+            <button id="bootstrapBtn" class="operator-btn operator-btn--primary" type="button">Create owner account</button>
+          </div>
+        </section>
+
+        <section id="loginSection" class="operator-auth-block operator-hidden">
+          <div>
+            <div class="smart-banner-eyebrow">Login</div>
+            <h2 class="operator-subtitle">Enter as operator</h2>
+            <p class="operator-copy operator-copy--compact">Use the assigned login or email and your password.</p>
+          </div>
+          <div class="operator-access-grid">
+            <label class="operator-field">
+              <span class="operator-label">Login or email</span>
+              <input id="identityInput" class="operator-input" type="text" placeholder="owner or name@example.com">
+            </label>
+            <label class="operator-field">
+              <span class="operator-label">Password</span>
+              <input id="passwordInput" class="operator-input" type="password" placeholder="Password">
+            </label>
+          </div>
+          <div class="operator-actions">
+            <button id="loginBtn" class="operator-btn operator-btn--primary" type="button">Log in</button>
+          </div>
+        </section>
+
+        <section id="sessionSection" class="operator-auth-block operator-hidden">
+          <div>
+            <div class="smart-banner-eyebrow">Session</div>
+            <h2 class="operator-subtitle">Current operator</h2>
+          </div>
+          <div class="operator-access-grid operator-session-grid">
+            <div class="operator-meta">
+              <div class="operator-meta-label">Operator</div>
+              <div id="sessionUserMeta" class="operator-meta-value">-</div>
+            </div>
+            <div class="operator-meta">
+              <div class="operator-meta-label">Session expires</div>
+              <div id="sessionExpiresMeta" class="operator-meta-value">-</div>
+            </div>
+          </div>
+          <div class="operator-actions">
+            <button id="logoutBtn" class="operator-btn" type="button">Log out</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="userManagementSection" class="section operator-hidden">
+    <div class="operator-access-card">
+      <div>
+        <div class="smart-banner-eyebrow">User Management</div>
+        <h2 class="operator-subtitle">Assigned operators</h2>
+        <p class="operator-copy operator-copy--compact">Only the owner can create or disable operator accounts.</p>
+      </div>
+
+      <div class="operator-access-grid operator-user-create-grid">
+        <label class="operator-field">
+          <span class="operator-label">Login</span>
+          <input id="newUserLoginInput" class="operator-input" type="text" placeholder="operator.login">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Email</span>
+          <input id="newUserEmailInput" class="operator-input" type="email" placeholder="optional@example.com">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Password</span>
+          <input id="newUserPasswordInput" class="operator-input" type="password" placeholder="Minimum 8 characters">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Role</span>
+          <select id="newUserRoleInput" class="operator-select">
+            <option value="operator">Operator</option>
+            <option value="finance">Finance</option>
+            <option value="viewer">Viewer</option>
+          </select>
+        </label>
+      </div>
+      <div class="operator-actions">
+        <button id="createUserBtn" class="operator-btn operator-btn--primary" type="button">Create user</button>
+      </div>
+      <div id="userList" class="operator-user-list"></div>
     </div>
   </section>
 

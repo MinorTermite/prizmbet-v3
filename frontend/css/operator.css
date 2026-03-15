@@ -353,3 +353,38 @@
         align-items: end;
     }
 }
+
+.operator-hidden {
+    display: none !important;
+}
+
+.operator-auth-stack,
+.operator-user-list {
+    display: grid;
+    gap: 14px;
+}
+
+.operator-auth-block {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.operator-session-grid,
+.operator-user-create-grid {
+    align-items: start;
+}
+
+.operator-user-card {
+    border-color: rgba(129, 140, 248, 0.16);
+}
+
+@media (min-width: 860px) {
+    .operator-user-list,
+    .operator-auth-stack {
+        grid-template-columns: 1fr;
+    }
+}
