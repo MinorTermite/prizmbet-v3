@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,11 +15,17 @@
   <section class="section operator-hero">
     <div class="operator-hero-card">
       <div>
-        <div class="smart-banner-eyebrow">Operator Console</div>
-        <h1 class="operator-title">Bets, users and audit trail</h1>
-        <p class="operator-copy">This panel runs on named operator accounts. The owner bootstrap is fixed to the configured identity, and all payout actions stay tied to a specific user session.</p>
+        <div class="smart-banner-eyebrow" data-oi18n="hero.eyebrow">Operator Console</div>
+        <h1 class="operator-title" data-oi18n="hero.title">Bets, users and audit trail</h1>
+        <p class="operator-copy" data-oi18n="hero.copy">This panel runs on named operator accounts. The owner bootstrap is fixed to the configured identity, and all payout actions stay tied to a specific user session.</p>
       </div>
-      <a class="operator-back" href="./index.html">Back to site</a>
+      <div class="operator-hero-side">
+        <div aria-label="Language switch" class="lang-switch lang-switch--desktop">
+          <button class="lang-option" data-lang-option="ru" type="button">RU</button>
+          <button class="lang-option" data-lang-option="en" type="button">EN</button>
+        </div>
+        <a class="operator-back" data-oi18n="hero.back" href="./index.html">Back to site</a>
+      </div>
     </div>
   </section>
 
@@ -27,17 +33,17 @@
     <div class="operator-access-card">
       <div class="operator-access-grid">
         <label class="operator-field">
-          <span class="operator-label">API base</span>
-          <input id="apiBaseInput" class="operator-input" type="text" placeholder="http://127.0.0.1:8081">
+          <span class="operator-label" data-oi18n="access.apiBase">API base</span>
+          <input id="apiBaseInput" class="operator-input" data-oi18n-placeholder="access.apiBasePlaceholder" type="text" placeholder="http://127.0.0.1:8081">
         </label>
       </div>
 
       <div class="operator-actions">
-        <button id="connectBtn" class="operator-btn operator-btn--primary" type="button">Connect</button>
-        <button id="refreshBtn" class="operator-btn" type="button">Refresh</button>
+        <button id="connectBtn" class="operator-btn operator-btn--primary" data-oi18n="access.connect" type="button">Connect</button>
+        <button id="refreshBtn" class="operator-btn" data-oi18n="access.refresh" type="button">Refresh</button>
         <label class="operator-toggle">
           <input id="autoRefreshToggle" type="checkbox" checked>
-          <span>Auto refresh</span>
+          <span data-oi18n="access.autoRefresh">Auto refresh</span>
         </label>
       </div>
 
@@ -47,71 +53,71 @@
       <div class="operator-auth-stack">
         <section id="bootstrapSection" class="operator-auth-block operator-hidden">
           <div>
-            <div class="smart-banner-eyebrow">Owner Bootstrap</div>
-            <h2 class="operator-subtitle">Create the only super admin</h2>
-            <p class="operator-copy operator-copy--compact">This step works only once and only for the configured owner identity.</p>
+            <div class="smart-banner-eyebrow" data-oi18n="bootstrap.eyebrow">Owner Bootstrap</div>
+            <h2 class="operator-subtitle" data-oi18n="bootstrap.title">Create the only super admin</h2>
+            <p class="operator-copy operator-copy--compact" data-oi18n="bootstrap.copy">This step works only once and only for the configured owner identity.</p>
           </div>
           <div class="operator-access-grid">
             <label class="operator-field">
-              <span class="operator-label">Owner email</span>
-              <input id="ownerEmailInput" class="operator-input" type="email" placeholder="owner@example.com">
+              <span class="operator-label" data-oi18n="bootstrap.email">Owner email</span>
+              <input id="ownerEmailInput" class="operator-input" data-oi18n-placeholder="bootstrap.emailPlaceholder" type="email" placeholder="owner@example.com">
             </label>
             <label class="operator-field">
-              <span class="operator-label">Owner login</span>
-              <input id="ownerLoginInput" class="operator-input" type="text" placeholder="owner">
+              <span class="operator-label" data-oi18n="bootstrap.login">Owner login</span>
+              <input id="ownerLoginInput" class="operator-input" data-oi18n-placeholder="bootstrap.loginPlaceholder" type="text" placeholder="owner">
             </label>
             <label class="operator-field">
-              <span class="operator-label">Password</span>
-              <input id="bootstrapPasswordInput" class="operator-input" type="password" placeholder="Minimum 8 characters">
+              <span class="operator-label" data-oi18n="bootstrap.password">Password</span>
+              <input id="bootstrapPasswordInput" class="operator-input" data-oi18n-placeholder="bootstrap.passwordPlaceholder" type="password" placeholder="Minimum 8 characters">
             </label>
             <label class="operator-field">
-              <span class="operator-label">Bootstrap key</span>
-              <input id="bootstrapKeyInput" class="operator-input" type="password" placeholder="ADMIN_VIEW_KEY from .env">
+              <span class="operator-label" data-oi18n="bootstrap.key">Bootstrap key</span>
+              <input id="bootstrapKeyInput" class="operator-input" data-oi18n-placeholder="bootstrap.keyPlaceholder" type="password" placeholder="ADMIN_VIEW_KEY from .env">
             </label>
           </div>
           <div class="operator-actions">
-            <button id="bootstrapBtn" class="operator-btn operator-btn--primary" type="button">Create owner account</button>
+            <button id="bootstrapBtn" class="operator-btn operator-btn--primary" data-oi18n="bootstrap.action" type="button">Create owner account</button>
           </div>
         </section>
 
         <section id="loginSection" class="operator-auth-block operator-hidden">
           <div>
-            <div class="smart-banner-eyebrow">Login</div>
-            <h2 class="operator-subtitle">Enter as operator</h2>
-            <p class="operator-copy operator-copy--compact">Use the assigned login or email and your password.</p>
+            <div class="smart-banner-eyebrow" data-oi18n="login.eyebrow">Login</div>
+            <h2 class="operator-subtitle" data-oi18n="login.title">Enter as operator</h2>
+            <p class="operator-copy operator-copy--compact" data-oi18n="login.copy">Use the assigned login or email and your password.</p>
           </div>
           <div class="operator-access-grid">
             <label class="operator-field">
-              <span class="operator-label">Login or email</span>
-              <input id="identityInput" class="operator-input" type="text" placeholder="owner or name@example.com">
+              <span class="operator-label" data-oi18n="login.identity">Login or email</span>
+              <input id="identityInput" class="operator-input" data-oi18n-placeholder="login.identityPlaceholder" type="text" placeholder="owner or name@example.com">
             </label>
             <label class="operator-field">
-              <span class="operator-label">Password</span>
-              <input id="passwordInput" class="operator-input" type="password" placeholder="Password">
+              <span class="operator-label" data-oi18n="login.password">Password</span>
+              <input id="passwordInput" class="operator-input" data-oi18n-placeholder="login.passwordPlaceholder" type="password" placeholder="Password">
             </label>
           </div>
           <div class="operator-actions">
-            <button id="loginBtn" class="operator-btn operator-btn--primary" type="button">Log in</button>
+            <button id="loginBtn" class="operator-btn operator-btn--primary" data-oi18n="login.action" type="button">Log in</button>
           </div>
         </section>
 
         <section id="sessionSection" class="operator-auth-block operator-hidden">
           <div>
-            <div class="smart-banner-eyebrow">Session</div>
-            <h2 class="operator-subtitle">Current operator</h2>
+            <div class="smart-banner-eyebrow" data-oi18n="session.eyebrow">Session</div>
+            <h2 class="operator-subtitle" data-oi18n="session.title">Current operator</h2>
           </div>
           <div class="operator-access-grid operator-session-grid">
             <div class="operator-meta">
-              <div class="operator-meta-label">Operator</div>
+              <div class="operator-meta-label" data-oi18n="session.user">Operator</div>
               <div id="sessionUserMeta" class="operator-meta-value">-</div>
             </div>
             <div class="operator-meta">
-              <div class="operator-meta-label">Session expires</div>
+              <div class="operator-meta-label" data-oi18n="session.expires">Session expires</div>
               <div id="sessionExpiresMeta" class="operator-meta-value">-</div>
             </div>
           </div>
           <div class="operator-actions">
-            <button id="logoutBtn" class="operator-btn" type="button">Log out</button>
+            <button id="logoutBtn" class="operator-btn" data-oi18n="session.logout" type="button">Log out</button>
           </div>
         </section>
       </div>
@@ -121,35 +127,35 @@
   <section id="userManagementSection" class="section operator-hidden">
     <div class="operator-access-card">
       <div>
-        <div class="smart-banner-eyebrow">User Management</div>
-        <h2 class="operator-subtitle">Assigned operators</h2>
-        <p class="operator-copy operator-copy--compact">Only the owner can create or disable operator accounts.</p>
+        <div class="smart-banner-eyebrow" data-oi18n="users.eyebrow">User Management</div>
+        <h2 class="operator-subtitle" data-oi18n="users.title">Assigned operators</h2>
+        <p class="operator-copy operator-copy--compact" data-oi18n="users.copy">Only the owner can create or disable operator accounts.</p>
       </div>
 
       <div class="operator-access-grid operator-user-create-grid">
         <label class="operator-field">
-          <span class="operator-label">Login</span>
-          <input id="newUserLoginInput" class="operator-input" type="text" placeholder="operator.login">
+          <span class="operator-label" data-oi18n="users.login">Login</span>
+          <input id="newUserLoginInput" class="operator-input" data-oi18n-placeholder="users.loginPlaceholder" type="text" placeholder="operator.login">
         </label>
         <label class="operator-field">
-          <span class="operator-label">Email</span>
-          <input id="newUserEmailInput" class="operator-input" type="email" placeholder="optional@example.com">
+          <span class="operator-label" data-oi18n="users.email">Email</span>
+          <input id="newUserEmailInput" class="operator-input" data-oi18n-placeholder="users.emailPlaceholder" type="email" placeholder="optional@example.com">
         </label>
         <label class="operator-field">
-          <span class="operator-label">Password</span>
-          <input id="newUserPasswordInput" class="operator-input" type="password" placeholder="Minimum 8 characters">
+          <span class="operator-label" data-oi18n="users.password">Password</span>
+          <input id="newUserPasswordInput" class="operator-input" data-oi18n-placeholder="users.passwordPlaceholder" type="password" placeholder="Minimum 8 characters">
         </label>
         <label class="operator-field">
-          <span class="operator-label">Role</span>
+          <span class="operator-label" data-oi18n="users.role">Role</span>
           <select id="newUserRoleInput" class="operator-select">
-            <option value="operator">Operator</option>
-            <option value="finance">Finance</option>
-            <option value="viewer">Viewer</option>
+            <option data-oi18n="role.operator" value="operator">Operator</option>
+            <option data-oi18n="role.finance" value="finance">Finance</option>
+            <option data-oi18n="role.viewer" value="viewer">Viewer</option>
           </select>
         </label>
       </div>
       <div class="operator-actions">
-        <button id="createUserBtn" class="operator-btn operator-btn--primary" type="button">Create user</button>
+        <button id="createUserBtn" class="operator-btn operator-btn--primary" data-oi18n="users.action" type="button">Create user</button>
       </div>
       <div id="userList" class="operator-user-list"></div>
     </div>
@@ -161,15 +167,15 @@
 
   <section class="section operator-feed-section">
     <div class="operator-feed-toolbar">
-      <input id="queryInput" class="operator-input operator-input--search" type="search" placeholder="Search by match, TX, wallet, intent or league">
+      <input id="queryInput" class="operator-input operator-input--search" data-oi18n-placeholder="feed.searchPlaceholder" type="search" placeholder="Search by match, TX, wallet, intent or league">
       <select id="statusFilter" class="operator-select">
-        <option value="">All statuses</option>
-        <option value="accepted">Accepted</option>
-        <option value="rejected">Rejected</option>
-        <option value="won">Won</option>
-        <option value="lost">Lost</option>
-        <option value="refund_pending">Refund pending</option>
-        <option value="paid">Paid</option>
+        <option data-oi18n="statusFilter.all" value="">All statuses</option>
+        <option data-oi18n="status.accepted" value="accepted">Accepted</option>
+        <option data-oi18n="status.rejected" value="rejected">Rejected</option>
+        <option data-oi18n="status.won" value="won">Won</option>
+        <option data-oi18n="status.lost" value="lost">Lost</option>
+        <option data-oi18n="status.refund_pending" value="refund_pending">Refund pending</option>
+        <option data-oi18n="status.paid" value="paid">Paid</option>
       </select>
       <div id="feedMeta" class="operator-feed-meta">Feed not loaded yet.</div>
     </div>
@@ -179,9 +185,9 @@
   <section class="section operator-audit-section">
     <div class="operator-audit-head">
       <div>
-        <div class="smart-banner-eyebrow">Audit Log</div>
-        <h2 class="operator-subtitle">Recent backend and operator events</h2>
-        <p class="operator-copy operator-copy--compact">Accepted, rejected, settled and paid events are listed here. If the webhook is enabled, the same events can be mirrored to Google Sheets.</p>
+        <div class="smart-banner-eyebrow" data-oi18n="audit.eyebrow">Audit Log</div>
+        <h2 class="operator-subtitle" data-oi18n="audit.title">Recent backend and operator events</h2>
+        <p class="operator-copy operator-copy--compact" data-oi18n="audit.copy">Accepted, rejected, settled and paid events are listed here. If the webhook is enabled, the same events can be mirrored to Google Sheets.</p>
       </div>
       <div id="auditMeta" class="operator-feed-meta">Audit log not loaded yet.</div>
     </div>
@@ -190,5 +196,6 @@
 </main>
 
 <script src="js/operator.js"></script>
+<script src="js/operator-i18n.js"></script>
 </body>
 </html>

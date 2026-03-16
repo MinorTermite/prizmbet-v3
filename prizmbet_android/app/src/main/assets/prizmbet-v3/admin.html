@@ -1,83 +1,11 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PRIZMBET Admin Redirect</title>
 <meta http-equiv="refresh" content="0; url=./operator.html">
-<style>
-  :root {
-    --bg: #06060e;
-    --card: rgba(12, 16, 32, 0.92);
-    --border: rgba(129, 140, 248, 0.26);
-    --text: #f8fafc;
-    --muted: rgba(226, 232, 240, 0.74);
-    --accent: #7c3aed;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 24px;
-    background:
-      radial-gradient(circle at top, rgba(124, 58, 237, 0.16), transparent 34%),
-      radial-gradient(circle at bottom, rgba(34, 211, 238, 0.14), transparent 28%),
-      #06060e;
-    color: var(--text);
-    font: 16px/1.55 Inter, system-ui, sans-serif;
-  }
-  .card {
-    width: min(560px, 100%);
-    padding: 28px;
-    border-radius: 24px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-  }
-  .eyebrow {
-    color: #c4b5fd;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-size: 0.76rem;
-    font-weight: 800;
-    margin-bottom: 10px;
-  }
-  h1 { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.05; }
-  p { margin: 0 0 18px; color: var(--muted); }
-  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 46px;
-    padding: 0 18px;
-    border-radius: 999px;
-    text-decoration: none;
-    font-weight: 700;
-    border: 1px solid var(--border);
-    color: var(--text);
-    background: rgba(255, 255, 255, 0.04);
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #4f46e5);
-    border-color: transparent;
-  }
-</style>
-<script>
-  window.location.replace('./operator.html');
-</script>
+<script>window.location.replace('./operator.html');</script>
 </head>
-<body>
-  <main class="card">
-    <div class="eyebrow">Legacy route</div>
-    <h1>Operator panel moved</h1>
-    <p>The active admin surface for v3 lives at <strong>operator.html</strong>. This page only keeps the old route working.</p>
-    <div class="actions">
-      <a class="btn btn-primary" href="./operator.html">Open operator panel</a>
-      <a class="btn" href="./index.html">Back to site</a>
-    </div>
-  </main>
-</body>
+<body></body>
 </html>
