@@ -637,6 +637,11 @@ function renderStatus(message, tone) {
 }
 
 function render() {
+  const shell = document.querySelector('.operator-shell');
+  if (shell) {
+    shell.classList.toggle('operator-shell--authed', Boolean(state.currentUser));
+    shell.classList.toggle('operator-shell--superadmin', state.currentUser?.role === 'super_admin');
+  }
   syncInputs();
   renderAuthState();
   renderUsers();
@@ -731,24 +736,27 @@ function renderUserCard(user) {
 
   return `
     <article class="operator-card operator-user-card">
-      <div class="operator-card-head">
-        <div>
+      <div class="operator-user-row">
+        <div class="operator-user-main">
           <div class="operator-badges">
             <span class="operator-badge" data-tone="${user.is_active ? 'good' : 'bad'}">${user.is_active ? 'Active' : 'Disabled'}</span>
             <span class="operator-badge" data-tone="neutral">${escapeHtml(labelRole(user.role))}</span>
             ${isOwner ? '<span class="operator-badge" data-tone="warn">Owner</span>' : ''}
           </div>
-          <h3 class="operator-card-title">${escapeHtml(user.login || 'Unknown')}</h3>
-          <p class="operator-card-copy">${escapeHtml(user.email || 'No email assigned')}</p>
+          <div class="operator-user-title-row">
+            <h3 class="operator-card-title">${escapeHtml(user.login || 'Unknown')}</h3>
+            <span class="operator-user-id">#${escapeHtml(String(user.id || '-'))}</span>
+          </div>
+          <p class="operator-card-copy operator-user-email">${escapeHtml(user.email || 'No email assigned')}</p>
         </div>
-        <div class="operator-actions">
+        <div class="operator-actions operator-user-actions">
           ${canToggle ? `<button class="operator-chip" type="button" data-toggle-user="${escapeAttr(user.id)}" data-next-active="${nextActive ? 'true' : 'false'}">${toggleLabel}</button>` : ''}
         </div>
       </div>
-      <div class="operator-card-grid">
-        ${renderMeta('Created', formatDate(user.created_at))}
-        ${renderMeta('Last login', formatDate(user.last_login_at))}
-        ${renderMeta('User ID', String(user.id || '-'))}
+      <div class="operator-user-meta-strip">
+        <div class="operator-user-meta-pill"><span>Created</span><strong>${escapeHtml(formatDate(user.created_at))}</strong></div>
+        <div class="operator-user-meta-pill"><span>Last login</span><strong>${escapeHtml(formatDate(user.last_login_at))}</strong></div>
+        <div class="operator-user-meta-pill"><span>User ID</span><strong>${escapeHtml(String(user.id || '-'))}</strong></div>
       </div>
     </article>
   `;
