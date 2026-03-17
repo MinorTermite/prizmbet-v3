@@ -999,3 +999,188 @@
         backdrop-filter: blur(18px);
     }
 }
+/* Compact ergonomic operator layout */
+@media (min-width: 1280px) {
+    .operator-shell.operator-shell--authed {
+        gap: 12px;
+        height: calc(100vh - 18px);
+        min-height: calc(100vh - 18px);
+        max-height: calc(100vh - 18px);
+        padding-bottom: 0;
+        grid-template-columns: minmax(0, 1.62fr) minmax(380px, 0.88fr);
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+        grid-template-areas:
+            'hero hero'
+            'access users'
+            'stats users'
+            'feed audit';
+        overflow: hidden;
+    }
+
+    .operator-shell.operator-shell--authed > .section,
+    .operator-shell.operator-shell--authed .operator-access-card,
+    .operator-shell.operator-shell--authed .operator-users-section,
+    .operator-shell.operator-shell--authed .operator-feed-section,
+    .operator-shell.operator-shell--authed .operator-audit-section,
+    .operator-shell.operator-shell--authed .operator-stats-section {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .operator-shell.operator-shell--authed .operator-hero-card {
+        padding: 10px 14px;
+        border-radius: 22px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-title {
+        font-size: 1.18rem;
+        line-height: 1.02;
+    }
+
+    .operator-shell.operator-shell--authed .operator-access-card,
+    .operator-shell.operator-shell--authed .operator-users-section .operator-access-card,
+    .operator-shell.operator-shell--authed .operator-stat-card,
+    .operator-shell.operator-shell--authed .operator-card,
+    .operator-shell.operator-shell--authed .operator-auth-block {
+        padding: 10px;
+        border-radius: 18px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-access-card {
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+    }
+
+    .operator-shell.operator-shell--authed .operator-users-section {
+        max-height: calc(100vh - 176px);
+        display: grid;
+    }
+
+    .operator-shell.operator-shell--authed .operator-users-section .operator-access-card {
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+    }
+
+    .operator-shell.operator-shell--authed .operator-user-create-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-user-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        min-height: 0;
+        max-height: none;
+        overflow: auto;
+        padding-right: 4px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-user-card {
+        padding: 10px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-user-title-row {
+        gap: 8px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-card-title {
+        margin: 6px 0 4px;
+        font-size: 1rem;
+    }
+
+    .operator-shell.operator-shell--authed .operator-card-copy,
+    .operator-shell.operator-shell--authed .operator-user-email {
+        font-size: 0.95rem;
+        line-height: 1.38;
+    }
+
+    .operator-shell.operator-shell--authed .operator-user-meta-strip {
+        margin-top: 8px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-user-meta-pill {
+        min-width: 0;
+        padding: 8px 10px;
+        border-radius: 12px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-stats {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-stat-card {
+        min-height: 74px;
+        padding: 10px 12px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-stat-value {
+        margin-top: 6px;
+        font-size: 1.08rem;
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-section,
+    .operator-shell.operator-shell--authed .operator-audit-section {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-toolbar,
+    .operator-shell.operator-shell--authed .operator-audit-head {
+        top: 0;
+        padding: 10px;
+        border-radius: 16px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-body,
+    .operator-shell.operator-shell--authed .operator-audit-body {
+        min-height: 0;
+        height: 100%;
+        overflow: auto;
+        padding: 8px 4px 0 0;
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-list,
+    .operator-shell.operator-shell--authed .operator-audit-list {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        align-content: start;
+    }
+
+    .operator-shell.operator-shell--authed .operator-card {
+        padding: 10px;
+        border-radius: 18px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-meta {
+        padding: 8px 10px;
+        border-radius: 12px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-inline-meta {
+        gap: 6px 10px;
+        margin-top: 10px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-inline-meta span {
+        min-height: 24px;
+        padding: 4px 8px;
+        font-size: 0.84rem;
+    }
+
+    .operator-shell.operator-shell--authed .operator-reject {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+    }
+}
