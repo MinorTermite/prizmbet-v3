@@ -867,6 +867,33 @@ function renderFeedCard(item) {
     ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.payout_tx_id)}">Payout TX</button>`
     : '';
   const title = buildFeedTitle(item);
+  const displayTime = formatBestDate(item.display_timestamp, item.block_timestamp, item.created_at);
+
+  if (isCompactNoiseItem(item)) {
+    return `
+      <article class="operator-card operator-card--compact">
+        <div class="operator-card-head">
+          <div>
+            <div class="operator-badges">
+              <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(item.status))}">${escapeHtml(labelStatus(item.status))}</span>
+              <span class="operator-badge" data-tone="neutral">Transfer</span>
+            </div>
+            <h3 class="operator-card-title">${escapeHtml(title)}</h3>
+            <p class="operator-card-copy">${escapeHtml(buildFeedSummary(item))}</p>
+          </div>
+          <div class="operator-actions">
+            ${item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.tx_id)}">TX</button>` : ''}
+          </div>
+        </div>
+        <div class="operator-inline-meta">
+          <span><strong>Wallet:</strong> ${escapeHtml(item.sender_wallet || '-')}</span>
+          <span><strong>Amount:</strong> ${escapeHtml(formatNumber(item.amount_prizm))} PRIZM</span>
+          <span><strong>Time:</strong> ${escapeHtml(displayTime)}</span>
+        </div>
+        ${rejectBlock}
+      </article>
+    `;
+  }
 
   return `
     <article class="operator-card">
@@ -892,7 +919,7 @@ function renderFeedCard(item) {
         ${renderMeta('Outcome', `${labelOutcome(item.outcome)} @ ${item.odds_label || formatNumber(item.odds_fixed)}`)}
         ${renderMeta('Amount', `${formatNumber(item.amount_prizm)} PRIZM`)}
         ${renderMeta('Potential payout', `${formatNumber(item.potential_payout_prizm)} PRIZM`)}
-        ${renderMeta('Time', formatDate(item.display_timestamp || item.block_timestamp || item.created_at))}
+        ${renderMeta('Time', displayTime)}
       </div>
       ${rejectBlock}
     </article>
@@ -907,6 +934,33 @@ function renderAuditCard(item) {
     ? `<div class="operator-reject">${escapeHtml(labelRejectReason(payload.reject_reason))}</div>`
     : '';
   const title = cleanText(payload.match_label) || labelAuditEvent(eventType);
+  const displayTime = formatBestDate(item.created_at, payload.created_at, payload.block_timestamp);
+
+  if (isCompactNoiseAudit(item, payload, eventType, status)) {
+    return `
+      <article class="operator-card operator-card--audit operator-card--compact">
+        <div class="operator-card-head">
+          <div>
+            <div class="operator-badges">
+              <span class="operator-badge" data-tone="${escapeHtml(resolveAuditTone(eventType, status))}">${escapeHtml(labelAuditEvent(eventType))}</span>
+              <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(status))}">${escapeHtml(labelStatus(status || 'admin'))}</span>
+            </div>
+            <h3 class="operator-card-title">${escapeHtml(buildFeedTitle(payload))}</h3>
+            <p class="operator-card-copy">${escapeHtml(buildAuditSummary(payload, item))}</p>
+          </div>
+          <div class="operator-actions">
+            ${payload.tx_id || item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(payload.tx_id || item.tx_id || '')}">TX</button>` : ''}
+          </div>
+        </div>
+        <div class="operator-inline-meta">
+          <span><strong>Event:</strong> ${escapeHtml(labelAuditEvent(eventType))}</span>
+          <span><strong>Amount:</strong> ${escapeHtml(formatNumber(payload.amount_prizm || item.amount_prizm))} PRIZM</span>
+          <span><strong>Time:</strong> ${escapeHtml(displayTime)}</span>
+        </div>
+        ${rejectBlock}
+      </article>
+    `;
+  }
 
   return `
     <article class="operator-card operator-card--audit">
@@ -929,7 +983,7 @@ function renderAuditCard(item) {
         ${renderMeta('Actor', buildActorLabel(payload.actor))}
         ${renderMeta('Amount', `${formatNumber(payload.amount_prizm || item.amount_prizm)} PRIZM`)}
         ${renderMeta('Match state', labelMatchState(payload.match_state || ''))}
-        ${renderMeta('Time', formatDate(item.created_at || payload.created_at))}
+        ${renderMeta('Time', displayTime)}
         ${renderMeta('Extra', summarizeExtra(payload.extra))}
       </div>
       ${rejectBlock}
@@ -990,6 +1044,35 @@ function summarizeExtra(extra) {
   if (!extra || typeof extra !== 'object') return '-';
   const parts = Object.entries(extra).slice(0, 3).map(([key, value]) => `${key}: ${value}`);
   return parts.join(' | ') || '-';
+}
+
+
+function isCompactNoiseItem(item) {
+  const noIntent = !cleanText(item.intent_hash);
+  const unknownMatch = !cleanText(item.match_id) || cleanText(item.match_id).toLowerCase() === 'unknown';
+  return String(item.status || '').toLowerCase() === 'rejected' && noIntent && unknownMatch;
+}
+
+function isCompactNoiseAudit(item, payload, eventType, status) {
+  const noIntent = !cleanText(payload.intent_hash || item.intent_hash);
+  const matchId = cleanText(payload.match_id || item.match_id);
+  const unknownMatch = !matchId || matchId.toLowerCase() === 'unknown';
+  return String(eventType || '').toLowerCase() === 'bet_rejected' && String(status || '').toLowerCase() === 'rejected' && noIntent && unknownMatch;
+}
+
+function formatBestDate(...values) {
+  let fallback = '-';
+  for (const value of values) {
+    if (!value) continue;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) continue;
+    fallback = formatDate(value);
+    const year = date.getUTCFullYear();
+    if (year >= 2025 && year <= 2035) {
+      return fallback;
+    }
+  }
+  return fallback;
 }
 
 function labelStatus(status) {
