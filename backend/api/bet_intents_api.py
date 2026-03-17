@@ -138,6 +138,22 @@ def _rank_preview(turnover: float, accepted_count: int) -> dict[str, Any]:
     }
 
 
+async def _find_wallet_pending_intent(sender_wallet: str, now_utc: datetime) -> tuple[str, dict[str, Any] | None]:
+    intents = await db.get_active_wallet_intents(sender_wallet, now_utc.isoformat())
+    if not intents:
+        return 'none', None
+
+    bets = await db.get_bets_by_intent_hashes([str(item.get('intent_hash') or '') for item in intents])
+    taken = {str(row.get('intent_hash') or '').strip().upper() for row in bets if row.get('intent_hash')}
+    pending = [item for item in intents if str(item.get('intent_hash') or '').strip().upper() not in taken]
+
+    if len(pending) == 1:
+        return 'single', pending[0]
+    if len(pending) > 1:
+        return 'multiple', None
+    return 'none', None
+
+
 def _bootstrap_key_valid(request: web.Request, payload: dict[str, Any] | None = None) -> bool:
     required_key = str(config.ADMIN_VIEW_KEY or "").strip()
     if not required_key:
@@ -545,6 +561,15 @@ async def create_intent(request: web.Request) -> web.Response:
     odds = _extract_odds(match, outcome)
     if not odds:
         return _json_response({"error": "outcome/odds unavailable"}, status=400)
+
+    pending_mode, pending_intent = await _find_wallet_pending_intent(sender_wallet, now)
+    if pending_mode == 'single' and pending_intent:
+        return _json_response({
+            "error": "WALLET_ACTIVE_INTENT_EXISTS",
+            "existing_intent": pending_intent,
+        }, status=409)
+    if pending_mode == 'multiple':
+        return _json_response({"error": "WALLET_HAS_MULTIPLE_ACTIVE_INTENTS"}, status=409)
 
     intent = None
     for _ in range(10):

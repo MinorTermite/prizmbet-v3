@@ -45,6 +45,22 @@ async def _get_checkpoint():
     return int(state.get("last_prizm_timestamp", 0)), state.get("last_tx_id") or ""
 
 
+async def _resolve_wallet_intent(sender_wallet: str, block_ts_utc: datetime):
+    intents = await db.get_active_wallet_intents(sender_wallet, block_ts_utc.isoformat())
+    if not intents:
+        return None, 'INVALID_INTENT', 'none'
+
+    existing_bets = await db.get_bets_by_intent_hashes([str(item.get('intent_hash') or '') for item in intents])
+    taken = {str(item.get('intent_hash') or '').strip().upper() for item in existing_bets if item.get('intent_hash')}
+    available = [item for item in intents if str(item.get('intent_hash') or '').strip().upper() not in taken]
+
+    if len(available) == 1:
+        return available[0], None, 'wallet_fallback'
+    if len(available) > 1:
+        return None, 'AMBIGUOUS_WALLET_INTENT', 'ambiguous'
+    return None, 'INVALID_INTENT', 'none'
+
+
 async def _update_checkpoint(ts: int, tx_id: str):
     await db.upsert_listener_state(last_prizm_timestamp=ts, last_tx_id=tx_id)
 
@@ -78,13 +94,22 @@ async def _process_tx(tx: dict):
         "block_timestamp": block_ts_utc.isoformat(),
     }
 
+    resolve_mode = 'message' if intent_hash else 'none'
     intent = None
     match = None
     if intent_hash:
         intent = await db.get_bet_intent(intent_hash)
 
     if not intent:
-        bet_row["reject_reason"] = "INVALID_INTENT"
+        intent, fallback_reason, resolve_mode = await _resolve_wallet_intent(sender_wallet, block_ts_utc)
+        if intent:
+            intent_hash = str(intent.get('intent_hash') or '').strip().upper()
+            bet_row['intent_hash'] = intent_hash or None
+        else:
+            bet_row["reject_reason"] = fallback_reason
+
+    if not intent:
+        bet_row["reject_reason"] = bet_row.get("reject_reason") or "INVALID_INTENT"
     elif amount < config.MIN_BET:
         bet_row["match_id"] = str(intent["match_id"])
         bet_row["odds_fixed"] = float(intent["odds_fixed"])
@@ -127,6 +152,7 @@ async def _process_tx(tx: dict):
             intent=dict(intent) if intent else None,
             match=dict(match) if match else None,
             reason=bet_row.get("reject_reason"),
+            extra={"resolve_mode": resolve_mode},
         )
 
         asyncio.create_task(

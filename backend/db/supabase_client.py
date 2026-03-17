@@ -148,6 +148,41 @@ class Database:
             print(f"Error fetching bet intents: {exc}")
             return {}
 
+    async def get_active_wallet_intents(self, sender_wallet: str, as_of_iso: str):
+        if not self.initialized:
+            return []
+        wallet = str(sender_wallet or '').strip().upper()
+        if not wallet:
+            return []
+        try:
+            response = (
+                self.client
+                .table("bet_intents")
+                .select("*")
+                .eq("sender_wallet", wallet)
+                .gte("expires_at", as_of_iso)
+                .order("created_at", desc=True)
+                .limit(20)
+                .execute()
+            )
+            return response.data or []
+        except Exception as exc:
+            print(f"Error fetching active wallet intents: {exc}")
+            return []
+
+    async def get_bets_by_intent_hashes(self, intent_hashes: list[str]):
+        if not self.initialized:
+            return []
+        cleaned = [str(item or '').strip().upper() for item in intent_hashes if str(item or '').strip()]
+        if not cleaned:
+            return []
+        try:
+            response = self.client.table("bets").select("*").in_("intent_hash", cleaned).execute()
+            return response.data or []
+        except Exception as exc:
+            print(f"Error fetching bets by intent hashes: {exc}")
+            return []
+
     async def insert_bet(self, bet_row: dict):
         if not self.initialized:
             return None
