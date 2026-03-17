@@ -126,12 +126,34 @@
       'audit.copy': 'Accepted, rejected, settled and paid events are listed here. If the webhook is enabled, the same events can be mirrored to Google Sheets.'
     }
   };
+
   const EXACT = {
     ru: {
       'Set API base and connect.': 'Укажите API base и подключитесь.',
+      'Set API base first.': 'Сначала укажите API base.',
+      'Connect to inspect the operator auth state.': 'Подключитесь, чтобы проверить состояние авторизации операторов.',
+      'Checking operator access...': 'Проверяю доступ оператора...',
       'Auth state is unknown.': 'Состояние авторизации неизвестно.',
       'Feed not loaded yet.': 'Лента ещё не загружена.',
       'Audit log not loaded yet.': 'Журнал аудита ещё не загружен.',
+      'Failed to copy value to clipboard.': 'Не удалось скопировать значение в буфер обмена.',
+      'Failed to read bootstrap state.': 'Не удалось прочитать состояние bootstrap.',
+      'Admin session is invalid.': 'Сессия администратора недействительна.',
+      'Owner email, login, password and bootstrap key are required.': 'Нужны email владельца, логин, пароль и bootstrap key.',
+      'Owner account created. Session is active.': 'Аккаунт владельца создан. Сессия активна.',
+      'Failed to bootstrap owner account.': 'Не удалось создать аккаунт владельца.',
+      'Login/email and password are required.': 'Нужны логин или email и пароль.',
+      'Failed to log in.': 'Не удалось войти.',
+      'Only the super admin can create users.': 'Только super admin может создавать пользователей.',
+      'Failed to create user.': 'Не удалось создать пользователя.',
+      'Failed to update user state.': 'Не удалось обновить состояние пользователя.',
+      'Failed to load admin users.': 'Не удалось загрузить список администраторов.',
+      'An HTTPS page cannot read a local HTTP API. Open the operator page locally or use an HTTPS API.': 'HTTPS-страница не может читать локальный HTTP API. Откройте панель оператора локально или используйте HTTPS API.',
+      'Failed to load operator data.': 'Не удалось загрузить данные оператора.',
+      'Failed to mark payout.': 'Не удалось отметить выплату.',
+      'No API connection.': 'Нет подключения к API.',
+      'Bootstrap is blocked. Check ADMIN_VIEW_KEY and migration state.': 'Bootstrap заблокирован. Проверьте ADMIN_VIEW_KEY и состояние миграций.',
+      'No active operator session.': 'Нет активной сессии оператора.',
       'Intent': 'Код',
       'Wallet': 'Кошелёк',
       'Outcome': 'Исход',
@@ -160,8 +182,10 @@
       'No bets yet.': 'Пока нет ставок.',
       'No audit events yet.': 'Пока нет событий аудита.',
       'No additional operators yet.': 'Пока нет дополнительных операторов.',
+      'No email assigned': 'Email не назначен',
       'Google Sheets: ON': 'Google Sheets: ВКЛ',
-      'Google Sheets: OFF': 'Google Sheets: ВЫКЛ'
+      'Google Sheets: OFF': 'Google Sheets: ВЫКЛ',
+      'Operator-side event': 'Событие со стороны оператора'
     },
     en: {}
   };
@@ -195,6 +219,11 @@
     if (lang() !== 'ru') return value;
     let out = String(value || '');
     if (EXACT.ru[out]) return EXACT.ru[out];
+
+    out = out.replace(/\(Super admin\)/g, '(Супер админ)');
+    out = out.replace(/\(Operator\)/g, '(Оператор)');
+    out = out.replace(/\(Finance\)/g, '(Финансы)');
+    out = out.replace(/\(Viewer\)/g, '(Наблюдатель)');
     out = out.replace(/^Copied: (.+)$/u, 'Скопировано: $1');
     out = out.replace(/^Logged in as (.+)\.$/u, 'Вход выполнен: $1.');
     out = out.replace(/^User (.+) created\.$/u, 'Пользователь $1 создан.');
@@ -205,6 +234,9 @@
     out = out.replace(/^(\d+) events$/u, 'Событий: $1');
     out = out.replace(/^To payout: (\d+)$/u, 'К выплате: $1');
     out = out.replace(/^Match #(.+)$/u, 'Матч #$1');
+    out = out.replace(/^Session active: (.+)\.$/u, 'Сессия активна: $1.');
+    out = out.replace(/^Bootstrap pending\. Owner login: (.+)\. Owner email hint: (.+)\.$/u, 'Bootstrap ожидает завершения. Логин владельца: $1. Подсказка email: $2.');
+    out = out.replace(/^Operator: (.+)$/u, 'Оператор: $1');
     return EXACT.ru[out] || out;
   }
 
