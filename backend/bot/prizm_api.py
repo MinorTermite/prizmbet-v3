@@ -16,7 +16,7 @@ import os
 PASSPHRASE = os.getenv("PRIZM_PASSPHRASE", "")  # Приватный ключ (фраза) для расшифровки сообщений
 CACHE_FILE = os.path.join(os.path.dirname(__file__), "prizm_last_tx.json")
 OUT_CACHE_FILE = os.path.join(os.path.dirname(__file__), "prizm_last_out_tx.json")
-NQT = 100_000_000  # 1 PRIZM = 100,000,000 NQT
+NQT = 100  # 1 PRIZM = 100 NQT
 
 
 def _get(params: dict, timeout=12) -> dict | None:
