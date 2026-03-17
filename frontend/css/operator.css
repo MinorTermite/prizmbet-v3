@@ -572,3 +572,180 @@
         align-content: start;
     }
 }
+
+@media (min-width: 1280px) {
+    body {
+        overflow: hidden;
+    }
+
+    .operator-shell.operator-shell--authed {
+        min-height: calc(100vh - 20px);
+        height: calc(100vh - 20px);
+        grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.92fr);
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+        grid-template-areas:
+            'hero hero'
+            'access users'
+            'stats users'
+            'feed audit';
+        align-items: stretch;
+        overflow: hidden;
+    }
+
+    .operator-shell.operator-shell--authed:not(.operator-shell--superadmin) {
+        grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.92fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        grid-template-areas:
+            'hero hero'
+            'access stats'
+            'feed audit';
+    }
+
+    .operator-shell.operator-shell--authed .operator-hero {
+        grid-area: hero;
+        margin-bottom: 0;
+    }
+
+    .operator-shell.operator-shell--authed .operator-access {
+        grid-area: access;
+        min-height: 0;
+        margin-bottom: 0;
+    }
+
+    .operator-shell.operator-shell--authed .operator-users-section {
+        grid-area: users;
+        min-height: 0;
+        margin-bottom: 0;
+    }
+
+    .operator-shell.operator-shell--authed .operator-stats-section {
+        grid-area: stats;
+        min-height: 0;
+        margin-bottom: 0;
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-section {
+        grid-area: feed;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        margin-bottom: 0;
+    }
+
+    .operator-shell.operator-shell--authed .operator-audit-section {
+        grid-area: audit;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        margin-bottom: 0;
+    }
+
+    .operator-shell.operator-shell--authed .operator-hero-card {
+        padding: 12px 16px;
+        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+    }
+
+    .operator-shell.operator-shell--authed .operator-title {
+        margin: 2px 0 0;
+        font-size: 1.28rem;
+    }
+
+    .operator-shell.operator-shell--authed .operator-subtitle {
+        margin: 0;
+        font-size: 1.02rem;
+    }
+
+    .operator-shell.operator-shell--authed .operator-copy {
+        display: none;
+    }
+
+    .operator-shell.operator-shell--authed .operator-back,
+    .operator-shell.operator-shell--authed .operator-btn {
+        min-height: 38px;
+        padding: 0 14px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-chip {
+        min-height: 30px;
+        font-size: 0.78rem;
+    }
+
+    .operator-shell.operator-shell--authed .operator-access-card,
+    .operator-shell.operator-shell--authed .operator-stat-card,
+    .operator-shell.operator-shell--authed .operator-card,
+    .operator-shell.operator-shell--authed .operator-auth-block {
+        padding: 12px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-status-line {
+        min-height: 38px;
+        padding: 8px 10px;
+        border-radius: 12px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-auth-stack {
+        gap: 10px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-actions {
+        gap: 8px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-toolbar {
+        grid-template-columns: minmax(0, 1.25fr) 180px auto;
+        gap: 10px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-stats {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .operator-shell.operator-shell--authed .operator-stat-card {
+        min-height: 88px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-stat-value {
+        font-size: 1.18rem;
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-list,
+    .operator-shell.operator-shell--authed .operator-audit-list {
+        grid-template-columns: 1fr;
+        align-content: start;
+        gap: 10px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-user-create-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-user-list {
+        grid-template-columns: 1fr;
+        max-height: none;
+        min-height: 0;
+        overflow: auto;
+        padding-right: 6px;
+    }
+
+    .operator-shell.operator-shell--authed .operator-users-section .operator-access-card {
+        height: 100%;
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-body,
+    .operator-shell.operator-shell--authed .operator-audit-body {
+        min-height: 0;
+        max-height: none;
+        overflow: auto;
+        padding-right: 6px;
+    }
+}

@@ -655,6 +655,7 @@ function render() {
 function renderAuthState() {
   const info = state.bootstrapInfo;
   if (!state.apiBase) {
+    setHidden(dom.authStateMeta, false);
     dom.authStateMeta.textContent = 'Set API base and connect.';
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, true);
@@ -664,6 +665,7 @@ function renderAuthState() {
   }
 
   if (!info) {
+    setHidden(dom.authStateMeta, false);
     dom.authStateMeta.textContent = 'Connect to inspect the operator auth state.';
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, true);
@@ -673,6 +675,7 @@ function renderAuthState() {
   }
 
   if (!info.db_configured) {
+    setHidden(dom.authStateMeta, false);
     dom.authStateMeta.textContent = 'Database is not configured. Operator auth is unavailable.';
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, true);
@@ -682,6 +685,7 @@ function renderAuthState() {
   }
 
   if (!info.has_admin_users) {
+    setHidden(dom.authStateMeta, false);
     dom.authStateMeta.textContent = info.bootstrap_allowed
       ? `Bootstrap pending. Owner login: ${info.owner_login}. Owner email hint: ${info.owner_email_hint || 'n/a'}.`
       : 'Bootstrap is blocked. Check ADMIN_VIEW_KEY and migration state.';
@@ -693,6 +697,7 @@ function renderAuthState() {
   }
 
   if (!state.currentUser) {
+    setHidden(dom.authStateMeta, false);
     dom.authStateMeta.textContent = 'Operator accounts exist. Log in to continue.';
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, false);
@@ -701,6 +706,7 @@ function renderAuthState() {
     return;
   }
 
+  setHidden(dom.authStateMeta, true);
   dom.authStateMeta.textContent = `Session active: ${state.currentUser.login} (${labelRole(state.currentUser.role)}).`;
   dom.sessionUserMeta.textContent = `${state.currentUser.login} (${labelRole(state.currentUser.role)})`;
   dom.sessionExpiresMeta.textContent = formatDate(state.sessionInfo?.expires_at);
