@@ -185,6 +185,23 @@ def _actor_from_user(user: dict[str, Any] | None, auth_mode: str = "session") ->
     }
 
 
+def _is_operator_noise(view: dict[str, Any]) -> bool:
+    status = str(view.get("status") or "").strip().lower()
+    reject_reason = str(view.get("reject_reason") or "").strip().upper()
+    match_id = str(view.get("match_id") or "").strip().lower()
+    intent_hash = str(view.get("intent_hash") or "").strip()
+    amount = float(view.get("amount_prizm") or 0)
+    ts = _parse_dt(view.get("block_timestamp"))
+    stale_timestamp = bool(ts and ts.astimezone(timezone.utc).year < 2025)
+    return (
+        status == "rejected"
+        and reject_reason in {"INVALID_INTENT", "DUST_DONATION"}
+        and match_id in {"", "unknown"}
+        and not intent_hash
+        and (stale_timestamp or amount < float(config.MIN_BET))
+    )
+
+
 async def _log_admin_access_event(event_type: str, *, actor: dict[str, Any] | None = None, extra: dict[str, Any] | None = None) -> None:
     timestamp = datetime.now(timezone.utc).isoformat()
     payload = {
@@ -726,6 +743,8 @@ async def operator_feed(request: web.Request) -> web.Response:
         if status_filter and view["status"] != status_filter:
             continue
         if query and query not in search_blob(view):
+            continue
+        if not query and not status_filter and _is_operator_noise(view):
             continue
         items.append(view)
         if len(items) >= limit:

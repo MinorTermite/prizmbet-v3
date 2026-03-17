@@ -858,6 +858,7 @@ function renderFeedCard(item) {
   const payoutTxChip = item.payout_tx_id
     ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.payout_tx_id)}">Payout TX</button>`
     : '';
+  const title = buildFeedTitle(item);
 
   return `
     <article class="operator-card">
@@ -867,12 +868,12 @@ function renderFeedCard(item) {
             <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(item.status))}">${escapeHtml(labelStatus(item.status))}</span>
             <span class="operator-badge" data-tone="${escapeHtml(resolveMatchStateTone(item.match_state))}">${escapeHtml(labelMatchState(item.match_state))}</span>
           </div>
-          <h3 class="operator-card-title">${escapeHtml(cleanText(item.match_label) || `Match #${item.match_id || '?'}`)}</h3>
+          <h3 class="operator-card-title">${escapeHtml(title)}</h3>
           <p class="operator-card-copy">${escapeHtml(buildFeedSummary(item))}</p>
         </div>
         <div class="operator-actions">
-          <button class="operator-chip" type="button" data-copy="${escapeAttr(item.intent_hash || '')}">Intent</button>
-          <button class="operator-chip" type="button" data-copy="${escapeAttr(item.tx_id || '')}">TX</button>
+          ${item.intent_hash ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.intent_hash)}">Intent</button>` : ''}
+          ${item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.tx_id)}">TX</button>` : ''}
           ${payoutTxChip}
           ${payoutAction}
         </div>
@@ -883,7 +884,7 @@ function renderFeedCard(item) {
         ${renderMeta('Outcome', `${labelOutcome(item.outcome)} @ ${item.odds_label || formatNumber(item.odds_fixed)}`)}
         ${renderMeta('Amount', `${formatNumber(item.amount_prizm)} PRIZM`)}
         ${renderMeta('Potential payout', `${formatNumber(item.potential_payout_prizm)} PRIZM`)}
-        ${renderMeta('Time', formatDate(item.block_timestamp || item.created_at))}
+        ${renderMeta('Time', formatDate(item.display_timestamp || item.block_timestamp || item.created_at))}
       </div>
       ${rejectBlock}
     </article>
@@ -928,11 +929,23 @@ function renderAuditCard(item) {
   `;
 }
 
+function buildFeedTitle(item) {
+  const hasDecodedCoupon = Boolean(item.intent_hash || (item.match_id && item.match_id !== 'unknown'));
+  if (!hasDecodedCoupon && item.status === 'rejected') {
+    return 'Transfer without valid coupon';
+  }
+  return cleanText(item.match_label) || `Match #${item.match_id || '?'}`;
+}
+
 function buildFeedSummary(item) {
+  const hasDecodedCoupon = Boolean(item.intent_hash || (item.match_id && item.match_id !== 'unknown'));
   const match = cleanText(item.match_label) || `Match #${item.match_id || '?'}`;
   const outcome = labelOutcome(item.outcome);
   const odds = item.odds_label || formatNumber(item.odds_fixed);
   const amount = formatNumber(item.amount_prizm);
+  if (!hasDecodedCoupon && item.status === 'rejected') {
+    return `Incoming transfer without a valid coupon - ${amount} PRIZM`;
+  }
   return `${match} - ${outcome} @ ${odds} - ${amount} PRIZM`;
 }
 

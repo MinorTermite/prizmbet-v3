@@ -388,3 +388,60 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+.operator-feed-body,
+.operator-audit-body {
+    display: grid;
+}
+
+.operator-feed-section,
+.operator-audit-section,
+.operator-users-section {
+    align-self: start;
+}
+
+@media (min-width: 1200px) {
+    .operator-shell {
+        grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.85fr);
+        align-items: start;
+    }
+
+    .operator-hero,
+    .operator-access,
+    .operator-stats-section {
+        grid-column: 1 / -1;
+    }
+
+    .operator-feed-section {
+        grid-column: 1;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: calc(100vh - 220px);
+    }
+
+    .operator-users-section,
+    .operator-audit-section {
+        grid-column: 2;
+    }
+
+    .operator-audit-section {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: calc(100vh - 220px);
+    }
+
+    .operator-feed-body,
+    .operator-audit-body {
+        min-height: 0;
+    }
+
+    .operator-feed-list,
+    .operator-audit-list,
+    .operator-user-list {
+        min-height: 0;
+        max-height: calc(100vh - 330px);
+        overflow: auto;
+        padding-right: 8px;
+    }
+}

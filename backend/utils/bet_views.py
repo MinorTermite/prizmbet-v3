@@ -138,6 +138,21 @@ def _parse_dt(value: Any) -> datetime | None:
         return None
 
 
+def _select_display_timestamp(block_value: Any, created_value: Any) -> str:
+    block_dt = _parse_dt(block_value)
+    created_dt = _parse_dt(created_value)
+
+    chosen = block_dt
+    if block_dt and created_dt and (block_dt.year < 2025 or block_dt.year > 2035):
+        chosen = created_dt
+    elif not block_dt and created_dt:
+        chosen = created_dt
+
+    if chosen:
+        return chosen.isoformat()
+    return str(created_value or block_value or "")
+
+
 def describe_match_state(match: dict[str, Any] | None) -> dict[str, str]:
     match = match or {}
     score = str(match.get("score") or "").strip()
@@ -191,6 +206,7 @@ def build_bet_view(
     match_time = source_match.get("match_time") or ""
     block_timestamp = bet.get("block_timestamp") or ""
     created_at = bet.get("created_at") or block_timestamp or ""
+    display_timestamp = _select_display_timestamp(block_timestamp, created_at)
     payout_tx_id = str(bet.get("payout_tx_id") or "").strip()
     match_state = describe_match_state(source_match)
     decoded_coupon = f"{match_label} • {outcome_label} @ {format_decimal(odds_fixed)}"
@@ -223,6 +239,7 @@ def build_bet_view(
         "reject_label": reject_label(reject_reason) if reject_reason else "",
         "block_timestamp": block_timestamp,
         "created_at": created_at,
+        "display_timestamp": display_timestamp,
         "payout_tx_id": payout_tx_id,
         "decoded_coupon": decoded_coupon,
         "operator_summary": operator_summary,
