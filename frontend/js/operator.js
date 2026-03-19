@@ -7,6 +7,7 @@ const state = {
   query: '',
   status: '',
   autoRefresh: true,
+  activeTab: 'control',
   loading: false,
   items: [],
   auditItems: [],
@@ -67,6 +68,12 @@ function cacheDom() {
   dom.newUserRoleInput = document.getElementById('newUserRoleInput');
   dom.createUserBtn = document.getElementById('createUserBtn');
   dom.userList = document.getElementById('userList');
+  dom.workspaceTabsSection = document.getElementById('workspaceTabsSection');
+  dom.tabButtons = Array.from(document.querySelectorAll('[data-operator-tab]'));
+  dom.accessSection = document.querySelector('.operator-access');
+  dom.statsSection = document.querySelector('.operator-stats-section');
+  dom.feedSection = document.querySelector('.operator-feed-section');
+  dom.auditSection = document.querySelector('.operator-audit-section');
 
   dom.statsGrid = document.getElementById('statsGrid');
   dom.queryInput = document.getElementById('queryInput');
@@ -127,6 +134,14 @@ function bindEvents() {
     await handleCreateUser();
   });
 
+  if (dom.tabButtons.length) {
+    dom.tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        setActiveTab(button.dataset.operatorTab || 'control');
+      });
+    });
+  }
+
   dom.feedList.addEventListener('click', async (event) => {
     const copyButton = event.target.closest('[data-copy]');
     if (copyButton) {
@@ -173,6 +188,7 @@ function restoreState() {
     state.query = String(saved.query || '');
     state.status = String(saved.status || '');
     state.autoRefresh = saved.autoRefresh !== false;
+    state.activeTab = String(saved.activeTab || 'control');
   } catch {
     state.apiBase = detectApiBase();
   }
@@ -185,6 +201,7 @@ function persistState() {
     query: state.query,
     status: state.status,
     autoRefresh: state.autoRefresh,
+    activeTab: state.activeTab,
   }));
 }
 
@@ -234,6 +251,94 @@ function buildAuthHeaders() {
     headers['X-Admin-Session'] = state.sessionToken;
   }
   return headers;
+}
+
+function availableTabs() {
+  if (!state.currentUser) return ['control'];
+  return state.currentUser.role === 'super_admin'
+    ? ['control', 'users', 'feed', 'audit']
+    : ['control', 'feed', 'audit'];
+}
+
+function getOperatorLang() {
+  try {
+    return (localStorage.getItem('prizmbet_lang_v1') || 'ru').toLowerCase() === 'en' ? 'en' : 'ru';
+  } catch {
+    return 'ru';
+  }
+}
+
+function labelTab(tab) {
+  const map = {
+    ru: {
+      control: 'Управление',
+      users: 'Пользователи',
+      feed: 'Ставки',
+      audit: 'Аудит',
+    },
+    en: {
+      control: 'Control',
+      users: 'Users',
+      feed: 'Feed',
+      audit: 'Audit',
+    },
+  };
+  const lang = getOperatorLang();
+  return (map[lang] && map[lang][tab]) || tab;
+}
+
+function setActiveTab(tab, persist = true) {
+  const allowed = availableTabs();
+  state.activeTab = allowed.includes(tab) ? tab : allowed[0] || 'control';
+  if (persist) persistState();
+  syncWorkspace();
+}
+
+function syncWorkspace() {
+  const shell = document.querySelector('.operator-shell');
+  const authed = Boolean(state.currentUser);
+  if (shell) {
+    shell.dataset.activeTab = state.activeTab || 'control';
+  }
+
+  if (dom.workspaceTabsSection) {
+    setHidden(dom.workspaceTabsSection, !authed);
+  }
+
+  const allowed = availableTabs();
+  if (!allowed.includes(state.activeTab)) {
+    state.activeTab = allowed[0] || 'control';
+  }
+
+  if (dom.tabButtons.length) {
+    dom.tabButtons.forEach((button) => {
+      const tab = button.dataset.operatorTab || 'control';
+      const visible = allowed.includes(tab);
+      button.hidden = !visible;
+      button.classList.toggle('is-active', visible && tab === state.activeTab);
+      button.setAttribute('aria-selected', visible && tab === state.activeTab ? 'true' : 'false');
+      button.textContent = labelTab(tab);
+    });
+  }
+
+  if (!authed) {
+    setHidden(dom.accessSection, false);
+    setHidden(dom.statsSection, true);
+    setHidden(dom.feedSection, true);
+    setHidden(dom.auditSection, true);
+    setHidden(dom.userManagementSection, true);
+    return;
+  }
+
+  const isSuper = state.currentUser.role === 'super_admin';
+  const active = state.activeTab || 'control';
+  const showControl = active === 'control';
+
+  setHidden(dom.accessSection, !showControl);
+  setHidden(dom.statsSection, !showControl);
+  setHidden(dom.feedSection, active !== 'feed');
+  setHidden(dom.auditSection, active !== 'audit');
+  setHidden(dom.userManagementSection, !(isSuper && active === 'users'));
 }
 
 async function connectFlow() {
@@ -650,6 +755,7 @@ function render() {
   renderFeed();
   renderAuditMeta();
   renderAudit();
+  syncWorkspace();
 }
 
 function renderAuthState() {

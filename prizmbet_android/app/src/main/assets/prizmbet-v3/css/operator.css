@@ -1,4 +1,4 @@
-.operator-shell {
+﻿.operator-shell {
     display: grid;
     gap: 14px;
     padding-bottom: 36px;
@@ -1403,4 +1403,307 @@
         font-size: 0.8rem;
         line-height: 1.22;
     }
+}
+
+/* Tabbed operator workspace */
+.operator-workspace-tabs {
+  margin-top: -2px;
+}
+
+.operator-tabs-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 20px;
+  background: rgba(9, 13, 27, 0.82);
+  border: 1px solid rgba(98, 112, 255, 0.18);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(16px);
+}
+
+.operator-tab {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.76);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.operator-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(112, 126, 255, 0.38);
+}
+
+.operator-tab.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(94, 82, 255, 0.9), rgba(30, 179, 255, 0.88));
+  border-color: rgba(125, 140, 255, 0.48);
+  box-shadow: 0 10px 24px rgba(61, 93, 255, 0.24);
+}
+
+@media (min-width: 1100px) {
+  body {
+    overflow: hidden;
+  }
+
+  .operator-shell.operator-shell--authed {
+    height: calc(100vh - 16px);
+    min-height: calc(100vh - 16px);
+    max-height: calc(100vh - 16px);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 10px;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+
+  .operator-shell.operator-shell--authed .operator-hero,
+  .operator-shell.operator-shell--authed .operator-workspace-tabs,
+  .operator-shell.operator-shell--authed .operator-access,
+  .operator-shell.operator-shell--authed .operator-users-section,
+  .operator-shell.operator-shell--authed .operator-feed-section,
+  .operator-shell.operator-shell--authed .operator-audit-section,
+  .operator-shell.operator-shell--authed .operator-stats-section {
+    min-height: 0;
+    margin-bottom: 0;
+  }
+
+  .operator-shell.operator-shell--authed .operator-access,
+  .operator-shell.operator-shell--authed .operator-users-section,
+  .operator-shell.operator-shell--authed .operator-feed-section,
+  .operator-shell.operator-shell--authed .operator-audit-section {
+    overflow: hidden;
+  }
+
+  .operator-shell.operator-shell--authed .operator-hero-card {
+    padding: 10px 14px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-title {
+    margin: 0;
+    font-size: 1.12rem;
+  }
+
+  .operator-shell.operator-shell--authed .operator-copy {
+    display: none;
+  }
+
+  .operator-shell.operator-shell--authed .operator-access-card,
+  .operator-shell.operator-shell--authed .operator-users-section .operator-access-card,
+  .operator-shell.operator-shell--authed .operator-card,
+  .operator-shell.operator-shell--authed .operator-stat-card,
+  .operator-shell.operator-shell--authed .operator-auth-block {
+    padding: 10px;
+    border-radius: 18px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-access-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 10px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .operator-shell.operator-shell--authed #authStateMeta {
+    display: none !important;
+  }
+
+  .operator-shell.operator-shell--authed .operator-stats {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-stat-card {
+    min-height: 72px;
+    padding: 8px 10px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-stat-value {
+    margin-top: 4px;
+    font-size: 1rem;
+  }
+
+  .operator-shell.operator-shell--authed .operator-users-section .operator-access-card,
+  .operator-shell.operator-shell--authed .operator-feed-section,
+  .operator-shell.operator-shell--authed .operator-audit-section {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .operator-shell.operator-shell--authed .operator-user-list,
+  .operator-shell.operator-shell--authed .operator-feed-body,
+  .operator-shell.operator-shell--authed .operator-audit-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding-right: 4px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-feed-toolbar {
+    grid-template-columns: minmax(0, 1.2fr) 150px auto;
+    gap: 8px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-audit-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-user-card,
+  .operator-shell.operator-shell--authed .operator-card {
+    padding: 8px 9px;
+  }
+}
+
+/* Final operator workspace override */
+@media (min-width: 1100px) {
+  .operator-shell.operator-shell--authed {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 18px);
+    min-height: calc(100vh - 18px);
+    max-height: calc(100vh - 18px);
+    gap: 10px;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+
+  .operator-shell.operator-shell--authed .operator-hero,
+  .operator-shell.operator-shell--authed .operator-workspace-tabs,
+  .operator-shell.operator-shell--authed .operator-access,
+  .operator-shell.operator-shell--authed .operator-stats-section,
+  .operator-shell.operator-shell--authed .operator-users-section,
+  .operator-shell.operator-shell--authed .operator-feed-section,
+  .operator-shell.operator-shell--authed .operator-audit-section {
+    margin: 0;
+    min-height: 0;
+    flex: 0 0 auto;
+  }
+
+  .operator-shell.operator-shell--authed .operator-hero-card {
+    padding: 10px 14px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-title {
+    font-size: 1.08rem;
+    margin: 0;
+  }
+
+  .operator-shell.operator-shell--authed .operator-access-card,
+  .operator-shell.operator-shell--authed .operator-card,
+  .operator-shell.operator-shell--authed .operator-stat-card,
+  .operator-shell.operator-shell--authed .operator-auth-block,
+  .operator-shell.operator-shell--authed .operator-users-section .operator-access-card {
+    padding: 10px;
+    border-radius: 18px;
+  }
+
+  .operator-shell.operator-shell--authed .operator-btn,
+  .operator-shell.operator-shell--authed .operator-back {
+    min-height: 36px;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='control'] .operator-access,
+  .operator-shell.operator-shell--authed[data-active-tab='control'] .operator-stats-section {
+    display: block !important;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='control'] .operator-users-section,
+  .operator-shell.operator-shell--authed[data-active-tab='control'] .operator-feed-section,
+  .operator-shell.operator-shell--authed[data-active-tab='control'] .operator-audit-section {
+    display: none !important;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='control'] .operator-stats {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-users-section {
+    display: block !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-access,
+  .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-stats-section,
+  .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-feed-section,
+  .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-audit-section {
+    display: none !important;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-users-section .operator-access-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-user-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-feed-section {
+    display: flex !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    flex-direction: column;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-access,
+  .operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-stats-section,
+  .operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-users-section,
+  .operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-audit-section {
+    display: none !important;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-feed-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-audit-section {
+    display: flex !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    flex-direction: column;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-access,
+  .operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-stats-section,
+  .operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-users-section,
+  .operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-feed-section {
+    display: none !important;
+  }
+
+  .operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-audit-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+  }
 }
