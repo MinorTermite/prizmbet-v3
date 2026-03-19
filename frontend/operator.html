@@ -6,7 +6,7 @@
 <title>PRIZMBET - Operator Console</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/smart-flow.css">
-<link rel="stylesheet" href="css/operator.css?v=20260319g">
+<link rel="stylesheet" href="css/operator.css?v=20260319l">
 </head>
 <body>
 <div class="bg-canvas"></div>
@@ -17,7 +17,7 @@
       <div>
         <div class="smart-banner-eyebrow" data-oi18n="hero.eyebrow">Operator Console</div>
         <h1 class="operator-title" data-oi18n="hero.title">Bets, users and audit trail</h1>
-        <p class="operator-copy" data-oi18n="hero.copy">This panel runs on named operator accounts. The owner bootstrap is fixed to the configured identity, and all payout actions stay tied to a specific user session.</p>
+        <p class="operator-copy" data-oi18n="hero.copy">This panel runs on named operator accounts. Bet and payout actions stay tied to a specific user session.</p>
       </div>
       <div class="operator-hero-side">
         <div aria-label="Language switch" class="lang-switch lang-switch--desktop">
@@ -61,18 +61,18 @@
       <div class="operator-auth-stack">
         <section id="bootstrapSection" class="operator-auth-block operator-hidden">
           <div>
-            <div class="smart-banner-eyebrow" data-oi18n="bootstrap.eyebrow">Owner Bootstrap</div>
+            <div class="smart-banner-eyebrow" data-oi18n="bootstrap.eyebrow">System bootstrap</div>
             <h2 class="operator-subtitle" data-oi18n="bootstrap.title">Create the only super admin</h2>
-            <p class="operator-copy operator-copy--compact" data-oi18n="bootstrap.copy">This step works only once and only for the configured owner identity.</p>
+            <p class="operator-copy operator-copy--compact" data-oi18n="bootstrap.copy">This step runs once to create the primary administrator.</p>
           </div>
           <div class="operator-access-grid">
             <label class="operator-field">
-              <span class="operator-label" data-oi18n="bootstrap.email">Owner email</span>
-              <input id="ownerEmailInput" class="operator-input" data-oi18n-placeholder="bootstrap.emailPlaceholder" type="email" placeholder="owner@example.com">
+              <span class="operator-label" data-oi18n="bootstrap.email">Administrator email</span>
+              <input id="ownerEmailInput" class="operator-input" data-oi18n-placeholder="bootstrap.emailPlaceholder" type="email" placeholder="admin@example.com">
             </label>
             <label class="operator-field">
-              <span class="operator-label" data-oi18n="bootstrap.login">Owner login</span>
-              <input id="ownerLoginInput" class="operator-input" data-oi18n-placeholder="bootstrap.loginPlaceholder" type="text" placeholder="owner">
+              <span class="operator-label" data-oi18n="bootstrap.login">Administrator login</span>
+              <input id="ownerLoginInput" class="operator-input" data-oi18n-placeholder="bootstrap.loginPlaceholder" type="text" placeholder="admin">
             </label>
             <label class="operator-field">
               <span class="operator-label" data-oi18n="bootstrap.password">Password</span>
@@ -84,7 +84,7 @@
             </label>
           </div>
           <div class="operator-actions">
-            <button id="bootstrapBtn" class="operator-btn operator-btn--primary" data-oi18n="bootstrap.action" type="button">Create owner account</button>
+            <button id="bootstrapBtn" class="operator-btn operator-btn--primary" data-oi18n="bootstrap.action" type="button">Create admin account</button>
           </div>
         </section>
 
@@ -97,7 +97,7 @@
           <div class="operator-access-grid">
             <label class="operator-field">
               <span class="operator-label" data-oi18n="login.identity">Login or email</span>
-              <input id="identityInput" class="operator-input" data-oi18n-placeholder="login.identityPlaceholder" type="text" placeholder="owner or name@example.com">
+              <input id="identityInput" class="operator-input" data-oi18n-placeholder="login.identityPlaceholder" type="text" placeholder="login or name@example.com">
             </label>
             <label class="operator-field">
               <span class="operator-label" data-oi18n="login.password">Password</span>
@@ -137,7 +137,7 @@
       <div>
         <div class="smart-banner-eyebrow" data-oi18n="users.eyebrow">User Management</div>
         <h2 class="operator-subtitle" data-oi18n="users.title">Assigned operators</h2>
-        <p class="operator-copy operator-copy--compact" data-oi18n="users.copy">Only the owner can create or disable operator accounts.</p>
+        <p class="operator-copy operator-copy--compact" data-oi18n="users.copy">Only super admin can create or disable operator accounts.</p>
       </div>
 
       <div class="operator-access-grid operator-user-create-grid">
@@ -207,9 +207,11 @@
   </section>
 </main>
 
-<script src="js/operator.js?v=20260319g"></script>
-<script src="js/operator-i18n.js?v=20260319g"></script>
+<script src="js/operator.js?v=20260319l"></script>
+<script src="js/operator-i18n.js?v=20260319l"></script>
 </body>
 </html>
+
+
 
 

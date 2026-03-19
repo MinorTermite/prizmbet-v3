@@ -1,34 +1,34 @@
-(function () {
+﻿(function () {
   const KEY = 'prizmbet_lang_v1';
-  const STATIC = {
+    const STATIC = {
     ru: {
       'page.title': 'PRIZMBET - Кабинет оператора',
       'hero.eyebrow': 'Кабинет оператора',
       'hero.title': 'Ставки, пользователи и аудит',
-      'hero.copy': 'Панель работает на именованных аккаунтах операторов. Владелец фиксируется один раз, а действия по ставкам и выплатам привязаны к конкретной пользовательской сессии.',
+      'hero.copy': 'Панель работает на именных аккаунтах операторов. Действия по ставкам и выплатам привязаны к конкретной пользовательской сессии.',
       'hero.back': 'Вернуться на сайт',
       'access.apiBase': 'API base',
       'access.apiBasePlaceholder': 'https://your-backend.example',
       'access.connect': 'Подключить',
       'access.refresh': 'Обновить',
       'access.autoRefresh': 'Автообновление',
-      'bootstrap.eyebrow': 'Bootstrap владельца',
-      'bootstrap.title': 'Создать единственного super admin',
-      'bootstrap.copy': 'Этот шаг работает только один раз и только для заранее заданной личности владельца.',
-      'bootstrap.email': 'Email владельца',
-      'bootstrap.emailPlaceholder': 'owner@example.com',
-      'bootstrap.login': 'Логин владельца',
-      'bootstrap.loginPlaceholder': 'owner',
+      'bootstrap.eyebrow': 'Первичная настройка',
+      'bootstrap.title': 'Создать super admin',
+      'bootstrap.copy': 'Этот шаг выполняется один раз для первичной настройки панели.',
+      'bootstrap.email': 'Email администратора',
+      'bootstrap.emailPlaceholder': 'admin@example.com',
+      'bootstrap.login': 'Логин администратора',
+      'bootstrap.loginPlaceholder': 'admin',
       'bootstrap.password': 'Пароль',
       'bootstrap.passwordPlaceholder': 'Минимум 8 символов',
       'bootstrap.key': 'Bootstrap key',
       'bootstrap.keyPlaceholder': 'ADMIN_VIEW_KEY из .env',
-      'bootstrap.action': 'Создать owner-аккаунт',
+      'bootstrap.action': 'Создать admin-аккаунт',
       'login.eyebrow': 'Вход',
       'login.title': 'Войти как оператор',
       'login.copy': 'Используйте назначенный логин или email и свой пароль.',
       'login.identity': 'Логин или email',
-      'login.identityPlaceholder': 'owner или name@example.com',
+      'login.identityPlaceholder': 'login или name@example.com',
       'login.password': 'Пароль',
       'login.passwordPlaceholder': 'Пароль',
       'login.action': 'Войти',
@@ -39,7 +39,7 @@
       'session.logout': 'Выйти',
       'users.eyebrow': 'Управление пользователями',
       'users.title': 'Назначенные операторы',
-      'users.copy': 'Только владелец может создавать и отключать операторские аккаунты.',
+      'users.copy': 'Только super admin может создавать и отключать операторские аккаунты.',
       'users.login': 'Логин',
       'users.loginPlaceholder': 'operator.login',
       'users.email': 'Email',
@@ -67,30 +67,30 @@
       'page.title': 'PRIZMBET - Operator Console',
       'hero.eyebrow': 'Operator Console',
       'hero.title': 'Bets, users and audit trail',
-      'hero.copy': 'This panel runs on named operator accounts. The owner identity is fixed once, and all bet and payout actions stay tied to a specific user session.',
+      'hero.copy': 'This panel uses named operator accounts. Bet and payout actions stay tied to a specific user session.',
       'hero.back': 'Back to site',
       'access.apiBase': 'API base',
       'access.apiBasePlaceholder': 'https://your-backend.example',
       'access.connect': 'Connect',
       'access.refresh': 'Refresh',
       'access.autoRefresh': 'Auto refresh',
-      'bootstrap.eyebrow': 'Owner Bootstrap',
-      'bootstrap.title': 'Create the only super admin',
-      'bootstrap.copy': 'This step works only once and only for the configured owner identity.',
-      'bootstrap.email': 'Owner email',
-      'bootstrap.emailPlaceholder': 'owner@example.com',
-      'bootstrap.login': 'Owner login',
-      'bootstrap.loginPlaceholder': 'owner',
+      'bootstrap.eyebrow': 'Initial setup',
+      'bootstrap.title': 'Create super admin',
+      'bootstrap.copy': 'This step runs once for the initial panel setup.',
+      'bootstrap.email': 'Administrator email',
+      'bootstrap.emailPlaceholder': 'admin@example.com',
+      'bootstrap.login': 'Administrator login',
+      'bootstrap.loginPlaceholder': 'admin',
       'bootstrap.password': 'Password',
       'bootstrap.passwordPlaceholder': 'Minimum 8 characters',
       'bootstrap.key': 'Bootstrap key',
       'bootstrap.keyPlaceholder': 'ADMIN_VIEW_KEY from .env',
-      'bootstrap.action': 'Create owner account',
+      'bootstrap.action': 'Create admin account',
       'login.eyebrow': 'Login',
       'login.title': 'Enter as operator',
       'login.copy': 'Use the assigned login or email and your password.',
       'login.identity': 'Login or email',
-      'login.identityPlaceholder': 'owner or name@example.com',
+      'login.identityPlaceholder': 'login or name@example.com',
       'login.password': 'Password',
       'login.passwordPlaceholder': 'Password',
       'login.action': 'Log in',
@@ -101,7 +101,7 @@
       'session.logout': 'Log out',
       'users.eyebrow': 'User Management',
       'users.title': 'Assigned operators',
-      'users.copy': 'Only the owner can create or disable operator accounts.',
+      'users.copy': 'Only super admin can create or disable operator accounts.',
       'users.login': 'Login',
       'users.loginPlaceholder': 'operator.login',
       'users.email': 'Email',
@@ -127,65 +127,65 @@
     }
   };
 
-  const EXACT = {
+const EXACT = {
     ru: {
-      'Set API base and connect.': 'Укажите API base и подключитесь.',
-      'Set API base first.': 'Сначала укажите API base.',
-      'Connect to inspect the operator auth state.': 'Подключитесь, чтобы проверить состояние авторизации операторов.',
-      'Checking operator access...': 'Проверяю доступ оператора...',
-      'Auth state is unknown.': 'Состояние авторизации неизвестно.',
-      'Feed not loaded yet.': 'Лента ещё не загружена.',
-      'Audit log not loaded yet.': 'Журнал аудита ещё не загружен.',
-      'Failed to copy value to clipboard.': 'Не удалось скопировать значение в буфер обмена.',
-      'Failed to read bootstrap state.': 'Не удалось прочитать состояние bootstrap.',
-      'Admin session is invalid.': 'Сессия администратора недействительна.',
-      'Owner email, login, password and bootstrap key are required.': 'Нужны email владельца, логин, пароль и bootstrap key.',
-      'Owner account created. Session is active.': 'Аккаунт владельца создан. Сессия активна.',
-      'Failed to bootstrap owner account.': 'Не удалось создать аккаунт владельца.',
-      'Login/email and password are required.': 'Нужны логин или email и пароль.',
-      'Failed to log in.': 'Не удалось войти.',
-      'Only the super admin can create users.': 'Только super admin может создавать пользователей.',
-      'Failed to create user.': 'Не удалось создать пользователя.',
-      'Failed to update user state.': 'Не удалось обновить состояние пользователя.',
-      'Failed to load admin users.': 'Не удалось загрузить список администраторов.',
-      'An HTTPS page cannot read a local HTTP API. Open the operator page locally or use an HTTPS API.': 'HTTPS-страница не может читать локальный HTTP API. Откройте панель оператора локально или используйте HTTPS API.',
-      'Failed to load operator data.': 'Не удалось загрузить данные оператора.',
-      'Failed to mark payout.': 'Не удалось отметить выплату.',
-      'No API connection.': 'Нет подключения к API.',
-      'Bootstrap is blocked. Check ADMIN_VIEW_KEY and migration state.': 'Bootstrap заблокирован. Проверьте ADMIN_VIEW_KEY и состояние миграций.',
-      'No active operator session.': 'Нет активной сессии оператора.',
-      'Intent': 'Код',
-      'Wallet': 'Кошелёк',
-      'Outcome': 'Исход',
-      'Amount': 'Сумма',
-      'Potential payout': 'Потенциальная выплата',
-      'Time': 'Время',
-      'Event type': 'Тип события',
-      'Actor': 'Оператор',
-      'Match state': 'Состояние матча',
-      'Extra': 'Дополнительно',
-      'Created': 'Создан',
-      'Last login': 'Последний вход',
-      'User ID': 'ID пользователя',
-      'Active': 'Активен',
-      'Disabled': 'Отключён',
-      'Disable': 'Отключить',
-      'Enable': 'Включить',
-      'Owner': 'Владелец',
-      'Mark paid': 'Отметить выплату',
-      'Feed size': 'Размер ленты',
-      'Accepted': 'Принято',
-      'To payout': 'К выплате',
-      'Paid': 'Выплачено',
-      'Turnover': 'Оборот',
-      'No active session.': 'Нет активной сессии.',
-      'No bets yet.': 'Пока нет ставок.',
-      'No audit events yet.': 'Пока нет событий аудита.',
-      'No additional operators yet.': 'Пока нет дополнительных операторов.',
-      'No email assigned': 'Email не назначен',
-      'Google Sheets: ON': 'Google Sheets: ВКЛ',
-      'Google Sheets: OFF': 'Google Sheets: ВЫКЛ',
-      'Operator-side event': 'Событие со стороны оператора'
+      'Set API base and connect.': 'РЈРєР°Р¶РёС‚Рµ API base Рё РїРѕРґРєР»СЋС‡РёС‚РµСЃСЊ.',
+      'Set API base first.': 'РЎРЅР°С‡Р°Р»Р° СѓРєР°Р¶РёС‚Рµ API base.',
+      'Connect to inspect the operator auth state.': 'РџРѕРґРєР»СЋС‡РёС‚РµСЃСЊ, С‡С‚РѕР±С‹ РїСЂРѕРІРµСЂРёС‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ Р°РІС‚РѕСЂРёР·Р°С†РёРё РѕРїРµСЂР°С‚РѕСЂРѕРІ.',
+      'Checking operator access...': 'РџСЂРѕРІРµСЂСЏСЋ РґРѕСЃС‚СѓРї РѕРїРµСЂР°С‚РѕСЂР°...',
+      'Auth state is unknown.': 'РЎРѕСЃС‚РѕСЏРЅРёРµ Р°РІС‚РѕСЂРёР·Р°С†РёРё РЅРµРёР·РІРµСЃС‚РЅРѕ.',
+      'Feed not loaded yet.': 'Р›РµРЅС‚Р° РµС‰С‘ РЅРµ Р·Р°РіСЂСѓР¶РµРЅР°.',
+      'Audit log not loaded yet.': 'Р–СѓСЂРЅР°Р» Р°СѓРґРёС‚Р° РµС‰С‘ РЅРµ Р·Р°РіСЂСѓР¶РµРЅ.',
+      'Failed to copy value to clipboard.': 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєРѕРїРёСЂРѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ РІ Р±СѓС„РµСЂ РѕР±РјРµРЅР°.',
+      'Failed to read bootstrap state.': 'РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ bootstrap.',
+      'Admin session is invalid.': 'РЎРµСЃСЃРёСЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР° РЅРµРґРµР№СЃС‚РІРёС‚РµР»СЊРЅР°.',
+      'Administrator email, login, password and bootstrap key are required.': 'Нужны email администратора, логин, пароль и bootstrap key.',
+      'Administrator account created. Session is active.': 'Аккаунт администратора создан. Сессия активна.',
+      'Failed to bootstrap administrator account.': 'Не удалось создать аккаунт администратора.',
+      'Login/email and password are required.': 'РќСѓР¶РЅС‹ Р»РѕРіРёРЅ РёР»Рё email Рё РїР°СЂРѕР»СЊ.',
+      'Failed to log in.': 'РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕР№С‚Рё.',
+      'Only the super admin can create users.': 'РўРѕР»СЊРєРѕ super admin РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№.',
+      'Failed to create user.': 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.',
+      'Failed to update user state.': 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.',
+      'Failed to load admin users.': 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃРїРёСЃРѕРє Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ.',
+      'An HTTPS page cannot read a local HTTP API. Open the operator page locally or use an HTTPS API.': 'HTTPS-СЃС‚СЂР°РЅРёС†Р° РЅРµ РјРѕР¶РµС‚ С‡РёС‚Р°С‚СЊ Р»РѕРєР°Р»СЊРЅС‹Р№ HTTP API. РћС‚РєСЂРѕР№С‚Рµ РїР°РЅРµР»СЊ РѕРїРµСЂР°С‚РѕСЂР° Р»РѕРєР°Р»СЊРЅРѕ РёР»Рё РёСЃРїРѕР»СЊР·СѓР№С‚Рµ HTTPS API.',
+      'Failed to load operator data.': 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ РѕРїРµСЂР°С‚РѕСЂР°.',
+      'Failed to mark payout.': 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РјРµС‚РёС‚СЊ РІС‹РїР»Р°С‚Сѓ.',
+      'No API connection.': 'РќРµС‚ РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє API.',
+      'Bootstrap is blocked. Check ADMIN_VIEW_KEY and migration state.': 'Bootstrap Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ. РџСЂРѕРІРµСЂСЊС‚Рµ ADMIN_VIEW_KEY Рё СЃРѕСЃС‚РѕСЏРЅРёРµ РјРёРіСЂР°С†РёР№.',
+      'No active operator session.': 'РќРµС‚ Р°РєС‚РёРІРЅРѕР№ СЃРµСЃСЃРёРё РѕРїРµСЂР°С‚РѕСЂР°.',
+      'Intent': 'РљРѕРґ',
+      'Wallet': 'РљРѕС€РµР»С‘Рє',
+      'Outcome': 'РСЃС…РѕРґ',
+      'Amount': 'РЎСѓРјРјР°',
+      'Potential payout': 'РџРѕС‚РµРЅС†РёР°Р»СЊРЅР°СЏ РІС‹РїР»Р°С‚Р°',
+      'Time': 'Р’СЂРµРјСЏ',
+      'Event type': 'РўРёРї СЃРѕР±С‹С‚РёСЏ',
+      'Actor': 'РћРїРµСЂР°С‚РѕСЂ',
+      'Match state': 'РЎРѕСЃС‚РѕСЏРЅРёРµ РјР°С‚С‡Р°',
+      'Extra': 'Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ',
+      'Created': 'РЎРѕР·РґР°РЅ',
+      'Last login': 'РџРѕСЃР»РµРґРЅРёР№ РІС…РѕРґ',
+      'User ID': 'ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ',
+      'Active': 'РђРєС‚РёРІРµРЅ',
+      'Disabled': 'РћС‚РєР»СЋС‡С‘РЅ',
+      'Disable': 'РћС‚РєР»СЋС‡РёС‚СЊ',
+      'Enable': 'Р’РєР»СЋС‡РёС‚СЊ',
+      'Primary admin': 'Главный администратор',
+      'Mark paid': 'РћС‚РјРµС‚РёС‚СЊ РІС‹РїР»Р°С‚Сѓ',
+      'Feed size': 'Р Р°Р·РјРµСЂ Р»РµРЅС‚С‹',
+      'Accepted': 'РџСЂРёРЅСЏС‚Рѕ',
+      'To payout': 'Рљ РІС‹РїР»Р°С‚Рµ',
+      'Paid': 'Р’С‹РїР»Р°С‡РµРЅРѕ',
+      'Turnover': 'РћР±РѕСЂРѕС‚',
+      'No active session.': 'РќРµС‚ Р°РєС‚РёРІРЅРѕР№ СЃРµСЃСЃРёРё.',
+      'No bets yet.': 'РџРѕРєР° РЅРµС‚ СЃС‚Р°РІРѕРє.',
+      'No audit events yet.': 'РџРѕРєР° РЅРµС‚ СЃРѕР±С‹С‚РёР№ Р°СѓРґРёС‚Р°.',
+      'No additional operators yet.': 'РџРѕРєР° РЅРµС‚ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹С… РѕРїРµСЂР°С‚РѕСЂРѕРІ.',
+      'No email assigned': 'Email РЅРµ РЅР°Р·РЅР°С‡РµРЅ',
+      'Google Sheets: ON': 'Google Sheets: Р’РљР›',
+      'Google Sheets: OFF': 'Google Sheets: Р’Р«РљР›',
+      'Operator-side event': 'РЎРѕР±С‹С‚РёРµ СЃРѕ СЃС‚РѕСЂРѕРЅС‹ РѕРїРµСЂР°С‚РѕСЂР°'
     },
     en: {}
   };
@@ -220,23 +220,23 @@
     let out = String(value || '');
     if (EXACT.ru[out]) return EXACT.ru[out];
 
-    out = out.replace(/\(Super admin\)/g, '(Супер админ)');
-    out = out.replace(/\(Operator\)/g, '(Оператор)');
-    out = out.replace(/\(Finance\)/g, '(Финансы)');
-    out = out.replace(/\(Viewer\)/g, '(Наблюдатель)');
-    out = out.replace(/^Copied: (.+)$/u, 'Скопировано: $1');
-    out = out.replace(/^Logged in as (.+)\.$/u, 'Вход выполнен: $1.');
-    out = out.replace(/^User (.+) created\.$/u, 'Пользователь $1 создан.');
-    out = out.replace(/^User (.+) updated\.$/u, 'Пользователь $1 обновлён.');
-    out = out.replace(/^Bet (.+) marked as paid\.$/u, 'Ставка $1 отмечена как выплаченная.');
-    out = out.replace(/^Updated (.+)$/u, 'Обновлено $1');
-    out = out.replace(/^(\d+) bets$/u, 'Ставок: $1');
-    out = out.replace(/^(\d+) events$/u, 'Событий: $1');
-    out = out.replace(/^To payout: (\d+)$/u, 'К выплате: $1');
-    out = out.replace(/^Match #(.+)$/u, 'Матч #$1');
-    out = out.replace(/^Session active: (.+)\.$/u, 'Сессия активна: $1.');
-    out = out.replace(/^Bootstrap pending\. Owner login: (.+)\. Owner email hint: (.+)\.$/u, 'Bootstrap ожидает завершения. Логин владельца: $1. Подсказка email: $2.');
-    out = out.replace(/^Operator: (.+)$/u, 'Оператор: $1');
+    out = out.replace(/\(Super admin\)/g, '(РЎСѓРїРµСЂ Р°РґРјРёРЅ)');
+    out = out.replace(/\(Operator\)/g, '(РћРїРµСЂР°С‚РѕСЂ)');
+    out = out.replace(/\(Finance\)/g, '(Р¤РёРЅР°РЅСЃС‹)');
+    out = out.replace(/\(Viewer\)/g, '(РќР°Р±Р»СЋРґР°С‚РµР»СЊ)');
+    out = out.replace(/^Copied: (.+)$/u, 'РЎРєРѕРїРёСЂРѕРІР°РЅРѕ: $1');
+    out = out.replace(/^Logged in as (.+)\.$/u, 'Р’С…РѕРґ РІС‹РїРѕР»РЅРµРЅ: $1.');
+    out = out.replace(/^User (.+) created\.$/u, 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ $1 СЃРѕР·РґР°РЅ.');
+    out = out.replace(/^User (.+) updated\.$/u, 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ $1 РѕР±РЅРѕРІР»С‘РЅ.');
+    out = out.replace(/^Bet (.+) marked as paid\.$/u, 'РЎС‚Р°РІРєР° $1 РѕС‚РјРµС‡РµРЅР° РєР°Рє РІС‹РїР»Р°С‡РµРЅРЅР°СЏ.');
+    out = out.replace(/^Updated (.+)$/u, 'РћР±РЅРѕРІР»РµРЅРѕ $1');
+    out = out.replace(/^(\d+) bets$/u, 'РЎС‚Р°РІРѕРє: $1');
+    out = out.replace(/^(\d+) events$/u, 'РЎРѕР±С‹С‚РёР№: $1');
+    out = out.replace(/^To payout: (\d+)$/u, 'Рљ РІС‹РїР»Р°С‚Рµ: $1');
+    out = out.replace(/^Match #(.+)$/u, 'РњР°С‚С‡ #$1');
+    out = out.replace(/^Session active: (.+)\.$/u, 'РЎРµСЃСЃРёСЏ Р°РєС‚РёРІРЅР°: $1.');
+    out = out.replace(/^Bootstrap pending\. Owner login: (.+)\. Owner email hint: (.+)\.$/u, 'Bootstrap РѕР¶РёРґР°РµС‚ Р·Р°РІРµСЂС€РµРЅРёСЏ. Р›РѕРіРёРЅ РІР»Р°РґРµР»СЊС†Р°: $1. РџРѕРґСЃРєР°Р·РєР° email: $2.');
+    out = out.replace(/^Operator: (.+)$/u, 'РћРїРµСЂР°С‚РѕСЂ: $1');
     return EXACT.ru[out] || out;
   }
 
@@ -326,3 +326,5 @@
     boot();
   }
 })();
+
+

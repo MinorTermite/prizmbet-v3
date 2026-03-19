@@ -371,7 +371,14 @@ async function fetchBootstrapState() {
     syncInputs();
   } catch (error) {
     state.bootstrapInfo = null;
-    renderStatus(error.message || 'Failed to read bootstrap state.', 'bad');
+    clearSession();
+    state.items = [];
+    state.auditItems = [];
+    state.stats = null;
+    state.meta = null;
+    state.auditMeta = null;
+    renderStatus(normalizeErrorMessage(error, 'Failed to read bootstrap state.'), 'bad');
+    render();
   }
 }
 
@@ -394,7 +401,7 @@ async function loadMe() {
     return true;
   } catch (error) {
     clearSession();
-    renderStatus(error.message || 'Admin session is invalid.', 'warn');
+    renderStatus(normalizeErrorMessage(error, 'Admin session is invalid.'), 'warn');
     return false;
   }
 }
@@ -433,7 +440,7 @@ async function handleBootstrap() {
   const password = dom.bootstrapPasswordInput.value;
   const bootstrapKey = dom.bootstrapKeyInput.value.trim();
   if (!email || !login || !password || !bootstrapKey) {
-    renderStatus('Owner email, login, password and bootstrap key are required.', 'warn');
+    renderStatus('Administrator email, login, password and bootstrap key are required.', 'warn');
     return;
   }
 
@@ -458,10 +465,10 @@ async function handleBootstrap() {
     dom.bootstrapPasswordInput.value = '';
     dom.bootstrapKeyInput.value = '';
     await fetchBootstrapState();
-    renderStatus('Owner account created. Session is active.', 'good');
+    renderStatus('Administrator account created. Session is active.', 'good');
     await fetchFeed();
   } catch (error) {
-    renderStatus(error.message || 'Failed to bootstrap owner account.', 'bad');
+    renderStatus(normalizeErrorMessage(error, 'Failed to bootstrap administrator account.'), 'bad');
   } finally {
     dom.bootstrapBtn.disabled = false;
     render();
@@ -499,7 +506,7 @@ async function handleLogin() {
     renderStatus(`Logged in as ${state.currentUser?.login || 'operator'}.`, 'good');
     await fetchFeed();
   } catch (error) {
-    renderStatus(error.message || 'Failed to log in.', 'bad');
+    renderStatus(normalizeErrorMessage(error, 'Failed to log in.'), 'bad');
   } finally {
     dom.loginBtn.disabled = false;
     render();
@@ -564,7 +571,7 @@ async function handleCreateUser() {
     renderStatus(`User ${payload.user?.login || login} created.`, 'good');
     await loadUsers();
   } catch (error) {
-    renderStatus(error.message || 'Failed to create user.', 'bad');
+    renderStatus(normalizeErrorMessage(error, 'Failed to create user.'), 'bad');
   } finally {
     dom.createUserBtn.disabled = false;
     render();
@@ -592,7 +599,7 @@ async function handleToggleUser(button) {
     renderStatus(`User ${payload.user?.login || userId} updated.`, 'good');
     await loadUsers();
   } catch (error) {
-    renderStatus(error.message || 'Failed to update user state.', 'bad');
+    renderStatus(normalizeErrorMessage(error, 'Failed to update user state.'), 'bad');
   } finally {
     button.disabled = false;
   }
@@ -614,7 +621,7 @@ async function loadUsers() {
     }
     state.users = Array.isArray(payload.users) ? payload.users : [];
   } catch (error) {
-    renderStatus(error.message || 'Failed to load admin users.', 'bad');
+    renderStatus(normalizeErrorMessage(error, 'Failed to load admin users.'), 'bad');
   }
 }
 
@@ -687,7 +694,7 @@ async function fetchFeed() {
     state.stats = null;
     state.meta = null;
     state.auditMeta = null;
-    renderStatus(error.message || 'Failed to load operator data.', 'bad');
+    renderStatus(normalizeErrorMessage(error, 'Failed to load operator data.'), 'bad');
   } finally {
     state.loading = false;
     render();
@@ -730,7 +737,7 @@ async function handleMarkPaid(button) {
     renderStatus(`Bet ${txId} marked as paid.`, 'good');
     await fetchFeed();
   } catch (error) {
-    renderStatus(error.message || 'Failed to mark payout.', 'bad');
+    renderStatus(normalizeErrorMessage(error, 'Failed to mark payout.'), 'bad');
   } finally {
     button.disabled = false;
   }
@@ -741,11 +748,21 @@ function renderStatus(message, tone) {
   dom.operatorStatus.dataset.tone = tone || 'neutral';
 }
 
+function normalizeErrorMessage(error, fallback) {
+  const message = String(error?.message || '').trim();
+  if (!message || message === 'Failed to fetch' || message === 'NetworkError when attempting to fetch resource.') {
+    return 'API is unavailable. Check that the backend is running on the selected address.';
+  }
+  return message || fallback;
+}
+
 function render() {
   const shell = document.querySelector('.operator-shell');
   if (shell) {
     shell.classList.toggle('operator-shell--authed', Boolean(state.currentUser));
     shell.classList.toggle('operator-shell--superadmin', state.currentUser?.role === 'super_admin');
+    shell.classList.toggle('operator-shell--preauth', !state.currentUser);
+    shell.setAttribute('data-active-tab', state.activeTab || 'control');
   }
   syncInputs();
   renderAuthState();
@@ -766,6 +783,9 @@ function renderAuthState() {
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, true);
     setHidden(dom.sessionSection, true);
+    setHidden(dom.statsSection, true);
+    setHidden(dom.feedSection, true);
+    setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
     return;
   }
@@ -776,6 +796,9 @@ function renderAuthState() {
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, true);
     setHidden(dom.sessionSection, true);
+    setHidden(dom.statsSection, true);
+    setHidden(dom.feedSection, true);
+    setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
     return;
   }
@@ -786,6 +809,9 @@ function renderAuthState() {
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, true);
     setHidden(dom.sessionSection, true);
+    setHidden(dom.statsSection, true);
+    setHidden(dom.feedSection, true);
+    setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
     return;
   }
@@ -793,11 +819,14 @@ function renderAuthState() {
   if (!info.has_admin_users) {
     setHidden(dom.authStateMeta, false);
     dom.authStateMeta.textContent = info.bootstrap_allowed
-      ? `Bootstrap pending. Owner login: ${info.owner_login}. Owner email hint: ${info.owner_email_hint || 'n/a'}.`
+      ? `Bootstrap pending. Admin login: ${info.owner_login}. Email hint: ${info.owner_email_hint || 'n/a'}.`
       : 'Bootstrap is blocked. Check ADMIN_VIEW_KEY and migration state.';
     setHidden(dom.bootstrapSection, !info.bootstrap_allowed);
     setHidden(dom.loginSection, true);
     setHidden(dom.sessionSection, true);
+    setHidden(dom.statsSection, true);
+    setHidden(dom.feedSection, true);
+    setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
     return;
   }
@@ -808,6 +837,9 @@ function renderAuthState() {
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, false);
     setHidden(dom.sessionSection, true);
+    setHidden(dom.statsSection, true);
+    setHidden(dom.feedSection, true);
+    setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
     return;
   }
@@ -819,6 +851,9 @@ function renderAuthState() {
   setHidden(dom.bootstrapSection, true);
   setHidden(dom.loginSection, true);
   setHidden(dom.sessionSection, false);
+  setHidden(dom.statsSection, false);
+  setHidden(dom.feedSection, false);
+  setHidden(dom.auditSection, false);
   setHidden(dom.userManagementSection, state.currentUser.role !== 'super_admin');
 }
 
@@ -841,8 +876,8 @@ function renderUsers() {
 }
 
 function renderUserCard(user) {
-  const isOwner = String(user.role || '') === 'super_admin';
-  const canToggle = !isOwner;
+  const isSystemAdmin = String(user.role || '') === 'super_admin';
+  const canToggle = !isSystemAdmin;
   const nextActive = !Boolean(user.is_active);
   const toggleLabel = user.is_active ? 'Disable' : 'Enable';
 
@@ -851,13 +886,12 @@ function renderUserCard(user) {
       <div class="operator-user-row">
         <div class="operator-user-main">
           <div class="operator-badges">
-            <span class="operator-badge" data-tone="${user.is_active ? 'good' : 'bad'}">${user.is_active ? 'Active' : 'Disabled'}</span>
-            <span class="operator-badge" data-tone="neutral">${escapeHtml(labelRole(user.role))}</span>
-            ${isOwner ? '<span class="operator-badge" data-tone="warn">Owner</span>' : ''}
+<span class="operator-badge" data-tone="${user.is_active ? 'good' : 'bad'}">${user.is_active ? 'Active' : 'Disabled'}</span>
+<span class="operator-badge" data-tone="neutral">${escapeHtml(labelRole(user.role))}</span>
           </div>
           <div class="operator-user-title-row">
-            <h3 class="operator-card-title">${escapeHtml(user.login || 'Unknown')}</h3>
-            <span class="operator-user-id">#${escapeHtml(String(user.id || '-'))}</span>
+<h3 class="operator-card-title">${escapeHtml(user.login || 'Unknown')}</h3>
+<span class="operator-user-id">#${escapeHtml(String(user.id || '-'))}</span>
           </div>
           <p class="operator-card-copy operator-user-email">${escapeHtml(user.email || 'No email assigned')}</p>
         </div>
@@ -986,15 +1020,15 @@ function renderFeedCard(item) {
       <article class="operator-card operator-card--compact">
         <div class="operator-card-head">
           <div>
-            <div class="operator-badges">
-              <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(item.status))}">${escapeHtml(labelStatus(item.status))}</span>
-              <span class="operator-badge" data-tone="neutral">Transfer</span>
-            </div>
-            <h3 class="operator-card-title">${escapeHtml(title)}</h3>
-            <p class="operator-card-copy">${escapeHtml(buildFeedSummary(item))}</p>
+<div class="operator-badges">
+  <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(item.status))}">${escapeHtml(labelStatus(item.status))}</span>
+  <span class="operator-badge" data-tone="neutral">Transfer</span>
+</div>
+<h3 class="operator-card-title">${escapeHtml(title)}</h3>
+<p class="operator-card-copy">${escapeHtml(buildFeedSummary(item))}</p>
           </div>
           <div class="operator-actions">
-            ${item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.tx_id)}">TX</button>` : ''}
+${item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.tx_id)}">TX</button>` : ''}
           </div>
         </div>
         <div class="operator-inline-meta">
@@ -1012,8 +1046,8 @@ function renderFeedCard(item) {
       <div class="operator-card-head">
         <div>
           <div class="operator-badges">
-            <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(item.status))}">${escapeHtml(labelStatus(item.status))}</span>
-            <span class="operator-badge" data-tone="${escapeHtml(resolveMatchStateTone(item.match_state))}">${escapeHtml(labelMatchState(item.match_state))}</span>
+<span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(item.status))}">${escapeHtml(labelStatus(item.status))}</span>
+<span class="operator-badge" data-tone="${escapeHtml(resolveMatchStateTone(item.match_state))}">${escapeHtml(labelMatchState(item.match_state))}</span>
           </div>
           <h3 class="operator-card-title">${escapeHtml(title)}</h3>
           <p class="operator-card-copy">${escapeHtml(buildFeedSummary(item))}</p>
@@ -1053,15 +1087,15 @@ function renderAuditCard(item) {
       <article class="operator-card operator-card--audit operator-card--compact">
         <div class="operator-card-head">
           <div>
-            <div class="operator-badges">
-              <span class="operator-badge" data-tone="${escapeHtml(resolveAuditTone(eventType, status))}">${escapeHtml(labelAuditEvent(eventType))}</span>
-              <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(status))}">${escapeHtml(labelStatus(status || 'admin'))}</span>
-            </div>
-            <h3 class="operator-card-title">${escapeHtml(buildFeedTitle(payload))}</h3>
-            <p class="operator-card-copy">${escapeHtml(buildAuditSummary(payload, item))}</p>
+<div class="operator-badges">
+  <span class="operator-badge" data-tone="${escapeHtml(resolveAuditTone(eventType, status))}">${escapeHtml(labelAuditEvent(eventType))}</span>
+  <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(status))}">${escapeHtml(labelStatus(status || 'admin'))}</span>
+</div>
+<h3 class="operator-card-title">${escapeHtml(buildFeedTitle(payload))}</h3>
+<p class="operator-card-copy">${escapeHtml(buildAuditSummary(payload, item))}</p>
           </div>
           <div class="operator-actions">
-            ${payload.tx_id || item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(payload.tx_id || item.tx_id || '')}">TX</button>` : ''}
+${payload.tx_id || item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(payload.tx_id || item.tx_id || '')}">TX</button>` : ''}
           </div>
         </div>
         <div class="operator-inline-meta">
@@ -1079,8 +1113,8 @@ function renderAuditCard(item) {
       <div class="operator-card-head">
         <div>
           <div class="operator-badges">
-            <span class="operator-badge" data-tone="${escapeHtml(resolveAuditTone(eventType, status))}">${escapeHtml(labelAuditEvent(eventType))}</span>
-            <span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(status))}">${escapeHtml(labelStatus(status || 'admin'))}</span>
+<span class="operator-badge" data-tone="${escapeHtml(resolveAuditTone(eventType, status))}">${escapeHtml(labelAuditEvent(eventType))}</span>
+<span class="operator-badge" data-tone="${escapeHtml(resolveStatusTone(status))}">${escapeHtml(labelStatus(status || 'admin'))}</span>
           </div>
           <h3 class="operator-card-title">${escapeHtml(title)}</h3>
           <p class="operator-card-copy">${escapeHtml(buildAuditSummary(payload, item))}</p>
@@ -1252,7 +1286,7 @@ function labelAuditEvent(value) {
     bet_won: 'Bet won',
     bet_lost: 'Bet lost',
     bet_paid: 'Payout sent',
-    admin_bootstrap_completed: 'Owner bootstrap completed',
+    admin_bootstrap_completed: 'Administrator bootstrap completed',
     admin_login: 'Operator login',
     admin_logout: 'Operator logout',
     admin_user_created: 'Operator user created',
@@ -1342,4 +1376,6 @@ function escapeAttr(value) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+
 
