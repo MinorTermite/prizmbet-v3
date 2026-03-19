@@ -1707,3 +1707,47 @@
     padding-right: 6px;
   }
 }
+
+/* Preactivated operator shell */
+.operator-shell.operator-shell--preauth .operator-workspace-tabs,
+.operator-shell.operator-shell--preauth .operator-users-section,
+.operator-shell.operator-shell--preauth .operator-feed-section,
+.operator-shell.operator-shell--preauth .operator-audit-section,
+.operator-shell.operator-shell--preauth .operator-stats-section {
+  display: none !important;
+}
+
+.operator-shell.operator-shell--preauth {
+  max-width: 1240px;
+}
+
+.operator-shell.operator-shell--preauth .operator-hero-card {
+  padding: 16px 18px;
+}
+
+.operator-shell.operator-shell--preauth .operator-title {
+  margin: 2px 0 6px;
+  font-size: clamp(1.3rem, 2.2vw, 1.9rem);
+}
+
+.operator-shell.operator-shell--preauth .operator-copy {
+  max-width: 820px;
+  line-height: 1.5;
+}
+
+.operator-shell.operator-shell--preauth .operator-access {
+  max-width: 1240px;
+}
+
+@media (min-width: 1100px) {
+  .operator-shell.operator-shell--preauth {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding-bottom: 18px;
+  }
+
+  .operator-shell.operator-shell--preauth .operator-access-card {
+    padding: 14px;
+  }
+}

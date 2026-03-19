@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'prizmbet_operator_console_v3';
+ï»¿const STORAGE_KEY = 'prizmbet_operator_console_v3';
 const AUTO_REFRESH_MS = 20000;
 
 const state = {
@@ -271,10 +271,10 @@ function getOperatorLang() {
 function labelTab(tab) {
   const map = {
     ru: {
-      control: 'Óïðàâëåíèå',
-      users: 'Ïîëüçîâàòåëè',
-      feed: 'Ñòàâêè',
-      audit: 'Àóäèò',
+      control: 'Ð£Ð¿Ñ€Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ',
+      users: 'ÐŸÐ¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»Ð¸',
+      feed: 'Ð¡Ñ‚Ð°Ð²ÐºÐ¸',
+      audit: 'ÐÑƒÐ´Ð¸Ñ‚',
     },
     en: {
       control: 'Control',
@@ -912,7 +912,7 @@ function renderFeedMeta() {
   if (state.items.length) parts.push(`${state.items.length} bets`);
   const payoutItems = state.items.filter((item) => item.status === 'won').length;
   if (payoutItems) parts.push(`To payout: ${payoutItems}`);
-  dom.feedMeta.textContent = parts.join(' â€¢ ') || 'Feed not loaded yet.';
+  dom.feedMeta.textContent = parts.join(' Ð²Ð‚Ñž ') || 'Feed not loaded yet.';
 }
 
 function renderAuditMeta() {
@@ -921,7 +921,7 @@ function renderAuditMeta() {
   if (state.auditItems.length) parts.push(`${state.auditItems.length} events`);
   parts.push(state.auditMeta?.sheets_mirror_enabled ? 'Google Sheets: ON' : 'Google Sheets: OFF');
   if (state.auditMeta?.audit_schema_ready === false && state.auditMeta?.message) parts.push(state.auditMeta.message);
-  dom.auditMeta.textContent = parts.join(' â€¢ ') || 'Audit log not loaded yet.';
+  dom.auditMeta.textContent = parts.join(' Ð²Ð‚Ñž ') || 'Audit log not loaded yet.';
 }
 
 function renderFeed() {
@@ -1342,3 +1342,4 @@ function escapeAttr(value) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
