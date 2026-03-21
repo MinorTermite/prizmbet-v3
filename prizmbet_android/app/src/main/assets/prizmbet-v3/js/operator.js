@@ -751,7 +751,7 @@ function renderStatus(message, tone) {
 
 function normalizeErrorMessage(error, fallback) {
   const message = String(error?.message || '').trim();
-  if (!message || message === 'Failed to fetch' || message === 'NetworkError when attempting to fetch resource.') {
+  if (!message || message.includes('Failed to fetch') || message.includes('NetworkError when attempting to fetch resource.')) {
     return 'API is unavailable. Check that the backend is running on the selected address.';
   }
   return message || fallback;

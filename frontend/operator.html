@@ -6,7 +6,7 @@
 <title>PRIZMBET - Operator Console</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/smart-flow.css">
-<link rel="stylesheet" href="css/operator.css?v=20260319n">
+<link rel="stylesheet" href="css/operator.css?v=20260321a">
 </head>
 <body>
 <div class="bg-canvas"></div>
@@ -169,11 +169,11 @@
     </div>
   </section>
 
-  <section class="section operator-stats-section">
+  <section class="section operator-stats-section operator-hidden" hidden aria-hidden="true">
     <div id="statsGrid" class="operator-stats"></div>
   </section>
 
-  <section class="section operator-feed-section">
+  <section class="section operator-feed-section operator-hidden" hidden aria-hidden="true">
     <div class="operator-feed-toolbar">
       <input id="queryInput" class="operator-input operator-input--search" data-oi18n-placeholder="feed.searchPlaceholder" type="search" placeholder="Search by match, TX, wallet, intent or league">
       <select id="statusFilter" class="operator-select">
@@ -192,7 +192,7 @@
     </div>
   </section>
 
-  <section class="section operator-audit-section">
+  <section class="section operator-audit-section operator-hidden" hidden aria-hidden="true">
     <div class="operator-audit-head">
       <div>
         <div class="smart-banner-eyebrow" data-oi18n="audit.eyebrow">Audit Log</div>
@@ -207,8 +207,8 @@
   </section>
 </main>
 
-<script src="js/operator.js?v=20260319n"></script>
-<script src="js/operator-i18n.js?v=20260319n"></script>
+<script src="js/operator.js?v=20260321a"></script>
+<script src="js/operator-i18n.js?v=20260321a"></script>
 </body>
 </html>
 
