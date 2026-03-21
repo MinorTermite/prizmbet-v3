@@ -6,7 +6,7 @@
 <title>PRIZMBET - Operator Console</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/smart-flow.css">
-<link rel="stylesheet" href="css/operator.css?v=20260321a">
+<link rel="stylesheet" href="css/operator.css?v=20260321b">
 </head>
 <body>
 <div class="bg-canvas"></div>
@@ -17,7 +17,7 @@
       <div>
         <div class="smart-banner-eyebrow" data-oi18n="hero.eyebrow">Operator Console</div>
         <h1 class="operator-title" data-oi18n="hero.title">Bets, users and activity log</h1>
-        <p class="operator-copy" data-oi18n="hero.copy">This panel runs on named operator accounts. Bet and payout actions stay tied to a specific user session.</p>
+        <p class="operator-copy" data-oi18n="hero.copy">Compact operator workspace for bets, payouts and audit.</p>
       </div>
       <div class="operator-hero-side">
         <div aria-label="Language switch" class="lang-switch lang-switch--desktop">
@@ -29,7 +29,7 @@
     </div>
   </section>
 
-  <section id="workspaceTabsSection" class="section operator-workspace-tabs operator-hidden">
+  <div id="workspaceShell" class="operator-workspace-shell operator-hidden" hidden aria-hidden="true"><section id="workspaceTabsSection" class="section operator-workspace-tabs operator-hidden">
     <div class="operator-tabs-card">
       <button class="operator-tab is-active" type="button" data-operator-tab="control">Control</button>
       <button class="operator-tab" type="button" data-operator-tab="users">Users</button>
@@ -137,7 +137,7 @@
       <div>
         <div class="smart-banner-eyebrow" data-oi18n="users.eyebrow">User Management</div>
         <h2 class="operator-subtitle" data-oi18n="users.title">Assigned operators</h2>
-        <p class="operator-copy operator-copy--compact" data-oi18n="users.copy">Only super admin can create or disable operator accounts.</p>
+        <p class="operator-copy operator-copy--compact" data-oi18n="users.copy">Create and manage operator accounts.</p>
       </div>
 
       <div class="operator-access-grid operator-user-create-grid">
@@ -204,13 +204,14 @@
     <div class="operator-audit-body">
       <div id="auditList" class="operator-audit-list"></div>
     </div>
-  </section>
+  </section></div>
 </main>
 
-<script src="js/operator.js?v=20260321a"></script>
-<script src="js/operator-i18n.js?v=20260321a"></script>
+<script src="js/operator.js?v=20260321b"></script>
+<script src="js/operator-i18n.js?v=20260321b"></script>
 </body>
 </html>
+
 
 
 

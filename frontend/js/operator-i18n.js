@@ -5,7 +5,7 @@
       'page.title': 'PRIZMBET - Кабинет оператора',
       'hero.eyebrow': 'Кабинет оператора',
       'hero.title': '??????, ???????????? ? ??????',
-      'hero.copy': 'Панель работает на именных аккаунтах операторов. Действия по ставкам и выплатам привязаны к конкретной пользовательской сессии.',
+      'hero.copy': 'Компактная рабочая панель для ставок, выплат и аудита',
       'hero.back': 'Вернуться на сайт',
       'access.apiBase': 'API base',
       'access.apiBasePlaceholder': 'https://your-backend.example',
@@ -13,7 +13,7 @@
       'access.refresh': 'Обновить',
       'access.autoRefresh': 'Автообновление',
       'bootstrap.eyebrow': 'Первичная настройка',
-      'bootstrap.title': '??????? ??????????????',
+      'bootstrap.title': 'Создать администратора',
       'bootstrap.copy': 'Этот шаг выполняется один раз для первичной настройки панели.',
       'bootstrap.email': 'Email администратора',
       'bootstrap.emailPlaceholder': 'admin@example.com',
@@ -23,7 +23,7 @@
       'bootstrap.passwordPlaceholder': 'Минимум 8 символов',
       'bootstrap.key': 'Bootstrap key',
       'bootstrap.keyPlaceholder': 'ADMIN_VIEW_KEY из .env',
-      'bootstrap.action': '??????? ???????',
+      'bootstrap.action': 'Создать аккаунт',
       'login.eyebrow': 'Вход',
       'login.title': 'Войти как оператор',
       'login.copy': 'Используйте назначенный логин или email и свой пароль.',
@@ -39,7 +39,7 @@
       'session.logout': 'Выйти',
       'users.eyebrow': 'Управление пользователями',
       'users.title': 'Назначенные операторы',
-      'users.copy': '?????? ????????????? ????? ????????? ? ????????? ???????????? ????????.',
+      'users.copy': 'Создание и управление операторскими аккаунтами.',
       'users.login': 'Логин',
       'users.loginPlaceholder': 'operator.login',
       'users.email': 'Email',
@@ -67,7 +67,7 @@
       'page.title': 'PRIZMBET - Operator Console',
       'hero.eyebrow': 'Operator Console',
       'hero.title': 'Bets, users and activity log',
-      'hero.copy': 'This panel uses named operator accounts. Bet and payout actions stay tied to a specific user session.',
+      'hero.copy': 'Компактная рабочая панель для ставок, выплат и аудита',
       'hero.back': 'Back to site',
       'access.apiBase': 'API base',
       'access.apiBasePlaceholder': 'https://your-backend.example',
@@ -75,7 +75,7 @@
       'access.refresh': 'Refresh',
       'access.autoRefresh': 'Auto refresh',
       'bootstrap.eyebrow': 'Initial setup',
-      'bootstrap.title': 'Create admin',
+      'bootstrap.title': 'Создать администратора',
       'bootstrap.copy': 'This step runs once for the initial panel setup.',
       'bootstrap.email': 'Administrator email',
       'bootstrap.emailPlaceholder': 'admin@example.com',
@@ -85,7 +85,7 @@
       'bootstrap.passwordPlaceholder': 'Minimum 8 characters',
       'bootstrap.key': 'Bootstrap key',
       'bootstrap.keyPlaceholder': 'ADMIN_VIEW_KEY from .env',
-      'bootstrap.action': 'Create account',
+      'bootstrap.action': 'Создать аккаунт',
       'login.eyebrow': 'Login',
       'login.title': 'Enter as operator',
       'login.copy': 'Use the assigned login or email and your password.',
@@ -101,7 +101,7 @@
       'session.logout': 'Log out',
       'users.eyebrow': 'User Management',
       'users.title': 'Assigned operators',
-      'users.copy': 'Only admin can create or disable operator accounts.',
+      'users.copy': 'Создание и управление операторскими аккаунтами.',
       'users.login': 'Login',
       'users.loginPlaceholder': 'operator.login',
       'users.email': 'Email',
@@ -131,7 +131,7 @@ const EXACT = {
     ru: {
       'Set API base and connect.': 'РЈРєР°Р¶РёС‚Рµ API base Рё РїРѕРґРєР»СЋС‡РёС‚РµСЃСЊ.',
       'Set API base first.': 'РЎРЅР°С‡Р°Р»Р° СѓРєР°Р¶РёС‚Рµ API base.',
-      'Connect to inspect the operator auth state.': 'РџРѕРґРєР»СЋС‡РёС‚РµСЃСЊ, С‡С‚РѕР±С‹ РїСЂРѕРІРµСЂРёС‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ Р°РІС‚РѕСЂРёР·Р°С†РёРё РѕРїРµСЂР°С‚РѕСЂРѕРІ.',
+      'Connect to inspect the operator auth state.': 'Подключитесь, чтобы проверить доступ оператора.',
       'Checking operator access...': 'РџСЂРѕРІРµСЂСЏСЋ РґРѕСЃС‚СѓРї РѕРїРµСЂР°С‚РѕСЂР°...',
       'Auth state is unknown.': 'РЎРѕСЃС‚РѕСЏРЅРёРµ Р°РІС‚РѕСЂРёР·Р°С†РёРё РЅРµРёР·РІРµСЃС‚РЅРѕ.',
       'Feed not loaded yet.': 'Р›РµРЅС‚Р° РµС‰С‘ РЅРµ Р·Р°РіСЂСѓР¶РµРЅР°.',
@@ -326,5 +326,6 @@ const EXACT = {
     boot();
   }
 })();
+
 
 

@@ -1751,3 +1751,8 @@
     padding: 14px;
   }
 }
+
+.operator-workspace-shell[hidden] { display: none !important; }
+.operator-shell.operator-shell--preauth .operator-workspace-shell { display: none !important; }
+.operator-shell.operator-shell--authed .operator-workspace-shell { display: block; }
+

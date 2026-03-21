@@ -69,6 +69,7 @@ function cacheDom() {
   dom.createUserBtn = document.getElementById('createUserBtn');
   dom.userList = document.getElementById('userList');
   dom.workspaceTabsSection = document.getElementById('workspaceTabsSection');
+  dom.workspaceShell = document.getElementById('workspaceShell');
   dom.tabButtons = Array.from(document.querySelectorAll('[data-operator-tab]'));
   dom.accessSection = document.querySelector('.operator-access');
   dom.statsSection = document.querySelector('.operator-stats-section');
@@ -305,6 +306,10 @@ function syncWorkspace() {
     setHidden(dom.workspaceTabsSection, !authed);
   }
 
+  if (dom.workspaceShell) {
+    setHidden(dom.workspaceShell, !authed);
+  }
+
   const allowed = availableTabs();
   if (!allowed.includes(state.activeTab)) {
     state.activeTab = allowed[0] || 'control';
@@ -327,6 +332,10 @@ function syncWorkspace() {
     setHidden(dom.feedSection, true);
     setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
+    return;
+  }
+
+  if (dom.workspaceShell && !authed) {
     return;
   }
 
@@ -793,7 +802,7 @@ function renderAuthState() {
 
   if (!info) {
     setHidden(dom.authStateMeta, false);
-    dom.authStateMeta.textContent = 'Connect to inspect the operator auth state.';
+    dom.authStateMeta.textContent = 'Connect to inspect operator access.';
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, true);
     setHidden(dom.sessionSection, true);
@@ -834,7 +843,7 @@ function renderAuthState() {
 
   if (!state.currentUser) {
     setHidden(dom.authStateMeta, false);
-    dom.authStateMeta.textContent = 'Operator accounts exist. Log in to continue.';
+    dom.authStateMeta.textContent = 'Log in to continue.';
     setHidden(dom.bootstrapSection, true);
     setHidden(dom.loginSection, false);
     setHidden(dom.sessionSection, true);
@@ -1376,6 +1385,7 @@ function escapeAttr(value) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
