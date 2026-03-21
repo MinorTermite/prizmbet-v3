@@ -503,7 +503,7 @@ async function handleLogin() {
     state.sessionInfo = payload.session || null;
     persistState();
     dom.passwordInput.value = '';
-    renderStatus(`Logged in as ${state.currentUser?.login || 'operator'}.`, 'good');
+    renderStatus(`Session active: ${labelRole(state.currentUser?.role)}.`, 'good');
     await fetchFeed();
   } catch (error) {
     renderStatus(normalizeErrorMessage(error, 'Failed to log in.'), 'bad');
@@ -568,7 +568,7 @@ async function handleCreateUser() {
     dom.newUserEmailInput.value = '';
     dom.newUserPasswordInput.value = '';
     dom.newUserRoleInput.value = 'operator';
-    renderStatus(`User ${payload.user?.login || login} created.`, 'good');
+    renderStatus('User created.', 'good');
     await loadUsers();
   } catch (error) {
     renderStatus(normalizeErrorMessage(error, 'Failed to create user.'), 'bad');
@@ -596,7 +596,7 @@ async function handleToggleUser(button) {
     if (!response.ok) {
       throw new Error(payload.error || `Set-active API returned ${response.status}`);
     }
-    renderStatus(`User ${payload.user?.login || userId} updated.`, 'good');
+    renderStatus('User updated.', 'good');
     await loadUsers();
   } catch (error) {
     renderStatus(normalizeErrorMessage(error, 'Failed to update user state.'), 'bad');
@@ -703,9 +703,10 @@ async function fetchFeed() {
 
 function buildSuccessMessage() {
   const mirrorNote = state.auditMeta?.sheets_mirror_enabled ? 'Google Sheets mirror is ON.' : 'Google Sheets mirror is OFF.';
-  const userNote = state.currentUser ? `Logged in as ${state.currentUser.login} (${labelRole(state.currentUser.role)}).` : 'No active operator session.';
+  const userNote = state.currentUser ? `Session active: ${labelRole(state.currentUser.role)}.` : 'No active operator session.';
   return `${userNote} ${mirrorNote}`;
 }
+
 
 async function handleMarkPaid(button) {
   const txId = button.getAttribute('data-mark-paid') || '';
@@ -845,16 +846,12 @@ function renderAuthState() {
   }
 
   setHidden(dom.authStateMeta, true);
-  dom.authStateMeta.textContent = `Session active: ${state.currentUser.login} (${labelRole(state.currentUser.role)}).`;
-  dom.sessionUserMeta.textContent = `${state.currentUser.login} (${labelRole(state.currentUser.role)})`;
+  dom.authStateMeta.textContent = 'Session active.';
+  dom.sessionUserMeta.textContent = labelRole(state.currentUser.role);
   dom.sessionExpiresMeta.textContent = formatDate(state.sessionInfo?.expires_at);
   setHidden(dom.bootstrapSection, true);
   setHidden(dom.loginSection, true);
   setHidden(dom.sessionSection, false);
-  setHidden(dom.statsSection, false);
-  setHidden(dom.feedSection, false);
-  setHidden(dom.auditSection, false);
-  setHidden(dom.userManagementSection, state.currentUser.role !== 'super_admin');
 }
 
 function renderUsers() {
@@ -1160,7 +1157,7 @@ function buildFeedSummary(item) {
 function buildAuditSummary(payload, item) {
   const actor = buildActorLabel(payload.actor);
   if (String(item.event_type || payload.event_type || '').startsWith('admin_')) {
-    return actor ? `Operator: ${actor}` : 'Operator-side event';
+    return actor ? `Admin session: ${actor}` : 'Operator-side event';
   }
   const match = cleanText(payload.match_label || item.match_label) || `Match #${payload.match_id || item.match_id || '?'}`;
   const outcome = labelOutcome(payload.outcome || item.outcome || '');
@@ -1180,11 +1177,10 @@ function renderMeta(label, value) {
 
 function buildActorLabel(actor) {
   if (!actor || typeof actor !== 'object') return '-';
-  const login = String(actor.login || '').trim();
   const role = labelRole(actor.role || '');
-  if (!login && !role) return '-';
-  return `${login || 'unknown'} (${role || 'unknown'})`;
+  return role || 'Operator';
 }
+
 
 function summarizeExtra(extra) {
   if (!extra || typeof extra !== 'object') return '-';
@@ -1242,13 +1238,14 @@ function labelStatus(status) {
 function labelRole(role) {
   const value = String(role || '').trim().toLowerCase();
   const labels = {
-    super_admin: 'Super admin',
+    super_admin: 'Admin',
     operator: 'Operator',
     finance: 'Finance',
     viewer: 'Viewer',
   };
   return labels[value] || (value || 'Unknown');
 }
+
 
 function labelOutcome(outcome) {
   const value = String(outcome || '').trim().toUpperCase();
@@ -1360,7 +1357,10 @@ function formatDate(value) {
 function setHidden(node, hidden) {
   if (!node) return;
   node.classList.toggle('operator-hidden', hidden);
+  node.hidden = !!hidden;
+  node.setAttribute('aria-hidden', hidden ? 'true' : 'false');
 }
+
 
 function escapeHtml(value) {
   return String(value || '')
@@ -1376,6 +1376,7 @@ function escapeAttr(value) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
