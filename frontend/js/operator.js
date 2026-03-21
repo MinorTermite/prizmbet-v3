@@ -189,7 +189,7 @@ function restoreState() {
     state.query = String(saved.query || '');
     state.status = String(saved.status || '');
     state.autoRefresh = saved.autoRefresh !== false;
-    state.activeTab = String(saved.activeTab || 'control');
+    state.activeTab = 'control';
   } catch {
     state.apiBase = detectApiBase();
   }
@@ -1385,6 +1385,7 @@ function escapeAttr(value) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 

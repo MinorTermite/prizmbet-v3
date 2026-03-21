@@ -1756,3 +1756,41 @@
 .operator-shell.operator-shell--preauth .operator-workspace-shell { display: none !important; }
 .operator-shell.operator-shell--authed .operator-workspace-shell { display: block; }
 
+
+/* Hard preauth/auth workspace visibility */
+.operator-shell.operator-shell--preauth .operator-workspace-tabs,
+.operator-shell.operator-shell--preauth .operator-users-section,
+.operator-shell.operator-shell--preauth .operator-feed-section,
+.operator-shell.operator-shell--preauth .operator-audit-section,
+.operator-shell.operator-shell--preauth .operator-stats-section {
+  display: none !important;
+}
+.operator-shell.operator-shell--authed .operator-workspace-tabs {
+  display: block !important;
+}
+.operator-shell.operator-shell--authed .operator-users-section,
+.operator-shell.operator-shell--authed .operator-feed-section,
+.operator-shell.operator-shell--authed .operator-audit-section {
+  display: none !important;
+}
+.operator-shell.operator-shell--authed[data-active-tab='users'] .operator-users-section {
+  display: block !important;
+}
+.operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-feed-section {
+  display: block !important;
+}
+.operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-audit-section {
+  display: block !important;
+}
+.operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-access,
+.operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-stats-section,
+.operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-users-section,
+.operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-access,
+.operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-stats-section,
+.operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-users-section,
+.operator-shell.operator-shell--authed[data-active-tab='users'] .operator-access,
+.operator-shell.operator-shell--authed[data-active-tab='users'] .operator-stats-section,
+.operator-shell.operator-shell--authed[data-active-tab='users'] .operator-feed-section,
+.operator-shell.operator-shell--authed[data-active-tab='users'] .operator-audit-section {
+  display: none !important;
+}
