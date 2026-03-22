@@ -1,10 +1,12 @@
 package com.prizmbet.operator;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
@@ -26,8 +28,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.webkit.WebViewAssetLoader;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 /**
  * PrizmBet Operator Console — Android wrapper.
@@ -39,6 +47,9 @@ import java.io.InputStream;
 public class MainActivity extends AppCompatActivity {
 
     private static final String SITE_URL = "http://213.165.38.210/operator.html";
+    private static final String VERSION_URL = "http://213.165.38.210/app-version.json";
+    private static final String APP_KEY = "operator";
+    private static final int CURRENT_VERSION_CODE = 1;
 
     private static final String[] ALLOWED_HOSTS = {
             "213.165.38.210",
@@ -82,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
 
         webView.clearCache(true);
         webView.loadUrl(SITE_URL);
+
+        checkForUpdate();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -276,6 +289,44 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh.setVisibility(View.VISIBLE);
         showWebView();
         webView.loadUrl(SITE_URL);
+    }
+
+    private void checkForUpdate() {
+        new Thread(() -> {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(VERSION_URL).openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                reader.close();
+                conn.disconnect();
+
+                JSONObject root = new JSONObject(sb.toString());
+                JSONObject app = root.getJSONObject(APP_KEY);
+                int remoteCode = app.getInt("versionCode");
+                String remoteName = app.getString("versionName");
+                String apkUrl = app.getString("apkUrl");
+                String changelog = app.optString("changelog", "");
+
+                if (remoteCode > CURRENT_VERSION_CODE) {
+                    runOnUiThread(() -> showUpdateDialog(remoteName, changelog, apkUrl));
+                }
+            } catch (Exception ignored) { }
+        }).start();
+    }
+
+    private void showUpdateDialog(String version, String changelog, String apkUrl) {
+        new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+                .setTitle("Доступно обновление v" + version)
+                .setMessage(changelog)
+                .setPositiveButton("Обновить", (d, w) -> {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl)));
+                })
+                .setNegativeButton("Позже", null)
+                .show();
     }
 
     private void enterImmersiveMode() {

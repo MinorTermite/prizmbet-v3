@@ -1,0 +1,14 @@
+{
+  "prizmbet": {
+    "versionCode": 2,
+    "versionName": "1.1",
+    "apkUrl": "http://213.165.38.210/apk/prizmbet.apk",
+    "changelog": "Подключение к серверу, исправления интерфейса"
+  },
+  "operator": {
+    "versionCode": 1,
+    "versionName": "1.0",
+    "apkUrl": "http://213.165.38.210/apk/prizmbet_operator.apk",
+    "changelog": "Первая версия оператор-панели"
+  }
+}
