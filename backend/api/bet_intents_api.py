@@ -978,7 +978,10 @@ def create_app() -> web.Application:
     # Serve frontend static files
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
     if frontend_dir.is_dir():
-        app.router.add_static("/", frontend_dir, show_index=True)
+        async def _root_redirect(_req):
+            raise web.HTTPFound("/index.html")
+        app.router.add_get("/", _root_redirect)
+        app.router.add_static("/", frontend_dir, show_index=False)
 
     return app
 
