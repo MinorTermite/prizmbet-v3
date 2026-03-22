@@ -1,4 +1,4 @@
-package com.prizmbet.app;
+package com.prizmbet.operator;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -30,20 +30,15 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * PrizmBet Android wrapper.
+ * PrizmBet Operator Console — Android wrapper.
  *
- * Features implemented:
- *  - SwipeRefreshLayout: свайп вниз → обновляет данные матчей
- *  - WebViewAssetLoader: статика из APK assets/, JSON с сети
- *  - App Shortcuts: Football / Esports / Refresh
- *  - UA fix: убирает "wv" маркер (сайт видит обычный Chrome)
- *  - Offline error screen с кнопкой Повторить
- *  - Фон WebView = #06060e (единый с SplashActivity — нет цветовой вспышки)
+ * Loads operator.html from APK assets with the same hybrid online/offline
+ * approach as the main PrizmBet app. The operator connects to the API server
+ * directly from the WebView.
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String SITE_URL     = "http://213.165.38.210/";
-    public  static final String EXTRA_SHORTCUT = "shortcut_action";
+    private static final String SITE_URL = "http://213.165.38.210/operator.html";
 
     private static final String[] ALLOWED_HOSTS = {
             "213.165.38.210",
@@ -52,19 +47,12 @@ public class MainActivity extends AppCompatActivity {
             "fonts.gstatic.com",
     };
 
-    // ── Views ──────────────────────────────────────────────────────────────────
-    private WebView             webView;
-    private ProgressBar         progressBar;
-    private View                errorView;
-    private SwipeRefreshLayout  swipeRefresh;
-
-    // ── State ──────────────────────────────────────────────────────────────────
+    private WebView webView;
+    private ProgressBar progressBar;
+    private View errorView;
+    private SwipeRefreshLayout swipeRefresh;
     private WebViewAssetLoader assetLoader;
-    /** Pending shortcut action applied via JS once page is ready. */
-    private String pendingShortcut = null;
     private boolean hasError = false;
-
-    // ── Lifecycle ──────────────────────────────────────────────────────────────
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,30 +63,22 @@ public class MainActivity extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN
         );
-        // Фон окна = #06060e, совпадает с SplashActivity → нет цветовой вспышки
         getWindow().setBackgroundDrawableResource(R.color.bg_primary);
         enterImmersiveMode();
 
         setContentView(R.layout.activity_main);
 
-        // Refs
-        progressBar  = findViewById(R.id.progressBar);
-        errorView    = findViewById(R.id.errorView);
-        webView      = findViewById(R.id.webView);
+        progressBar = findViewById(R.id.progressBar);
+        errorView = findViewById(R.id.errorView);
+        webView = findViewById(R.id.webView);
         swipeRefresh = findViewById(R.id.swipeRefresh);
 
         Button retryBtn = findViewById(R.id.retryButton);
         retryBtn.setOnClickListener(v -> retry());
 
-        // ③ Pull-to-refresh
         configurePullToRefresh();
-
-        // ④ WebViewAssetLoader
         buildAssetLoader();
         configureWebView();
-
-        // App Shortcut intent
-        pendingShortcut = getIntent().getStringExtra(EXTRA_SHORTCUT);
 
         webView.clearCache(true);
         webView.loadUrl(SITE_URL);
@@ -115,18 +95,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-    }
-
-    /** Called when app already runs and a shortcut is tapped. */
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        String action = intent.getStringExtra(EXTRA_SHORTCUT);
-        if (action != null) {
-            pendingShortcut = action;
-            applyShortcut(action);
-        }
     }
 
     @Override
@@ -151,49 +119,38 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    // ── Pull-to-refresh ────────────────────────────────────────────────────────
-
     private void configurePullToRefresh() {
-        // Цветовая схема в стиле бренда
         swipeRefresh.setColorSchemeColors(0xFF6366F1, 0xFF818CF8);
         swipeRefresh.setProgressBackgroundColorSchemeColor(0xFF1A1A2E);
 
-        // Только при прокрутке до самого верха WebView срабатывает свайп
         swipeRefresh.setOnChildScrollUpCallback(
                 (parent, child) -> webView.canScrollVertically(-1)
         );
 
         swipeRefresh.setOnRefreshListener(() -> {
             if (hasError) {
-                // Страница с ошибкой — полная перезагрузка; spinner скроется в onPageFinished
                 retry();
                 return;
             }
-            // Обновляем только данные матчей через JS, страницу не перезагружаем
-            webView.evaluateJavascript(
-                    "(function(){ if(window.refreshData) window.refreshData(); })();",
-                    null
-            );
-            // Скрываем индикатор через ~2.5 сек (время сетевого запроса)
+            webView.reload();
             swipeRefresh.postDelayed(() -> swipeRefresh.setRefreshing(false), 2500);
         });
     }
 
-    // ── Asset Loader ───────────────────────────────────────────────────────────
-
     /**
-     * Статические файлы (HTML/JS/CSS/картинки) отдаются из APK assets/prizmbet-v3/.
-     * matches.json и matches-today.json — всегда с сети (живые данные).
+     * Serves static files from APK assets/operator/.
+     * API calls (to the operator's backend) go through network normally.
      */
     private void buildAssetLoader() {
         assetLoader = new WebViewAssetLoader.Builder()
                 .setDomain("minortermite.github.io")
                 .addPathHandler("/prizmbet-v3/", path -> {
-                    if (path.endsWith("matches.json") || path.endsWith("matches-today.json")) {
-                        return null; // → network
+                    // Always fetch JSON data from network
+                    if (path.endsWith(".json")) {
+                        return null;
                     }
                     try {
-                        InputStream is = getAssets().open("prizmbet-v3/" + path);
+                        InputStream is = getAssets().open("operator/" + path);
                         String ext = path.contains(".")
                                 ? path.substring(path.lastIndexOf('.') + 1).toLowerCase()
                                 : "";
@@ -204,31 +161,30 @@ public class MainActivity extends AppCompatActivity {
                                 ? "UTF-8" : null;
                         return new WebResourceResponse(mime, charset, is);
                     } catch (IOException e) {
-                        return null; // не нашли в assets — идёт в сеть
+                        return null;
                     }
                 })
                 .build();
     }
 
-    // ── WebView Configuration ──────────────────────────────────────────────────
-
     private void configureWebView() {
-        // Фон совпадает с SplashActivity (#06060e) — нет белой/чёрной вспышки при загрузке
         webView.setBackgroundColor(0xFF06060E);
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
+        s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
-        s.setCacheMode(WebSettings.LOAD_DEFAULT); // стандартный кэш для стабильности
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(true);
         s.setAllowContentAccess(true);
+        // Allow mixed content so operator can connect to local HTTP API
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
-        // Убираем "wv" маркер — сайт видит обычный Chrome
         String ua = s.getUserAgentString();
         ua = ua.replace("; wv)", ")");
-        s.setUserAgentString(ua);
+        s.setUserAgentString(ua + " PrizmBetOperator/1.0");
 
         webView.setWebViewClient(new WebViewClient() {
 
@@ -241,9 +197,13 @@ public class MainActivity extends AppCompatActivity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String host = request.getUrl().getHost();
                 if (host != null && isAllowedHost(host)) return false;
+                // Allow API connections to any host (operator needs to connect to backend)
+                String scheme = request.getUrl().getScheme();
+                if ("http".equals(scheme) || "https".equals(scheme)) return false;
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, request.getUrl()));
-                } catch (Exception ignored) { }
+                } catch (Exception ignored) {
+                }
                 return true;
             }
 
@@ -252,7 +212,6 @@ public class MainActivity extends AppCompatActivity {
                 hasError = false;
                 progressBar.setVisibility(View.VISIBLE);
 
-                // Заглушка Notification API чтобы JS не падал
                 view.evaluateJavascript(
                         "(function(){" +
                         "  if(typeof Notification==='undefined'){" +
@@ -266,15 +225,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 progressBar.setVisibility(View.GONE);
-                swipeRefresh.setRefreshing(false);  // сброс pull-to-refresh спиннера
-
+                swipeRefresh.setRefreshing(false);
                 if (!hasError) {
                     showWebView();
-                }
-                // Применяем shortcut после загрузки DOM
-                if (pendingShortcut != null) {
-                    applyShortcut(pendingShortcut);
-                    pendingShortcut = null;
                 }
             }
 
@@ -296,28 +249,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
-    // ── App Shortcuts ──────────────────────────────────────────────────────────
-
-    private void applyShortcut(String action) {
-        String js;
-        switch (action) {
-            case "football":
-                js = "(function(){ var t=document.querySelector('.tab[data-sport=\"football\"]'); if(t) t.click(); })();";
-                break;
-            case "esports":
-                js = "(function(){ var t=document.querySelector('.tab[data-sport=\"esports\"]'); if(t) t.click(); })();";
-                break;
-            case "refresh":
-                js = "(function(){ if(window.refreshData) window.refreshData(); })();";
-                break;
-            default:
-                return;
-        }
-        webView.evaluateJavascript(js, null);
-    }
-
-    // ── Helpers ────────────────────────────────────────────────────────────────
 
     private boolean isAllowedHost(String host) {
         for (String a : ALLOWED_HOSTS) {
@@ -345,15 +276,6 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh.setVisibility(View.VISIBLE);
         showWebView();
         webView.loadUrl(SITE_URL);
-    }
-
-    private boolean isOnline() {
-        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
-        if (cm == null) return false;
-        Network net = cm.getActiveNetwork();
-        if (net == null) return false;
-        NetworkCapabilities caps = cm.getNetworkCapabilities(net);
-        return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
     }
 
     private void enterImmersiveMode() {

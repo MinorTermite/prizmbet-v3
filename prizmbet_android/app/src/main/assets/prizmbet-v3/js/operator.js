@@ -239,7 +239,11 @@ function detectApiBase() {
   if (host === '127.0.0.1' || host === 'localhost') {
     return 'http://127.0.0.1:8081';
   }
-  return '';
+  const origin = window.location.origin;
+  if (origin && origin !== 'null' && !origin.startsWith('file:')) {
+    return origin;
+  }
+  return 'http://213.165.38.210';
 }
 
 function normalizeApiBase(value) {

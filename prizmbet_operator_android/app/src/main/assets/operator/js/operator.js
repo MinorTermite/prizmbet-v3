@@ -240,7 +240,6 @@ function detectApiBase() {
   if (host === '127.0.0.1' || host === 'localhost') {
     return 'http://127.0.0.1:8081';
   }
-  // When served by the backend itself, use the same origin
   if (origin && origin !== 'null' && !origin.startsWith('file:')) {
     return origin;
   }
