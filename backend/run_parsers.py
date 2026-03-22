@@ -60,5 +60,28 @@ async def run_all_parsers():
     except Exception as e:
         print(f"[run_parsers] score_enricher failed: {type(e).__name__}: {e}")
 
+    try:
+        from backend.bot.v3_settler import run_once as settle_v3_bets_once
+        settled = await settle_v3_bets_once()
+        print(f"[run_parsers] v3_settler settled {settled} bet(s)")
+    except Exception as e:
+        print(f"[run_parsers] v3_settler failed: {type(e).__name__}: {e}")
+
+PARSER_INTERVAL_SECONDS = int(os.getenv("PARSER_INTERVAL_SECONDS", "300"))
+
+
+async def run_parsers_loop():
+    """Run parsers in a loop every PARSER_INTERVAL_SECONDS (default 5 min)."""
+    while True:
+        try:
+            await run_all_parsers()
+        except Exception as e:
+            print(f"[run_parsers] loop error: {type(e).__name__}: {e}")
+        await asyncio.sleep(PARSER_INTERVAL_SECONDS)
+
+
 if __name__ == "__main__":
-    asyncio.run(run_all_parsers())
+    if "--loop" in sys.argv:
+        asyncio.run(run_parsers_loop())
+    else:
+        asyncio.run(run_all_parsers())

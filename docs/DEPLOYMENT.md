@@ -16,7 +16,7 @@ cp .env.example .env
 Fill required values:
 - data layer: `SUPABASE_URL`, `SUPABASE_KEY`, `UPSTASH_REDIS_*`
 - parser providers: API keys used by enabled parsers
-- tx listener: `MIN_BET`, `PRIZM_EPOCH`
+- tx listener: `MIN_BET`, `MAX_BET`, `PRIZM_EPOCH`
 
 ## 3. Database
 

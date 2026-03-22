@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="theme-color" content="#06060e">
     <link rel="manifest" href="manifest.json">
-    <meta name="description" content="PRIZMBET - Ставки на монетах PRIZM. Футбол, хоккей, баскетбол и киберспорт">
+    <meta name="description" content="PRIZMBET - ������ �� ������� PRIZM. ������, ������, ��������� � ����������">
     <title>PRIZMBET LIVE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +25,7 @@
         }
 
         :root {
-            /* Core palette — deep midnight with electric accents */
+            /* Core palette � deep midnight with electric accents */
             --bg-primary: #06060e;
             --bg-secondary: #0a0a16;
             --bg-tertiary: #0e0e1a;
@@ -33,7 +33,7 @@
             --bg-card-hover: rgba(20, 20, 40, 0.8);
             --bg-elevated: rgba(18, 18, 36, 0.85);
 
-            /* Accent — electric violet shifting to warm gold */
+            /* Accent � electric violet shifting to warm gold */
             --accent: #8b5cf6;
             --accent-bright: #a78bfa;
             --accent-glow: rgba(139, 92, 246, 0.25);
@@ -1269,7 +1269,7 @@
             color: var(--text-tertiary);
         }
 
-        /* ===== БК SOURCE BADGE ===== */
+        /* ===== �� SOURCE BADGE ===== */
         .bk-badge {
             display: inline-flex;
             align-items: center;
@@ -1323,7 +1323,7 @@
             transform: translateY(-1px);
         }
 
-        /* ===== БК PAGES NAV ===== */
+        /* ===== �� PAGES NAV ===== */
         .bk-nav {
             display: flex;
             gap: 8px;
@@ -1472,7 +1472,7 @@
             animation-delay: 0.25s;
         }
 
-        /* ===== BET SLIP (Купон) ===== */
+        /* ===== BET SLIP (�����) ===== */
         .bet-slip {
             position: fixed;
             bottom: -100%;
@@ -1715,124 +1715,124 @@
                 </div>
             </div>
             <h1 class="brand-name">PRIZMBET</h1>
-            <p class="tagline">Ставки на PRIZM</p>
+            <p class="tagline">������ �� PRIZM</p>
             <div class="header-actions">
                 <a href="https://t.me/+PMrQ9Nbzu08wYmI0" target="_blank" rel="noopener" class="btn-icon"
-                    title="Telegram">✈️</a>
-                <button class="btn-icon" onclick="openHistory()" title="История">📜</button>
-                <button class="btn-icon" onclick="refreshData()" title="Обновить">↻</button>
+                    title="Telegram">??</a>
+                <button class="btn-icon" onclick="openHistory()" title="�������">??</button>
+                <button class="btn-icon" onclick="refreshData()" title="��������">?</button>
             </div>
         </header>
 
-        <!-- СТАТИСТИКА -->
+        <!-- ���������� -->
         <div class="stats-bar">
             <div class="stat-card">
                 <div class="stat-number" id="totalMatches">0</div>
-                <div class="stat-label">Матчей</div>
+                <div class="stat-label">������</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="totalLeagues">0</div>
-                <div class="stat-label">Лиг</div>
+                <div class="stat-label">���</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="avgOdds">0.00</div>
-                <div class="stat-label">Ср. коэф.</div>
+                <div class="stat-label">��. ����.</div>
             </div>
         </div>
 
         <!-- FILTERS -->
         <div class="filters-bar">
             <div class="tabs">
-                <button class="tab active" data-sport="all">Все</button>
-                <button class="tab" data-sport="football">⚽ Футбол</button>
-                <button class="tab" data-sport="hockey">🏒 Хоккей</button>
-                <button class="tab" data-sport="basket">🏀 Баскетбол</button>
-                <button class="tab" data-sport="tennis">🎾 Теннис</button>
-                <button class="tab" data-sport="tabletennis">🏓 Наст. теннис</button>
-                <button class="tab" data-sport="volleyball">🏐 Волейбол</button>
-                <button class="tab" data-sport="mma">🥊 MMA</button>
-                <button class="tab" data-sport="esports">🎮 Киберспорт</button>
-                <button class="tab" data-sport="results">📝 Результаты</button>
+                <button class="tab active" data-sport="all">���</button>
+                <button class="tab" data-sport="football">? ������</button>
+                <button class="tab" data-sport="hockey">?? ������</button>
+                <button class="tab" data-sport="basket">?? ���������</button>
+                <button class="tab" data-sport="tennis">?? ������</button>
+                <button class="tab" data-sport="tabletennis">?? ����. ������</button>
+                <button class="tab" data-sport="volleyball">?? ��������</button>
+                <button class="tab" data-sport="mma">?? MMA</button>
+                <button class="tab" data-sport="esports">?? ����������</button>
+                <button class="tab" data-sport="results">?? ����������</button>
             </div>
             <div class="filters">
                 <select id="gameFilter" class="select">
-                    <option value="all">Все лиги</option>
+                    <option value="all">��� ����</option>
                 </select>
                 <label class="toggle-switch">
                     <input type="checkbox" id="popularOnly" />
                     <div class="toggle-slider"></div>
-                    <span>Только топ</span>
+                    <span>������ ���</span>
                 </label>
                 <label class="toggle-switch">
                     <input type="checkbox" id="favoritesOnly" />
                     <div class="toggle-slider"></div>
-                    <span>⭐ Избранное</span>
+                    <span>? ���������</span>
                 </label>
-                <input id="searchInput" class="search" placeholder="Поиск: команда, лига, ID..." />
+                <input id="searchInput" class="search" placeholder="�����: �������, ����, ID..." />
             </div>
             <div class="sort-controls"
                 style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;">
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <span class="sort-label">Сортировка:</span>
-                    <button class="sort-btn active" data-sort="time">По времени</button>
-                    <button class="sort-btn" data-sort="odds">По коэф.</button>
-                    <button class="sort-btn" data-sort="league">По лигам</button>
+                    <span class="sort-label">����������:</span>
+                    <button class="sort-btn active" data-sort="time">�� �������</button>
+                    <button class="sort-btn" data-sort="odds">�� ����.</button>
+                    <button class="sort-btn" data-sort="league">�� �����</button>
                 </div>
                 <div id="lastUpdate" class="update-info" style="margin: 0; display: inline-block;">
-                    <span class="loading"></span> Загрузка линии...
+                    <span class="loading"></span> �������� �����...
                 </div>
             </div>
         </div>
-        <!-- ПРАВИЛА -->
+        <!-- ������� -->
         <div class="section">
-            <h2 class="section-title">📋 Правила PRIZMBET</h2>
+            <h2 class="section-title">?? ������� PRIZMBET</h2>
             <div class="rule-images">
                 <div class="rule-image-wrapper" onclick="openImage(this.querySelector('img').src)">
-                    <img src="prizmbet-info-2.webp" alt="Правила PRIZMBET" class="rule-image" loading="lazy"
+                    <img src="prizmbet-info-2.webp" alt="������� PRIZMBET" class="rule-image" loading="lazy"
                         decoding="async">
                 </div>
                 <div class="rule-image-wrapper" onclick="openImage(this.querySelector('img').src)">
-                    <img src="prizmbet-info-1.webp" alt="Правила PRIZMBET 2" class="rule-image" loading="lazy"
+                    <img src="prizmbet-info-1.webp" alt="������� PRIZMBET 2" class="rule-image" loading="lazy"
                         decoding="async">
                 </div>
             </div>
         </div>
 
-        <!-- КОШЕЛЁК -->
+        <!-- ����˨� -->
         <div class="wallet-section">
-            <h2 class="section-title" style="justify-content:center;">💎 Кошелёк для ставок</h2>
-            <img src="qr_wallet.webp" alt="QR-код кошелька" class="qr-code" loading="lazy" decoding="async" width="300"
+            <h2 class="section-title" style="justify-content:center;">?? ������ ��� ������</h2>
+            <img src="qr_wallet.webp" alt="QR-��� ��������" class="qr-code" loading="lazy" decoding="async" width="300"
                 height="300">
             <div class="wallet-box">
-                <div class="wallet-label">Адрес кошелька</div>
+                <div class="wallet-label">����� ��������</div>
                 <div class="wallet-address" id="walletAddress">PRIZM-4N7T-L2A7-RQZA-5BETW</div>
             </div>
-            <button class="btn btn-primary" onclick="copyWallet()">📋 Копировать адрес</button>
-            <p class="wallet-note">Укажите ID события и тип ставки в комментарии к переходу</p>
+            <button class="btn btn-primary" onclick="copyWallet()">?? ���������� �����</button>
+            <p class="wallet-note">������� ID ������� � ��� ������ � ����������� � ��������</p>
         </div>
 
-        <!-- МАТЧИ -->
+        <!-- ����� -->
         <div id="content">
             <div style="text-align: center; padding: 48px 16px;">
                 <div class="loading" style="width: 40px; height: 40px; margin: 0 auto;"></div>
-                <p style="color: var(--text-tertiary); margin-top: 16px; font-weight: 500;">Загрузка линии...</p>
+                <p style="color: var(--text-tertiary); margin-top: 16px; font-weight: 500;">�������� �����...</p>
             </div>
         </div>
 
-        <!-- ЛИМИТЫ -->
+        <!-- ������ -->
         <div class="section">
-            <h3 class="section-title">📊 Правила и Лимиты</h3>
+            <h3 class="section-title">?? ������� � ������</h3>
             <ul class="limits-list">
-                <li>Минимальная ставка: <strong>1 500 PRIZM</strong></li>
-                <li>Максимальная ставка: <strong>200 000 PRIZM</strong></li>
-                <li>Ставки принимаются только до начала события</li>
-                <li>В случае проигрыша ставка не возвращается.</li>
-                <li>При выигрыше — выплата по коэффициенту.</li>
-                <li>Выплаты в течении 24 часов.</li>
+                <li>����������� ������: <strong>1 500 PRIZM</strong></li>
+                <li>������������ ������: <strong>30 000 PRIZM</strong></li>
+                <li>������ ����������� ������ �� ������ �������</li>
+                <li>� ������ ��������� ������ �� ������������.</li>
+                <li>��� �������� � ������� �� ������������.</li>
+                <li>������� � ������� 24 �����.</li>
             </ul>
             <p style="color: var(--text-tertiary); font-size: 0.85rem; margin-top: 12px; line-height: 1.4;">
-                Количество ставок ограничено. PRIZMBET оставляет за собой право до начала события отказать в принятии
-                ставки и вернуть средства без объяснения причин.
+                ���������� ������ ����������. PRIZMBET ��������� �� ����� ����� �� ������ ������� �������� � ��������
+                ������ � ������� �������� ��� ���������� ������.
             </p>
         </div>
 
@@ -1841,39 +1841,39 @@
             </div>
             <p
                 style="color: var(--text-tertiary); font-size: 0.75rem; line-height: 1.4; max-width: 600px; margin: 0 auto;">
-                Информационно-аналитический портал о спортивных событиях. Сайт носит исключительно информационный характер и не занимается организацией азартных игр на деньги. Используя данный сервис, вы соглашаетесь с правилами предоставления информации.
+                �������������-������������� ������ � ���������� ��������. ���� ����� ������������� �������������� �������� � �� ���������� ������������ �������� ��� �� ������. ��������� ������ ������, �� ������������ � ��������� �������������� ����������.
             </p>
         </footer>
     </div>
 
     <div class="bet-toast" id="betToast">
-        <div class="bet-toast-label">Скопировано</div>
+        <div class="bet-toast-label">�����������</div>
         <div class="bet-toast-message" id="betToastMessage"></div>
     </div>
 
-    <!-- BET SLIP (Купон ставок) -->
+    <!-- BET SLIP (����� ������) -->
     <div class="bet-slip" id="betSlip">
         <div class="bet-slip-header">
-            <div class="bet-slip-title">Купон ставки</div>
-            <button class="bet-slip-close" onclick="closeBetSlip()">✕</button>
+            <div class="bet-slip-title">����� ������</div>
+            <button class="bet-slip-close" onclick="closeBetSlip()">?</button>
         </div>
-        <div class="bet-slip-match" id="bsMatch">Атлетико — Реал</div>
-        <div style="color:var(--text-tertiary); font-size: 0.8rem; margin-bottom: 8px;" id="bsMeta">Лига Чемпионов •
+        <div class="bet-slip-match" id="bsMatch">�������� � ����</div>
+        <div style="color:var(--text-tertiary); font-size: 0.8rem; margin-bottom: 8px;" id="bsMeta">���� ��������� �
             #12345</div>
 
         <div class="bet-slip-selection">
-            <div class="bet-slip-outcome" id="bsOutcome">П1</div>
+            <div class="bet-slip-outcome" id="bsOutcome">�1</div>
             <div class="bet-slip-coef" id="bsCoef">2.45</div>
         </div>
 
         <div class="bet-calc">
             <div class="bet-calc-row">
-                <span style="color:var(--text-secondary); font-size:0.9rem;">Сумма ставки:</span>
-                <span style="color:var(--text-secondary); font-size:0.9rem;">Возможный выигрыш:</span>
+                <span style="color:var(--text-secondary); font-size:0.9rem;">����� ������:</span>
+                <span style="color:var(--text-secondary); font-size:0.9rem;">��������� �������:</span>
             </div>
             <div class="bet-calc-row" style="gap: 16px;">
                 <div class="bet-input-wrap">
-                    <input type="number" id="bsInput" class="bet-input" placeholder="1500" min="1500" max="200000"
+                    <input type="number" id="bsInput" class="bet-input" placeholder="1500" min="1500" max="30000"
                         oninput="calcPayout()">
                     <span class="bet-currency">PZM</span>
                 </div>
@@ -1881,24 +1881,24 @@
             </div>
         </div>
 
-        <button class="btn btn-primary bet-action-btn" onclick="copyBetSlipData()">📋 Скопировать для перевода</button>
+        <button class="btn btn-primary bet-action-btn" onclick="copyBetSlipData()">?? ����������� ��� ��������</button>
     </div>
 
     <!-- HISTORY MODAL -->
     <div class="bet-slip" id="historyModal">
         <div class="bet-slip-header">
-            <div class="bet-slip-title">История ставок</div>
-            <button class="bet-slip-close" onclick="closeHistory()">✕</button>
+            <div class="bet-slip-title">������� ������</div>
+            <button class="bet-slip-close" onclick="closeHistory()">?</button>
         </div>
         <div class="history-list" id="historyList">
             <!-- Items will be injected here -->
         </div>
         <button class="btn btn-outline"
             style="width: 100%; margin-top: 16px; border-color: rgba(239, 68, 68, 0.4); color: var(--red);"
-            onclick="clearHistory()">🗑 Очистить историю</button>
+            onclick="clearHistory()">?? �������� �������</button>
     </div>
 
-    <!-- Общая логика API и кэширования -->
+    <!-- ����� ������ API � ����������� -->
     <script src="api.js"></script>
 
     <script>
@@ -1911,10 +1911,10 @@
             });
         }
 
-        // Конфигурация и функции кэширования/API (loadData, refreshData)
-        // теперь находятся в отдельном файле api.js для соответствия принципу DRY.
+        // ������������ � ������� �����������/API (loadData, refreshData)
+        // ������ ��������� � ��������� ����� api.js ��� ������������ �������� DRY.
 
-        // ===== LocalStorage для избранного =====
+        // ===== LocalStorage ��� ���������� =====
         function getFavorites() {
             try { const f = localStorage.getItem('prizmbet_favorites'); return f ? JSON.parse(f) : []; }
             catch { return []; }
@@ -1955,12 +1955,12 @@
 
         function inferSport(m) {
             const t = ((m.league || '') + ' ' + (m.team1 || '') + ' ' + (m.team2 || '')).toLowerCase();
-            if (/настольный теннис|наст\. теннис|table tennis/.test(t)) return 'tabletennis';
+            if (/���������� ������|����\. ������|table tennis/.test(t)) return 'tabletennis';
             if (/dota|counter-strike|cs2|valorant|league of legends|lol|rocket league|rlcs|pubg|apex|rainbow six|overwatch/.test(t)) return 'esports';
-            if (/кхл|нхл|hockey|nhl|ahl|shl|liiga|del|хоккей/.test(t)) return 'hockey';
-            if (/nba|нба|баскет|euroleague|евролига|vtb|acb|bbl/.test(t)) return 'basket';
-            if (/теннис|atp|wta|itf|уимблдон|ролан гаррос|tennis/.test(t)) return 'tennis';
-            if (/волейбол|volleyball|cev|vnl|суперлига|plusliga|superlega/.test(t)) return 'volleyball';
+            if (/���|���|hockey|nhl|ahl|shl|liiga|del|������/.test(t)) return 'hockey';
+            if (/nba|���|������|euroleague|��������|vtb|acb|bbl/.test(t)) return 'basket';
+            if (/������|atp|wta|itf|��������|����� ������|tennis/.test(t)) return 'tennis';
+            if (/��������|volleyball|cev|vnl|���������|plusliga|superlega/.test(t)) return 'volleyball';
             if (/ufc|bellator|mma|one championship|pfl|acb mma/.test(t)) return 'mma';
             return 'football';
         }
@@ -1969,52 +1969,52 @@
             if (m.game) return String(m.game);
             const l = (m.league || '').toLowerCase();
             // Football
-            if (l.includes('лига чемпионов') || l.includes('champions league') || l.startsWith('лч')) return 'ЛЧ УЕФА';
-            if (l.includes('лига европы') || l.includes('europa league')) return 'ЛЕ УЕФА';
-            if (l.includes('лига конференций') || l.includes('conference league')) return 'ЛК УЕФА';
-            if (l.includes('премьер-лига') && l.includes('англия')) return 'Англия. Премьер-лига';
-            if (l.includes('чемпионшип') && l.includes('англия')) return 'Англия. Чемпионшип';
-            if (l.includes('кубок') && (l.includes('англия') || l.includes('england'))) return 'Англия. Кубок';
-            if (l.includes('ла лига') || l.includes('la liga')) return 'Испания. Ла Лига';
-            if (l.includes('кубок короля')) return 'Испания. Кубок Короля';
-            if (l.includes('бундеслига') && !l.includes('2.')) return 'Германия. Бундеслига';
-            if (l.includes('2. бундеслига')) return 'Германия. 2. Бундеслига';
-            if (l.includes('серия a') || l.includes('serie a')) return 'Италия. Серия A';
-            if (l.includes('серия b') || l.includes('serie b')) return 'Италия. Серия B';
-            if (l.includes('лига 1') && (l.includes('франция') || l.includes('france'))) return 'Франция. Лига 1';
-            if (l.includes('эредивизие')) return 'Нидерланды. Эредивизие';
-            if (l.includes('примейра') || l.includes('primeira')) return 'Португалия. Примейра Лига';
-            if (l.includes('суперлига') && l.includes('турция')) return 'Турция. Суперлига';
-            if (l.includes('премьершип') && l.includes('шотл')) return 'Шотландия. Премьершип';
-            if (l.includes('про лига') && l.includes('бельг')) return 'Бельгия. Про Лига';
-            if (l.includes('премьер-лига') && l.includes('россия')) return 'Россия. Премьер-лига';
-            if (l.includes('фнл')) return 'Россия. ФНЛ';
-            if (l.includes('кубок') && l.includes('россия')) return 'Россия. Кубок';
-            if (l.includes('серия a') && l.includes('бразилия')) return 'Бразилия. Серия A';
-            if (l.includes('примера') && l.includes('аргент')) return 'Аргентина. Примера';
-            if (l.includes('mls') || l.includes('сша')) return 'США. MLS';
-            if (l.includes('лига mx') || l.includes('мексик')) return 'Мексика. Лига MX';
-            if (l.includes('копа либертадорес')) return 'Копа Либертадорес';
-            if (l.includes('саудовская арав')) return 'Саудовская Аравия';
-            if (l.includes('джей-лига') || l.includes('яп')) return 'Япония. Джей-Лига';
-            if (l.includes('к-лига') || l.includes('корея')) return 'Южная Корея. К-Лига';
+            if (l.includes('���� ���������') || l.includes('champions league') || l.startsWith('��')) return '�� ����';
+            if (l.includes('���� ������') || l.includes('europa league')) return '�� ����';
+            if (l.includes('���� �����������') || l.includes('conference league')) return '�� ����';
+            if (l.includes('�������-����') && l.includes('������')) return '������. �������-����';
+            if (l.includes('����������') && l.includes('������')) return '������. ����������';
+            if (l.includes('�����') && (l.includes('������') || l.includes('england'))) return '������. �����';
+            if (l.includes('�� ����') || l.includes('la liga')) return '�������. �� ����';
+            if (l.includes('����� ������')) return '�������. ����� ������';
+            if (l.includes('����������') && !l.includes('2.')) return '��������. ����������';
+            if (l.includes('2. ����������')) return '��������. 2. ����������';
+            if (l.includes('����� a') || l.includes('serie a')) return '������. ����� A';
+            if (l.includes('����� b') || l.includes('serie b')) return '������. ����� B';
+            if (l.includes('���� 1') && (l.includes('�������') || l.includes('france'))) return '�������. ���� 1';
+            if (l.includes('����������')) return '����������. ����������';
+            if (l.includes('��������') || l.includes('primeira')) return '����������. �������� ����';
+            if (l.includes('���������') && l.includes('������')) return '������. ���������';
+            if (l.includes('����������') && l.includes('����')) return '���������. ����������';
+            if (l.includes('��� ����') && l.includes('�����')) return '�������. ��� ����';
+            if (l.includes('�������-����') && l.includes('������')) return '������. �������-����';
+            if (l.includes('���')) return '������. ���';
+            if (l.includes('�����') && l.includes('������')) return '������. �����';
+            if (l.includes('����� a') && l.includes('��������')) return '��������. ����� A';
+            if (l.includes('�������') && l.includes('������')) return '���������. �������';
+            if (l.includes('mls') || l.includes('���')) return '���. MLS';
+            if (l.includes('���� mx') || l.includes('������')) return '�������. ���� MX';
+            if (l.includes('���� ������������')) return '���� ������������';
+            if (l.includes('���������� ����')) return '���������� ������';
+            if (l.includes('����-����') || l.includes('��')) return '������. ����-����';
+            if (l.includes('�-����') || l.includes('�����')) return '����� �����. �-����';
             // Hockey
-            if (l.includes('кхл')) return 'КХЛ';
-            if (l.includes('нхл') || l.includes('nhl')) return 'НХЛ';
-            if (l.includes('вхл')) return 'ВХЛ';
-            if (l.includes('shl')) return 'Швеция. SHL';
-            if (l.includes('liiga')) return 'Финляндия. Liiga';
-            if (l.includes('extraliga') && l.includes('чех')) return 'Чехия. Extraliga';
-            if (l.includes('del') && l.includes('герм')) return 'Германия. DEL';
-            if (l.includes('экстралига') && l.includes('белар')) return 'Беларусь. Экстралига';
+            if (l.includes('���')) return '���';
+            if (l.includes('���') || l.includes('nhl')) return '���';
+            if (l.includes('���')) return '���';
+            if (l.includes('shl')) return '������. SHL';
+            if (l.includes('liiga')) return '���������. Liiga';
+            if (l.includes('extraliga') && l.includes('���')) return '�����. Extraliga';
+            if (l.includes('del') && l.includes('����')) return '��������. DEL';
+            if (l.includes('����������') && l.includes('�����')) return '��������. ����������';
             // Basketball
-            if (l.includes('nba') || l.includes('нба')) return 'NBA';
-            if (l.includes('евролига') || l.includes('euroleague')) return 'Евролига';
-            if (l.includes('втб')) return 'Единая лига ВТБ';
-            if (l.includes('acb')) return 'Испания. ACB';
-            if (l.includes('bsl') && l.includes('турц')) return 'Турция. BSL';
-            if (l.includes('nbl') && l.includes('австрал')) return 'Австралия. NBL';
-            if (l.includes('cba') && l.includes('китай')) return 'Китай. CBA';
+            if (l.includes('nba') || l.includes('���')) return 'NBA';
+            if (l.includes('��������') || l.includes('euroleague')) return '��������';
+            if (l.includes('���')) return '������ ���� ���';
+            if (l.includes('acb')) return '�������. ACB';
+            if (l.includes('bsl') && l.includes('����')) return '������. BSL';
+            if (l.includes('nbl') && l.includes('�������')) return '���������. NBL';
+            if (l.includes('cba') && l.includes('�����')) return '�����. CBA';
             // Esports
             if (l.includes('dota 2')) return 'Dota 2';
             if (l.includes('counter-strike') || l.includes('cs2')) return 'CS2';
@@ -2024,34 +2024,34 @@
             if (l.includes('pubg')) return 'PUBG';
             if (l.includes('apex')) return 'Apex Legends';
             // Tennis
-            if (l.includes('atp') && l.includes('мадрид')) return 'ATP. Мадрид';
-            if (l.includes('atp') && l.includes('рим')) return 'ATP. Рим';
-            if (l.includes('atp') && l.includes('roland') || l.includes('ролан')) return 'ATP. Roland Garros';
-            if (l.includes('уимблдон') || l.includes('wimbledon')) return 'Уимблдон';
+            if (l.includes('atp') && l.includes('������')) return 'ATP. ������';
+            if (l.includes('atp') && l.includes('���')) return 'ATP. ���';
+            if (l.includes('atp') && l.includes('roland') || l.includes('�����')) return 'ATP. Roland Garros';
+            if (l.includes('��������') || l.includes('wimbledon')) return '��������';
             if (l.includes('us open')) return 'US Open';
             if (l.startsWith('atp')) return 'ATP Tour';
             if (l.startsWith('wta')) return 'WTA Tour';
             // Volleyball
-            if (l.includes('cev')) return 'CEV. Лига чемпионов';
-            if (l.includes('внл') || l.includes('vnl')) return 'Лига наций ВНЛ';
-            if (l.includes('суперлига') && !l.includes('турц') && !l.includes('баск')) return 'Россия. Суперлига Волейбол';
-            if (l.includes('plusliga') || l.includes('польша')) return 'Польша. PlusLiga';
-            if (l.includes('superlega') || l.includes('итал')) return 'Италия. SuperLega';
+            if (l.includes('cev')) return 'CEV. ���� ���������';
+            if (l.includes('���') || l.includes('vnl')) return '���� ����� ���';
+            if (l.includes('���������') && !l.includes('����') && !l.includes('����')) return '������. ��������� ��������';
+            if (l.includes('plusliga') || l.includes('������')) return '������. PlusLiga';
+            if (l.includes('superlega') || l.includes('����')) return '������. SuperLega';
             // MMA
             if (l.includes('ufc')) return 'UFC';
             if (l.includes('bellator')) return 'Bellator MMA';
             if (l.includes('one championship') || l.includes('one fc')) return 'ONE Championship';
             if (l.includes('acb mma')) return 'ACB MMA';
             if (l.includes('pfl')) return 'PFL';
-            return m.league || 'Другое';
+            return m.league || '������';
         }
 
-        // ===== Парсинг даты и времени =====
+        // ===== ������� ���� � ������� =====
         function parseMatchDateTime(match) {
             const now = new Date();
             const dateStr = match.date || '';
             const timeStr = match.time || '';
-            const monthMap = { 'янв': 0, 'фев': 1, 'мар': 2, 'апр': 3, 'май': 4, 'июн': 5, 'июл': 6, 'авг': 7, 'сен': 8, 'окт': 9, 'ноя': 10, 'дек': 11 };
+            const monthMap = { '���': 0, '���': 1, '���': 2, '���': 3, '���': 4, '���': 5, '���': 6, '���': 7, '���': 8, '���': 9, '���': 10, '���': 11 };
             const dateParts = dateStr.match(/(\d+)\s+(\w+)/);
             const timeParts = timeStr.match(/(\d+):(\d+)/);
             if (dateParts && timeParts) {
@@ -2082,10 +2082,10 @@
             const diffMinutes = Math.floor(diffMs / 60000);
             const diffHours = Math.floor(diffMinutes / 60);
             const diffDays = Math.floor(diffHours / 24);
-            if (diffDays > 0) return `через ${diffDays}д`;
-            if (diffHours > 0) return `через ${diffHours}ч`;
-            if (diffMinutes > 0) return `через ${diffMinutes}м`;
-            return 'скоро';
+            if (diffDays > 0) return `����� ${diffDays}�`;
+            if (diffHours > 0) return `����� ${diffHours}�`;
+            if (diffMinutes > 0) return `����� ${diffMinutes}�`;
+            return '�����';
         }
 
         function escapeHtml(text) {
@@ -2101,7 +2101,7 @@
             matches.forEach(m => set.add(getMatchGame(m)));
             const games = Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
             const prev = sel.value || 'all';
-            sel.innerHTML = '<option value="all">Все лиги</option>' +
+            sel.innerHTML = '<option value="all">��� ����</option>' +
                 games.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
             if (games.includes(prev)) sel.value = prev;
         }
@@ -2119,7 +2119,7 @@
 
             if (team2.length < 2) return false;
 
-            if (/счет|серия|score/i.test(team1 + team2)) return false;
+            if (/����|�����|score/i.test(team1 + team2)) return false;
 
             const leagueInTeam = ['nba', 'nfl', 'nhl', 'ufc', 'wta', 'atp'].some(x =>
                 team1.toLowerCase().includes(x) || team2.toLowerCase().includes(x));
@@ -2144,8 +2144,8 @@
 
         function filterMatches(matches, filters) {
             let filtered = matches.filter(isValidMatch);
-            // В live-разделе обычно только лайв-матчи, 
-            // но для "Результатов" делаем исключение
+            // � live-������� ������ ������ ����-�����, 
+            // �� ��� "�����������" ������ ����������
             if (filters.sport !== 'results') {
                 filtered = filtered.filter(isMatchLive);
             }
@@ -2161,7 +2161,7 @@
                 }
                 if (filters.pop && filters.sport !== 'totals') {
                     const combined = ((game || '') + ' ' + (m.league || '')).toLowerCase();
-                    if (!/(лига чемпионов|лига европы|лига конференций|премьер-лига англия|ла лига|бундеслига|серия a|лига 1 франция|nba|нхл|кхл|евролига|атп|wta|ufc)/.test(combined)) {
+                    if (!/(���� ���������|���� ������|���� �����������|�������-���� ������|�� ����|����������|����� a|���� 1 �������|nba|���|���|��������|���|wta|ufc)/.test(combined)) {
                         if (/(dota|cs2|valorant)/.test(combined)) return false;
                     }
                 }
@@ -2179,37 +2179,37 @@
             return filtered;
         }
 
-        // Топ-лиги (приоритет - меньше число = выше приоритет)
+        // ���-���� (��������� - ������ ����� = ���� ���������)
         const LEAGUE_PRIORITY = {
-            // Футбол - топ-лиги
-            'лига чемпионов уэфа': 1, 'champions league': 1, 'лч': 1,
-            'лига европы уэфа': 2, 'europa league': 2, 'ле': 2,
-            'лига конференций': 3, 'conference league': 3, 'лк': 3,
-            'англия. премьер-лига': 10, 'премьер-лига англия': 10,
-            'испания. ла лига': 11, 'la liga': 11,
-            'германия. бундеслига': 12, 'бундеслига германия': 12,
-            'италия. серия a': 13, 'serie a': 13,
-            'франция. лига 1': 14, 'лига 1 франция': 14,
-            'россия. премьер-лига': 15,
-            'нидерланды. эредивизие': 16,
-            'португалия. примейра лига': 17,
-            'турция. суперлига': 18,
-            'бельгия. про лига': 19,
-            'аргентина. примера': 20,
-            'бразилия. серия a': 21,
-            'сша. mls': 22, 'mls': 22,
-            // Хоккей
-            'кхл': 30,
-            'нхл': 31, 'nhl': 31,
-            // Баскетбол
-            'nba': 40, 'нба': 40,
-            'евролига': 41, 'euroleague': 41,
-            // Киберспорт
+            // ������ - ���-����
+            '���� ��������� ����': 1, 'champions league': 1, '��': 1,
+            '���� ������ ����': 2, 'europa league': 2, '��': 2,
+            '���� �����������': 3, 'conference league': 3, '��': 3,
+            '������. �������-����': 10, '�������-���� ������': 10,
+            '�������. �� ����': 11, 'la liga': 11,
+            '��������. ����������': 12, '���������� ��������': 12,
+            '������. ����� a': 13, 'serie a': 13,
+            '�������. ���� 1': 14, '���� 1 �������': 14,
+            '������. �������-����': 15,
+            '����������. ����������': 16,
+            '����������. �������� ����': 17,
+            '������. ���������': 18,
+            '�������. ��� ����': 19,
+            '���������. �������': 20,
+            '��������. ����� a': 21,
+            '���. mls': 22, 'mls': 22,
+            // ������
+            '���': 30,
+            '���': 31, 'nhl': 31,
+            // ���������
+            'nba': 40, '���': 40,
+            '��������': 41, 'euroleague': 41,
+            // ����������
             'dota 2': 50,
             'cs2': 51, 'counter-strike': 51,
             'valorant': 52,
             'league of legends': 53,
-            // Теннис
+            // ������
             'atp': 60,
             'wta': 61,
             // MMA
@@ -2240,19 +2240,19 @@
             const sorted = [...matches];
             if (sortType === 'time') {
                 sorted.sort((a, b) => {
-                    // Сначала сортируем по приоритету лиги (топ-лиги выше)
+                    // ������� ��������� �� ���������� ���� (���-���� ����)
                     const priorityA = getLeaguePriority(a);
                     const priorityB = getLeaguePriority(b);
                     if (priorityA !== priorityB) return priorityA - priorityB;
 
-                    // Потом по дате/времени
+                    // ����� �� ����/�������
                     const dateA = parseMatchDateTime(a);
                     const dateB = parseMatchDateTime(b);
                     if (!dateA && !dateB) return 0;
                     if (!dateA) return 1;
                     if (!dateB) return -1;
 
-                    // Ближайшие матчи (в пределах 7 дней) показываем раньше
+                    // ��������� ����� (� �������� 7 ����) ���������� ������
                     const now = new Date();
                     const weekFromNow = now.getTime() + 7 * 24 * 60 * 60 * 1000;
                     const isNearA = dateA.getTime() < weekFromNow;
@@ -2264,12 +2264,12 @@
                 });
             } else if (sortType === 'odds') {
                 sorted.sort((a, b) => {
-                    // Сначала по приоритету лиги
+                    // ������� �� ���������� ����
                     const priorityA = getLeaguePriority(a);
                     const priorityB = getLeaguePriority(b);
                     if (priorityA !== priorityB) return priorityA - priorityB;
 
-                    // Потом по коэффициентам
+                    // ����� �� �������������
                     const avgA = (parseFloat(a.p1 || 0) + parseFloat(a.p2 || 0)) / 2;
                     const avgB = (parseFloat(b.p1 || 0) + parseFloat(b.p2 || 0)) / 2;
                     return avgB - avgA;
@@ -2337,7 +2337,7 @@
             const tempDiv = document.createElement('div');
 
             if (!filtered.length) {
-                tempDiv.innerHTML = '<div class="section"><p style="text-align:center;color:var(--text-tertiary);font-weight:500;">Матчи не найдены. Измените фильтры.</p></div>';
+                tempDiv.innerHTML = '<div class="section"><p style="text-align:center;color:var(--text-tertiary);font-weight:500;">����� �� �������. �������� �������.</p></div>';
                 if (content.innerHTML !== tempDiv.innerHTML) content.innerHTML = tempDiv.innerHTML;
                 return;
             }
@@ -2370,12 +2370,12 @@
                     function oddBtn(label, value) {
                         const raw = value || '';
                         const val = escapeHtml(raw);
-                        const dt = escapeHtml((match.date || 'Сегодня') + ' ' + (match.time || ''));
+                        const dt = escapeHtml((match.date || '�������') + ' ' + (match.time || ''));
                         const lg = escapeHtml(match.league || '');
-                        if (val === '0.00' || val === '—') {
+                        if (val === '0.00' || val === '�') {
                             return `<div class="odd-item odd-item--na">
                                 <div class="odd-label">${label}</div>
-                                <div class="odd-value">—</div>
+                                <div class="odd-value">�</div>
                             </div>`;
                         }
                         return `<div class="odd-item" onclick="openBetSlip('${eid}','${teams.replace(/'/g, "\\'")}','${label}','${val}','${dt}','${lg}')">
@@ -2384,7 +2384,7 @@
                         </div>`;
                     }
 
-                    // Определяем БК-источник и ссылку для проверки
+                    // ���������� ��-�������� � ������ ��� ��������
                     const matchUrl = match.match_url || match.match_url_marathon || '';
                     const source = (match.source || '').toLowerCase();
                     let bkBadge = '';
@@ -2392,41 +2392,41 @@
 
                     if (matchUrl) {
                         bkBadge = `<span class="bk-badge bk-badge--marathon">Marathon</span>`;
-                        verifyLink = `<a href="${escapeHtml(matchUrl)}" target="_blank" rel="noopener" class="match-link" title="Проверить коэффициент на Marathon">🔍 Проверить</a>`;
+                        verifyLink = `<a href="${escapeHtml(matchUrl)}" target="_blank" rel="noopener" class="match-link" title="��������� ����������� �� Marathon">?? ���������</a>`;
                     } else if (eid) {
                         const mUrl = 'https://www.marathonbet.ru/su/betting/' + eid;
                         bkBadge = `<span class="bk-badge bk-badge--marathon">Marathon</span>`;
-                        verifyLink = `<a href="${mUrl}" target="_blank" rel="noopener" class="match-link" title="Проверить коэффициент на Marathon">🔍 Проверить</a>`;
+                        verifyLink = `<a href="${mUrl}" target="_blank" rel="noopener" class="match-link" title="��������� ����������� �� Marathon">?? ���������</a>`;
                     }
-                    const scoreHtml = match.score ? `<span class="match-score">📋 Счёт: <span>${escapeHtml(match.score)}</span></span>` : '';
+                    const scoreHtml = match.score ? `<span class="match-score">?? ����: <span>${escapeHtml(match.score)}</span></span>` : '';
 
                     card.id = `match-${eid}`;
                     card.innerHTML = `
                         <div class="match-header">
-                            <a class="match-id" href="#match-${eid}" onclick="shareMatch('${eid}','${teams.replace(/'/g, "\\'")}','${escapeHtml((match.date || 'Сегодня') + ' ' + (match.time || ''))}'); return false;" title="Скопировать ссылку на матч">#${eid}</a>
+                            <a class="match-id" href="#match-${eid}" onclick="shareMatch('${eid}','${teams.replace(/'/g, "\\'")}','${escapeHtml((match.date || '�������') + ' ' + (match.time || ''))}'); return false;" title="����������� ������ �� ����">#${eid}</a>
                             ${bkBadge}
                             <div class="match-meta" style="display:flex;align-items:center;margin-left:auto;">
                                 ${scoreHtml}
                             </div>
                             <div style="display:flex;align-items:center;gap:4px;margin-left:8px;">
                                 ${verifyLink}
-                                <button class="share-btn" onclick="shareMatch('${eid}','${teams.replace(/'/g, "\\'")}','${escapeHtml((match.date || 'Сегодня') + ' ' + (match.time || ''))}')" title="Поделиться матчем">🔗</button>
+                                <button class="share-btn" onclick="shareMatch('${eid}','${teams.replace(/'/g, "\\'")}','${escapeHtml((match.date || '�������') + ' ' + (match.time || ''))}')" title="���������� ������">??</button>
                                 <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="toggleFavorite('${eid}')">
-                                    ${isFavorite ? '⭐' : '☆'}
+                                    ${isFavorite ? '?' : '?'}
                                 </button>
                             </div>
                         </div>
                         <div class="match-time">
-                            ${escapeHtml(match.date || 'Сегодня')} ${escapeHtml(match.time || '')}
+                            ${escapeHtml(match.date || '�������')} ${escapeHtml(match.time || '')}
                             ${countdown ? `<span class="countdown">${countdown}</span>` : ''}
                         </div>
-                        <div class="match-teams">${t1} <span class="vs">—</span> ${t2}</div>
+                        <div class="match-teams">${t1} <span class="vs">�</span> ${t2}</div>
                         <div class="odds-container">
-                            <div class="odds-section-title">Основные</div>
-                            ${oddBtn('П1', match.p1)}
+                            <div class="odds-section-title">��������</div>
+                            ${oddBtn('�1', match.p1)}
                             ${oddBtn('X', match.x)}
-                            ${oddBtn('П2', match.p2)}
-                            <div class="odds-section-title">Двойной шанс</div>
+                            ${oddBtn('�2', match.p2)}
+                            <div class="odds-section-title">������� ����</div>
                             ${oddBtn('1X', match.p1x)}
                             ${oddBtn('12', match.p12)}
                             ${oddBtn('X2', match.px2)}
@@ -2443,14 +2443,14 @@
             }
         }
 
-        // Функция shareMatch для шаринга
+        // ������� shareMatch ��� �������
 
         function shareMatch(id, teams, datetime) {
             const url = window.location.origin + window.location.pathname + '#match-' + id;
             navigator.clipboard.writeText(url).then(() => {
-                showToast('Ссылка на матч скопирована!');
+                showToast('������ �� ���� �����������!');
                 if (navigator.vibrate) navigator.vibrate(30);
-                // Подсвечиваем карточку
+                // ������������ ��������
                 const el = document.getElementById('match-' + id);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2458,7 +2458,7 @@
                     setTimeout(() => el.classList.remove('highlight-pulse'), 1500);
                 }
             }).catch(() => {
-                showToast('#' + id + ' — ' + teams + ' ' + datetime);
+                showToast('#' + id + ' � ' + teams + ' ' + datetime);
             });
         }
 
@@ -2469,19 +2469,19 @@
             currentBet = { id, teams, betType, coef, datetime, league };
 
             document.getElementById('bsMatch').textContent = teams;
-            document.getElementById('bsMeta').textContent = `${league} • #${id} • ${datetime}`;
+            document.getElementById('bsMeta').textContent = `${league} � #${id} � ${datetime}`;
             document.getElementById('bsOutcome').textContent = betType;
             document.getElementById('bsCoef').textContent = coef;
 
-            // Сброс инпута и выплаты
+            // ����� ������ � �������
             const input = document.getElementById('bsInput');
             input.value = '';
             document.getElementById('bsPayout').textContent = '0.00';
 
-            // Показываем купон
+            // ���������� �����
             document.getElementById('betSlip').classList.add('show');
 
-            // Фокус на инпут для удобства (на мобильных может вызывать клаву)
+            // ����� �� ����� ��� �������� (�� ��������� ����� �������� �����)
             setTimeout(() => input.focus(), 300);
         }
 
@@ -2505,7 +2505,7 @@
             const msg = `${currentBet.teams}, ${currentBet.betType} @ ${currentBet.coef}\n${currentBet.datetime} ${matchLink}`;
 
             navigator.clipboard.writeText(msg).then(() => {
-                // Сохраняем в локальную историю
+                // ��������� � ��������� �������
                 const payout = (parseFloat(amt) || 0) * (parseFloat(currentBet.coef) || 0);
                 saveBetToHistory({
                     timestamp: Date.now(),
@@ -2517,7 +2517,7 @@
                 });
 
                 closeBetSlip();
-                showToast('Данные для перевода скопированы!');
+                showToast('������ ��� �������� �����������!');
                 if (navigator.vibrate) navigator.vibrate(50);
             });
         }
@@ -2531,7 +2531,7 @@
         function saveBetToHistory(betItem) {
             const h = getHistory();
             h.unshift(betItem);
-            if (h.length > 50) h.pop(); // Храним только последние 50 ставок
+            if (h.length > 50) h.pop(); // ������ ������ ��������� 50 ������
             localStorage.setItem('prizmbet_history', JSON.stringify(h));
         }
 
@@ -2540,17 +2540,17 @@
             const history = getHistory();
 
             if (!history.length) {
-                list.innerHTML = '<div style="text-align:center; padding: 30px 10px; color: var(--text-tertiary);">Вы еще не делали ставок.</div>';
+                list.innerHTML = '<div style="text-align:center; padding: 30px 10px; color: var(--text-tertiary);">�� ��� �� ������ ������.</div>';
             } else {
                 list.innerHTML = history.map(h => {
                     const dt = new Date(h.timestamp).toLocaleString('ru-RU', {
                         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
                     });
-                    const payoutText = h.payout > 0 ? `+${h.payout.toFixed(2)} PZM` : '—';
+                    const payoutText = h.payout > 0 ? `+${h.payout.toFixed(2)} PZM` : '�';
                     return `
                         <div class="history-item">
                             <div class="history-item-header">
-                                <span>🕒 ${dt}</span>
+                                <span>?? ${dt}</span>
                                 <span style="color: #fff;">${h.amount} PZM</span>
                             </div>
                             <div class="history-item-match">${escapeHtml(h.teams)}</div>
@@ -2570,7 +2570,7 @@
         }
 
         function clearHistory() {
-            if (confirm('Вы уверены, что хотите удалить локальную историю ставок?')) {
+            if (confirm('�� �������, ��� ������ ������� ��������� ������� ������?')) {
                 localStorage.removeItem('prizmbet_history');
                 openHistory();
             }
@@ -2578,7 +2578,7 @@
 
         function copyWallet() {
             navigator.clipboard.writeText(document.getElementById('walletAddress').textContent).then(() => {
-                showToast('Адрес скопирован!');
+                showToast('����� ����������!');
                 if (navigator.vibrate) navigator.vibrate(50);
             });
         }
@@ -2599,7 +2599,7 @@
 
         window.addEventListener('load', () => {
             loadData().then(() => {
-                // После загрузки — проверяем якорь в URL
+                // ����� �������� � ��������� ����� � URL
                 if (window.location.hash && window.location.hash.startsWith('#match-')) {
                     setTimeout(() => {
                         const el = document.querySelector(window.location.hash);

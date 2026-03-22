@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Unified PrizmBet v3 service runner.
+
+Starts all backend services concurrently:
+  1. Bet Intents API      (aiohttp on port 8081)
+  2. Parser loop          (every PARSER_INTERVAL_SECONDS, default 300s)
+  3. PRIZM Tx Listener    (every 30s)
+  4. v3 Settler           (every 180s)
+  5. Auto-payout          (every 60s)
+
+Usage:
+    python -m backend.main
+"""
+import asyncio
+import logging
+import os
+import sys
+
+_repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+
+from aiohttp import web
+
+from backend.db.supabase_client import db
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+log = logging.getLogger("prizmbet.main")
+
+API_HOST = os.getenv("API_HOST", "0.0.0.0")
+API_PORT = int(os.getenv("API_PORT", "8081"))
+
+
+async def _run_api(app: web.Application) -> None:
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, API_HOST, API_PORT)
+    await site.start()
+    log.info("API server started on %s:%s", API_HOST, API_PORT)
+    # Keep running forever; cleanup is handled on cancellation.
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    finally:
+        await runner.cleanup()
+
+
+async def _run_parsers_loop() -> None:
+    from backend.run_parsers import run_parsers_loop
+    await run_parsers_loop()
+
+
+async def _run_tx_listener() -> None:
+    from backend.bot.tx_listener import main as tx_main
+    await tx_main()
+
+
+async def _run_settler() -> None:
+    from backend.bot.v3_settler import main as settler_main
+    await settler_main()
+
+
+async def _run_auto_payout() -> None:
+    from backend.bot.auto_payout import main as payout_main
+    await payout_main()
+
+
+async def main() -> None:
+    log.info("=" * 50)
+    log.info("PrizmBet v3 — Unified Service Runner")
+    log.info("=" * 50)
+
+    db.init()
+
+    from backend.api.bet_intents_api import create_app
+    app = create_app()
+
+    tasks = [
+        asyncio.create_task(_run_api(app), name="api"),
+        asyncio.create_task(_run_parsers_loop(), name="parsers"),
+        asyncio.create_task(_run_tx_listener(), name="tx_listener"),
+        asyncio.create_task(_run_settler(), name="settler"),
+        asyncio.create_task(_run_auto_payout(), name="auto_payout"),
+    ]
+
+    log.info(
+        "Services started: %s",
+        ", ".join(t.get_name() for t in tasks),
+    )
+
+    try:
+        done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+        for task in done:
+            if task.exception():
+                log.error("Service '%s' crashed: %s", task.get_name(), task.exception())
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        log.info("Shutdown requested")
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        log.info("All services stopped")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

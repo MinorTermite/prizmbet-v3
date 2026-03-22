@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 API-Football Parser (api-football.com via RapidAPI)
 Docs: https://www.api-football.com/documentation-v3
@@ -14,16 +14,16 @@ from backend.parsers.base_parser import BaseParser
 API_KEY = os.getenv("API_FOOTBALL_KEY", "")
 BASE_URL = "https://v3.football.api-sports.io"
 
-# League IDs → (sport_type, league_name)
+# League IDs в†’ (sport_type, league_name)
 # Optimized: Only top leagues to minimize API calls
 LEAGUES: Dict[int, tuple] = {
     2:   ("football", "Лига чемпионов УЕФА"),
     39:  ("football", "Англия. Премьер-лига"),
     140: ("football", "Испания. Ла Лига"),
-    135: ("football", "Италия. Серия А"),
+    135: ("football", "Италия. Серия A"),
     78:  ("football", "Германия. Бундеслига"),
     61:  ("football", "Франция. Лига 1"),
-    235: ("football", "Россия. Премьер-Лига"),  # РПЛ
+    235: ("football", "Россия. Премьер-лига"),
 }
 
 # Fetch fixtures N days into the future
@@ -108,7 +108,7 @@ class ApiFootballParser(BaseParser):
                             match_data["odds_2"] = odd
 
                 elif name in ("Goals Over/Under", "Over/Under"):
-                    # Собираем все линии тоталов, предпочитая 2.5
+                    # РЎРѕР±РёСЂР°РµРј РІСЃРµ Р»РёРЅРёРё С‚РѕС‚Р°Р»РѕРІ, РїСЂРµРґРїРѕС‡РёС‚Р°СЏ 2.5
                     best_over = None
                     best_under = None
                     best_val = None
@@ -156,7 +156,7 @@ class ApiFootballParser(BaseParser):
 
     async def parse(self) -> List[Dict]:
         if not API_KEY:
-            print("[ApiFootball] API_FOOTBALL_KEY not configured — skipping")
+            print("[ApiFootball] API_FOOTBALL_KEY not configured вЂ” skipping")
             return []
 
         # Fetch all fixtures via date-based query (free-plan compatible)
@@ -230,3 +230,4 @@ class ApiFootballParser(BaseParser):
 
         print(f"[ApiFootball] {len(all_matches)} matches processed")
         return all_matches
+

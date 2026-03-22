@@ -4,6 +4,12 @@
     padding-bottom: 36px;
 }
 
+.operator-shell .section {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
 .operator-hero-card,
 .operator-access-card {
     background: rgba(8, 10, 20, 0.84);
@@ -1753,7 +1759,6 @@
 }
 
 .operator-workspace-shell[hidden] { display: none !important; }
-.operator-shell.operator-shell--preauth .operator-workspace-shell { display: none !important; }
 .operator-shell.operator-shell--authed .operator-workspace-shell { display: block; }
 
 

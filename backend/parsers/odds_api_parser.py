@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Odds API Parser -- supports two providers:
@@ -31,14 +31,9 @@ IO_BOOKMAKER = "1xbet"  # bookmaker available on free plan
 # Free plan: 500 requests/month, 10 requests/minute
 # Optimized: Only top 3 leagues to stay within limits
 ODDS_API_SPORTS: Dict[str, Tuple[str, str]] = {
-    "soccer_uefa_champions_league": ("football", "Liga Chempionov UEFA"),
-    "soccer_epl":                   ("football", "Angliya. Premier-liga"),
-    "soccer_spain_la_liga":         ("football", "Ispaniya. La Liga"),
-    # Disabled to save quota:
-    # "soccer_germany_bundesliga":    ("football", "Germaniya. Bundesliga"),
-    # "soccer_italy_serie_a":         ("football", "Italiya. Seriya A"),
-    # "basketball_nba":               ("basket",   "NBA"),
-    # "icehockey_nhl":                ("hockey",   "NHL"),
+    "soccer_uefa_champions_league": ("football", "Лига чемпионов УЕФА"),
+    "soccer_epl":                   ("football", "Англия. Премьер-лига"),
+    "soccer_spain_la_liga":         ("football", "Испания. Ла Лига"),
 }
 
 # Top-league slug keywords for odds-api.io filtering
@@ -47,7 +42,7 @@ ODDS_API_SPORTS: Dict[str, Tuple[str, str]] = {
 IO_TOP_SLUGS = [
     "premier-league", "la-liga", "bundesliga", "serie-a", "ligue-1",
     "champions-league", "europa-league",
-    "russian-premier",  # РПЛ - приоритет для RU аудитории
+    "russian-premier",  # Р РџР› - РїСЂРёРѕСЂРёС‚РµС‚ РґР»СЏ RU Р°СѓРґРёС‚РѕСЂРёРё
     "nba", "nhl", "khl",
 ]
 
@@ -170,7 +165,7 @@ class OddsAPIParser(BaseParser):
                 if sport_type in ("tennis", "basket"):
                     md["odds_x"] = 0.0
             elif key in ("totals", "alternate_totals"):
-                # Ищем конкретно линию 2.5
+                # РС‰РµРј РєРѕРЅРєСЂРµС‚РЅРѕ Р»РёРЅРёСЋ 2.5
                 best_over = None
                 best_under = None
                 best_point = None
@@ -194,7 +189,7 @@ class OddsAPIParser(BaseParser):
                     elif fallback_point is not None and n == "Under" and fallback_under is None:
                         fallback_under = p
                 
-                # Предпочитаем 2.5, иначе берём основную линию
+                # РџСЂРµРґРїРѕС‡РёС‚Р°РµРј 2.5, РёРЅР°С‡Рµ Р±РµСЂС‘Рј РѕСЃРЅРѕРІРЅСѓСЋ Р»РёРЅРёСЋ
                 if best_point is not None:
                     md["total_value"] = best_point
                     md["total_over"] = best_over or 0.0
@@ -353,3 +348,4 @@ class OddsAPIParser(BaseParser):
         if not md["odds_1"] and not md["odds_2"]:
             return None
         return md
+

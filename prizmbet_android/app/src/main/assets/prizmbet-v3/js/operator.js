@@ -1306,6 +1306,7 @@ function labelRejectReason(reason) {
   const labels = {
     INVALID_INTENT: 'Intent code not found',
     DUST_DONATION: 'Amount is below the minimum bet',
+    MAX_BET_EXCEEDED: 'Amount is above the maximum bet',
     SENDER_MISMATCH: 'Sender wallet does not match the issued coupon',
     INTENT_EXPIRED: 'Coupon expired',
     MATCH_NOT_FOUND: 'Match not found in the current cache',

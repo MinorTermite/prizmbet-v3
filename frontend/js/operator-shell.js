@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = 'prizmbet_operator_console_v3';
+const STORAGE_KEY = 'prizmbet_operator_console_v3';
 const AUTO_REFRESH_MS = 20000;
 
 const state = {
@@ -235,14 +235,9 @@ function syncAutoRefresh() {
 }
 
 function detectApiBase() {
-  const origin = window.location.origin;
   const host = window.location.hostname;
   if (host === '127.0.0.1' || host === 'localhost') {
     return 'http://127.0.0.1:8081';
-  }
-  // When served by the backend itself, use the same origin
-  if (origin && origin !== 'null' && !origin.startsWith('file:')) {
-    return origin;
   }
   return '';
 }

@@ -45,6 +45,7 @@ class Config:
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 
     MIN_BET = float(os.getenv("MIN_BET", "10"))
+    MAX_BET = float(os.getenv("MAX_BET", "30000"))
     # Official PRIZM epoch from getConstants. Used for tx timestamp decoding.
     PRIZM_EPOCH = int(os.getenv("PRIZM_EPOCH", "1532715480"))
 

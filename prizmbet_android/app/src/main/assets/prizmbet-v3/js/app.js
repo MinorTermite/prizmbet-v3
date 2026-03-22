@@ -9,6 +9,7 @@ import * as betSlip from './modules/bet_slip.js';
 import * as historyUI from './modules/history_ui.js';
 import * as ui from './modules/ui.js';
 import * as i18n from './modules/i18n.js';
+import * as rails from './modules/payment_rails.js';
 
 let allMatches = [];
 let timeTicker = null;
@@ -266,6 +267,7 @@ window.addEventListener('load', () => {
     notif.updateNotifBell();
     wireFilters();
     bindHeaderUI();
+    rails.initPaymentRails();
     betSlip.initSmartBetting();
     historyUI.initHistoryUI();
 

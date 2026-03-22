@@ -4,6 +4,7 @@
 import { showToast } from './notifications.js';
 import { escapeHtml } from './utils.js';
 import { formatDateTime as formatDateTimeI18n, formatNumber as formatNumberI18n, formatOutcomeLabel, t } from './i18n.js';
+import { getActiveRail, getCopyDoneMessage, getCopyMissingMessage, getCouponRailHint, getRailAddress, getTransferChipText, getTransferInstruction, initPaymentRails, renderPaymentRailUI } from './payment_rails.js';
 import {
     getWalletAddress,
     saveWalletAddress,
@@ -11,9 +12,8 @@ import {
     upsertIntentRecord,
 } from './storage.js';
 
-const MASTER_WALLET = 'PRIZM-4N7T-L2A7-RQZA-5BETW';
 const MIN_BET = 1500;
-const MAX_BET = 200000;
+const MAX_BET = 30000;
 const INTENT_TTL_MS = 15 * 60 * 1000;
 const REJECT_LABELS = {
     LATE_BET: { ru: 'Перевод пришёл после безопасного окна', en: 'The transfer arrived after the safe prematch window' },
@@ -21,6 +21,9 @@ const REJECT_LABELS = {
     MATCH_ALREADY_STARTED: { ru: 'Событие уже началось', en: 'The event has already started' },
     SENDER_MISMATCH: { ru: 'Перевод пришёл с другого кошелька', en: 'The transfer came from another wallet' },
     INVALID_INTENT: { ru: 'Код ставки не распознан', en: 'The bet code was not recognized' },
+    WALLET_ACTIVE_INTENT_EXISTS: { ru: 'На этот кошелёк уже выпущен активный купон. Используйте его или дождитесь окончания окна.', en: 'This wallet already has an active coupon. Use it or wait until it expires.' },
+    WALLET_HAS_MULTIPLE_ACTIVE_INTENTS: { ru: 'На этом кошельке несколько активных купонов. Дождитесь окончания лишних купонов.', en: 'This wallet has multiple active coupons. Wait until the extra coupons expire.' },
+    AMBIGUOUS_WALLET_INTENT: { ru: 'По кошельку найдено несколько активных купонов. Нужен только один активный купон на кошелёк.', en: 'Multiple active coupons were found for this wallet. Keep only one active coupon per wallet.' },
     INTENT_EXPIRED: { ru: 'Срок действия кода истёк', en: 'The code expired' },
 };
 
@@ -81,6 +84,9 @@ let apiLive = false;
 let apiCheckPromise = null;
 let domBound = false;
 let countdownStarted = false;
+let statusPollTimer = null;
+const STATUS_POLL_INTERVAL_MS = 15_000;
+const STATUS_POLL_TERMINAL = new Set(['won', 'lost', 'paid', 'expired', 'rejected']);
 
 const dom = {};
 
@@ -90,6 +96,7 @@ export function initSmartBetting() {
     syncWalletInput(getWalletAddress());
     calcPayout();
     ensureApiStatus();
+    initPaymentRails();
 
     if (!countdownStarted) {
         countdownStarted = true;
@@ -108,6 +115,13 @@ export function initSmartBetting() {
 
     window.removeEventListener('prizmbet:wallet-changed', onExternalWalletChange);
     window.addEventListener('prizmbet:wallet-changed', onExternalWalletChange);
+    window.removeEventListener('prizmbet:payment-rail-changed', renderCoupon);
+    window.addEventListener('prizmbet:payment-rail-changed', renderCoupon);
+
+    // Resume polling if there is an active non-terminal intent from a previous session.
+    if (activeIntent?.intent_hash && activeIntent.mode === 'live' && !STATUS_POLL_TERMINAL.has(activeIntent.status)) {
+        startBetStatusPolling();
+    }
 }
 
 function bindDom() {
@@ -333,10 +347,16 @@ export function syncWalletInput(wallet) {
 }
 
 export function copyWallet(btn) {
-    copyText(MASTER_WALLET).then(() => {
+    const address = getRailAddress();
+    if (!address) {
+        showToast(getCopyMissingMessage());
+        return;
+    }
+    copyText(address).then(() => {
         const originalText = btn.innerHTML;
-        btn.innerHTML = '✅ Скопировано!';
-        setTimeout(() => { btn.innerHTML = originalText; }, 1800);
+        btn.innerHTML = `&#9989; <span data-wallet-copy-label="true">${getCopyDoneMessage()}</span>`;
+        setTimeout(() => { btn.innerHTML = originalText; renderPaymentRailUI(); }, 1800);
+        showToast(getCopyDoneMessage());
     });
 }
 
@@ -346,6 +366,55 @@ export function toggleMyBets() {
 
 export function checkMyBets() {
     if (typeof window.openHistory === 'function') window.openHistory();
+}
+
+function stopBetStatusPolling() {
+    if (statusPollTimer) {
+        clearInterval(statusPollTimer);
+        statusPollTimer = null;
+    }
+}
+
+function startBetStatusPolling() {
+    stopBetStatusPolling();
+    if (!activeIntent?.intent_hash || activeIntent.mode !== 'live' || !apiBase) return;
+
+    const hash = activeIntent.intent_hash;
+    statusPollTimer = setInterval(async () => {
+        if (!activeIntent || activeIntent.intent_hash !== hash) { stopBetStatusPolling(); return; }
+        try {
+            const resp = await fetch(`${apiBase}/api/bet-status/${encodeURIComponent(hash)}`, { mode: 'cors' });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const prev = activeIntent.status;
+            activeIntent = normalizeIntentRecord({
+                ...activeIntent,
+                status: data.status || activeIntent.status,
+                reject_reason: data.reject_reason || activeIntent.reject_reason,
+                mode: 'live',
+            });
+            if (prev !== activeIntent.status) {
+                const label = getStatusLabel(activeIntent.status) || activeIntent.status;
+                pushTimeline(activeIntent,
+                    isEnglish() ? 'Status updated' : 'Статус обновлён',
+                    `${isEnglish() ? 'New status:' : 'Новый статус:'} ${label}${data.payout_amount ? ` | ${isEnglish() ? 'Payout' : 'Выплата'}: ${formatNumber(data.payout_amount)} PRIZM` : ''}`
+                );
+            }
+            if (data.payout_tx_id && !activeIntent.payout_tx_id) {
+                activeIntent.payout_tx_id = data.payout_tx_id;
+                pushTimeline(activeIntent,
+                    isEnglish() ? 'Payout sent' : 'Выплата отправлена',
+                    `TX: ${data.payout_tx_id}`
+                );
+            }
+            upsertIntentRecord(activeIntent);
+            renderCoupon();
+            dispatchIntentUpdate();
+            if (STATUS_POLL_TERMINAL.has(activeIntent.status)) stopBetStatusPolling();
+        } catch (_) {
+            // Silently ignore network errors during polling.
+        }
+    }, STATUS_POLL_INTERVAL_MS);
 }
 
 async function issueIntent(form) {
@@ -371,6 +440,22 @@ async function issueIntent(form) {
                     errorCode = String(errorPayload.error || errorCode);
                 } catch (_) {
                     // Ignore payload parsing errors for validation messages.
+                }
+                if (response.status === 409) {
+                    const existingIntent = errorPayload?.existing_intent;
+                    if (existingIntent?.intent_hash) {
+                        intent.intent_hash = existingIntent.intent_hash;
+                        intent.odds_fixed = Number(existingIntent.odds_fixed || intent.odds_fixed);
+                        intent.expires_at = existingIntent.expires_at || intent.expires_at;
+                        intent.mode = 'live';
+                        pushTimeline(intent, 'Используется активный купон', 'Для этого кошелька уже есть активный купон. Система вернула действующий код вместо выпуска нового.');
+                        activeIntent = normalizeIntentRecord(intent);
+                        upsertIntentRecord(activeIntent);
+                        renderCoupon();
+                        dispatchIntentUpdate();
+                        showToast(getIntentIssueErrorMessage(errorCode));
+                        return;
+                    }
                 }
                 if (response.status >= 400 && response.status < 500) {
                     throw new Error(`VALIDATION:${errorCode}`);
@@ -399,6 +484,7 @@ async function issueIntent(form) {
     renderCoupon();
     dispatchIntentUpdate();
     showToast(activeIntent.mode === 'live' ? 'Код ставки выпущен.' : 'Код ставки сохранён на этом устройстве.');
+    startBetStatusPolling();
 }
 
 function buildLocalIntent(form) {
@@ -485,6 +571,11 @@ function renderCoupon() {
     if (dom.intentHash) dom.intentHash.textContent = activeIntent.intent_hash;
     if (dom.intentCountdown) dom.intentCountdown.textContent = formatCountdown(activeIntent.expires_at);
     if (dom.transferInstructions) dom.transferInstructions.textContent = buildTransferInstructions(activeIntent);
+    const transferChip = document.getElementById('bsTransferRailChip');
+    if (transferChip) transferChip.textContent = getTransferChipText();
+    const transferTip = document.getElementById('bsTransferRailTip');
+    if (transferTip) transferTip.textContent = getCouponRailHint();
+    renderPaymentRailUI();
     dom.issuedBlock?.classList.remove('hidden');
     renderTimeline(activeIntent);
 }
@@ -645,7 +736,7 @@ function getFlowHint(form, statusMeta) {
     }
     if (activeIntent.status === 'awaiting_payment') {
         if (isIntentInSync(activeIntent, form)) {
-            return isEnglish() ? 'The code is already issued. Send the transfer from the same wallet and use this code.' : 'Код уже выпущен. Отправьте перевод с этого же кошелька и укажите только этот код.';
+            return isEnglish() ? 'The code is already issued. Send the transfer from the same wallet. If the wallet encrypts messages, keep only one active coupon on this wallet.' : 'Код уже выпущен. Отправьте перевод с этого же кошелька. Если кошелёк шифрует сообщение, держите только один активный купон на этот кошелёк.';
         }
         return isEnglish() ? 'The bet parameters changed. Issue a new code to lock the updated coupon.' : 'Параметры ставки изменились. Выпустите новый код, чтобы зафиксировать обновлённый купон.';
     }
@@ -700,14 +791,16 @@ function getStatusMeta(status) {
 
 
 function buildTransferInstructions(intent) {
-    const base = isEnglish()
-        ? `Send ${formatNumber(intent.amount_prizm)} PRIZM to ${MASTER_WALLET}. Put code ${intent.intent_hash} into the transfer message.`
-        : `Отправьте ${formatNumber(intent.amount_prizm)} PRIZM на ${MASTER_WALLET}. В сообщении перевода укажите код ${intent.intent_hash}.`;
+    const rail = getActiveRail();
+    const base = getTransferInstruction({ amountPrizm: intent.amount_prizm, code: intent.intent_hash });
     const tail = apiLive
-        ? (isEnglish() ? 'After the transfer open the cabinet to see the status.' : 'После перевода откройте кабинет, чтобы увидеть статус.')
-        : (isEnglish() ? 'The code and history are already saved on this device.' : 'Код и история уже сохранены на этом устройстве.');
+        ? (isEnglish() ? 'After the transfer open the cabinet to see the status.' : '????? ???????? ???????? ???????, ????? ??????? ??????.')
+        : (isEnglish() ? 'The code and history are already saved on this device.' : '??? ? ??????? ??? ????????? ?? ???? ??????????.');
     const formula = getPayoutFormulaText(intent.amount_prizm, intent.odds_fixed);
-    return `${formula}. ${base} ${tail}`;
+    const railLead = rail.mode === 'auto'
+        ? (isEnglish() ? `Settlement rail: ${rail.code} / ${rail.chain}.` : `????????? ?????: ${rail.code} / ${rail.chain}.`)
+        : (isEnglish() ? `Selected rail: ${rail.code} / ${rail.chain}.` : `????????? ?????: ${rail.code} / ${rail.chain}.`);
+    return `${formula}. ${railLead} ${base} ${tail}`;
 }
 
 

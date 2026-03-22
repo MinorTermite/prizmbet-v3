@@ -110,6 +110,10 @@ async def _process_tx(tx: dict):
 
     if not intent:
         bet_row["reject_reason"] = bet_row.get("reject_reason") or "INVALID_INTENT"
+    elif amount > config.MAX_BET:
+        bet_row["match_id"] = str(intent["match_id"])
+        bet_row["odds_fixed"] = float(intent["odds_fixed"])
+        bet_row["reject_reason"] = "MAX_BET_EXCEEDED"
     elif amount < config.MIN_BET:
         bet_row["match_id"] = str(intent["match_id"])
         bet_row["odds_fixed"] = float(intent["odds_fixed"])

@@ -636,6 +636,64 @@ async def get_intent_status(request: web.Request) -> web.Response:
     return _json_response({"status": status, "intent": intent, "bet": bet})
 
 
+async def bet_status(request: web.Request) -> web.Response:
+    """Lightweight polling endpoint for frontend bet tracking."""
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    intent_hash = str(request.match_info.get("intent_hash") or "").strip().upper()
+    if not intent_hash:
+        return _json_response({"error": "intent_hash is required"}, status=400)
+
+    intent = await db.get_bet_intent(intent_hash)
+    if not intent:
+        return _json_response({"error": "intent not found"}, status=404)
+
+    bet = None
+    try:
+        bet_rows = (
+            db.client.table("bets")
+            .select("tx_id,status,amount_prizm,odds_fixed,payout_amount,payout_tx_id,reject_reason,created_at")
+            .eq("intent_hash", intent_hash)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+            .data
+        )
+        bet = bet_rows[0] if bet_rows else None
+    except Exception:
+        pass
+
+    expires_at = _parse_dt(intent.get("expires_at"))
+    now = datetime.now(timezone.utc)
+
+    if bet:
+        status = str(bet.get("status") or "accepted")
+    elif expires_at and expires_at < now:
+        status = "expired"
+    else:
+        status = "awaiting_payment"
+
+    match_id = str(intent.get("match_id") or "").strip()
+    match_cache = _load_matches_cache()
+    match = match_cache.get(match_id) or {}
+
+    return _json_response({
+        "status": status,
+        "intent_hash": intent_hash,
+        "match_id": match_id,
+        "match_label": f"{match.get('team1', '?')} — {match.get('team2', '?')}" if match else None,
+        "outcome": intent.get("outcome"),
+        "odds_fixed": intent.get("odds_fixed"),
+        "amount_prizm": float(bet.get("amount_prizm") or 0) if bet else None,
+        "payout_amount": float(bet.get("payout_amount") or 0) if bet else None,
+        "payout_tx_id": bet.get("payout_tx_id") if bet else None,
+        "reject_reason": bet.get("reject_reason") if bet else None,
+        "expires_at": intent.get("expires_at"),
+        "score": match.get("score") or None,
+    })
+
+
 async def wallet_dashboard(request: web.Request) -> web.Response:
     if not await _ensure_db_ready():
         return _json_response({"error": "Database not configured"}, status=500)
@@ -886,9 +944,20 @@ async def options_preflight(_: web.Request) -> web.Response:
     return _with_cors(web.Response(status=204))
 
 
+@web.middleware
+async def cors_middleware(request: web.Request, handler):
+    if request.method == "OPTIONS":
+        return _with_cors(web.Response(status=204))
+    try:
+        response = await handler(request)
+    except web.HTTPException as ex:
+        response = ex
+    response.headers.update(CORS_HEADERS)
+    return response
+
+
 def create_app() -> web.Application:
-    app = web.Application()
-    app.router.add_route("OPTIONS", "/{tail:.*}", options_preflight)
+    app = web.Application(middlewares=[cors_middleware])
     app.router.add_get("/health", health)
     app.router.add_get("/api/admin/bootstrap-state", bootstrap_state)
     app.router.add_post("/api/admin/bootstrap", bootstrap_admin)
@@ -900,10 +969,17 @@ def create_app() -> web.Application:
     app.router.add_post("/api/admin/users/{user_id}/set-active", admin_set_user_active)
     app.router.add_post("/api/intents", create_intent)
     app.router.add_get("/api/intents/{intent_hash}", get_intent_status)
+    app.router.add_get("/api/bet-status/{intent_hash}", bet_status)
     app.router.add_get("/api/wallets/{wallet}/dashboard", wallet_dashboard)
     app.router.add_get("/api/admin/feed", operator_feed)
     app.router.add_get("/api/admin/audit-log", operator_audit_log)
     app.router.add_post("/api/admin/bets/{tx_id}/mark-paid", mark_bet_paid)
+
+    # Serve frontend static files
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    if frontend_dir.is_dir():
+        app.router.add_static("/", frontend_dir, show_index=True)
+
     return app
 
 

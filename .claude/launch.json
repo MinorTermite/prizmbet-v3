@@ -2,22 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "Frontend (HTTP Server)",
+      "name": "PrizmBet Backend",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8000", "--directory", "frontend"],
-      "port": 8000
-    },
-    {
-      "name": "Run Parsers (generate matches.json)",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "backend.run_parsers"],
-      "port": 8001
-    },
-    {
-      "name": "Redis (Docker)",
-      "runtimeExecutable": "docker-compose",
-      "runtimeArgs": ["up", "redis"],
-      "port": 6379
+      "runtimeArgs": ["-m", "backend.main"],
+      "port": 8081
     }
   ]
 }

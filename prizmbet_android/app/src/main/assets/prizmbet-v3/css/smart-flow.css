@@ -2015,3 +2015,110 @@ button.market-chip:hover {
 }
 
 
+
+
+.wallet-rail-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 8px 0 12px;
+}
+
+.wallet-rail-btn {
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.035);
+    color: #fff;
+    cursor: pointer;
+    text-align: left;
+    transition: 0.2s ease;
+}
+
+.wallet-rail-btn:hover {
+    border-color: rgba(129, 140, 248, 0.4);
+}
+
+.wallet-rail-btn.is-active {
+    border-color: rgba(129, 140, 248, 0.68);
+    box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.22) inset;
+    background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(14,165,233,0.12));
+}
+
+.wallet-rail-btn__code {
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.wallet-rail-btn__mode {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.68);
+}
+
+.wallet-rail-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.wallet-rail-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.wallet-rail-badge--auto {
+    background: rgba(34,197,94,0.14);
+    color: #9ff4b6;
+    border: 1px solid rgba(34,197,94,0.22);
+}
+
+.wallet-rail-badge--manual {
+    background: rgba(245,158,11,0.14);
+    color: #ffd98c;
+    border: 1px solid rgba(245,158,11,0.22);
+}
+
+.wallet-rail-badge--pending {
+    background: rgba(148,163,184,0.14);
+    color: #d8deea;
+    border: 1px solid rgba(148,163,184,0.22);
+}
+
+.wallet-rail-chain {
+    color: rgba(255,255,255,0.68);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.qr-code--placeholder {
+    opacity: 0.82;
+    filter: saturate(0.7);
+}
+
+.btn.is-disabled,
+.btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.coupon-rail-tip {
+    margin-top: 10px;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+    .wallet-rail-switch {
+        grid-template-columns: 1fr;
+    }
+}
