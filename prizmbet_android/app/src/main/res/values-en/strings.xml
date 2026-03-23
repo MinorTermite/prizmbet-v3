@@ -11,8 +11,8 @@
     <string name="shortcut_refresh_short">Refresh</string>
     <string name="shortcut_refresh_long">Refresh line</string>
     <string name="splash_badge">Prizmbet</string>
-    <string name="splash_entry_title">Prizmbet — sports analytics</string>
-    <string name="splash_entry_subtitle">Open the app, pick a match and manage predictions in one mobile flow.</string>
-    <string name="splash_enter_button">Enter the app</string>
-    <string name="splash_entry_hint">The match line and wallet cabinet open after entry.</string>
+    <string name="splash_entry_title">Predictions on PRIZM blockchain</string>
+    <string name="splash_entry_subtitle">Events line, smart coupon and crypto wallet — all in one app.</string>
+    <string name="splash_enter_button">Enter</string>
+    <string name="splash_entry_hint">Line · Coupon · Wallet cabinet</string>
 </resources>
