@@ -2,10 +2,11 @@
 """Bet Intent API for public v3 flow and operator auth."""
 from __future__ import annotations
 
+import collections
 import json
-import random
 import secrets
 import string
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -90,7 +91,7 @@ def _extract_odds(match: dict[str, Any], outcome: str) -> float | None:
 
 def _intent_hash(length: int = 6) -> str:
     chars = string.ascii_uppercase + string.digits
-    return "".join(random.choice(chars) for _ in range(length))
+    return "".join(secrets.choice(chars) for _ in range(length))
 
 
 def _parse_dt(value: Any) -> datetime | None:
@@ -317,14 +318,17 @@ async def bootstrap_state(_: web.Request) -> web.Response:
     db_ready = await _ensure_db_ready()
     has_users = await db.has_admin_users() if db_ready else False
     bootstrap_allowed = bool(db_ready and not has_users and str(config.ADMIN_VIEW_KEY or "").strip())
-    return _json_response({
+    result = {
         "db_configured": db_ready,
         "has_admin_users": has_users,
         "bootstrap_allowed": bootstrap_allowed,
         "bootstrap_key_configured": bool(str(config.ADMIN_VIEW_KEY or "").strip()),
-        "owner_login": config.SUPER_ADMIN_LOGIN,
-        "owner_email_hint": _mask_email(config.SUPER_ADMIN_EMAIL),
-    })
+    }
+    # Only expose owner hints during bootstrap (before first admin is created)
+    if bootstrap_allowed:
+        result["owner_login"] = config.SUPER_ADMIN_LOGIN
+        result["owner_email_hint"] = _mask_email(config.SUPER_ADMIN_EMAIL)
+    return _json_response(result)
 
 
 async def bootstrap_admin(request: web.Request) -> web.Response:
@@ -909,16 +913,25 @@ async def mark_bet_paid(request: web.Request) -> web.Response:
         payload = {}
 
     payout_tx_id = str(payload.get("payout_tx_id") or "").strip()
+    expected_payout = float(current.get("payout_amount") or 0) or round(
+        float(current.get("amount_prizm") or 0) * float(current.get("odds_fixed") or 0), 2
+    )
     raw_payout_amount = payload.get("payout_amount")
     if raw_payout_amount in (None, ""):
-        payout_amount = float(current.get("payout_amount") or 0) or round(
-            float(current.get("amount_prizm") or 0) * float(current.get("odds_fixed") or 0), 2
-        )
+        payout_amount = expected_payout
     else:
         try:
             payout_amount = round(float(raw_payout_amount), 2)
         except (TypeError, ValueError):
             return _json_response({"error": "payout_amount must be numeric"}, status=400)
+        if payout_amount <= 0:
+            return _json_response({"error": "payout_amount must be positive"}, status=400)
+        # Prevent operator from setting arbitrary payout (allow ±10% of expected)
+        if expected_payout > 0 and abs(payout_amount - expected_payout) / expected_payout > 0.10:
+            return _json_response({
+                "error": "payout_amount deviates too much from expected",
+                "expected": expected_payout,
+            }, status=400)
 
     updated_rows = await db.mark_bet_paid(tx_id, payout_tx_id=payout_tx_id, payout_amount=payout_amount)
     updated = (updated_rows or [current])[0]
@@ -944,10 +957,48 @@ async def options_preflight(_: web.Request) -> web.Response:
     return _with_cors(web.Response(status=204))
 
 
+class _RateLimiter:
+    """Simple in-memory rate limiter per IP."""
+
+    def __init__(self, max_requests: int = 10, window_seconds: int = 60):
+        self._max = max_requests
+        self._window = window_seconds
+        self._hits: dict[str, collections.deque] = {}
+
+    def is_allowed(self, key: str) -> bool:
+        now = time.monotonic()
+        q = self._hits.get(key)
+        if q is None:
+            q = collections.deque()
+            self._hits[key] = q
+        while q and q[0] <= now - self._window:
+            q.popleft()
+        if len(q) >= self._max:
+            return False
+        q.append(now)
+        return True
+
+
+_login_limiter = _RateLimiter(max_requests=5, window_seconds=60)
+_intent_limiter = _RateLimiter(max_requests=config.RATE_LIMIT_REQUESTS, window_seconds=config.RATE_LIMIT_WINDOW)
+
+RATE_LIMITED_PATHS = {
+    "/api/admin/login": _login_limiter,
+    "/api/admin/bootstrap": _login_limiter,
+    "/api/intents": _intent_limiter,
+}
+
+
 @web.middleware
 async def cors_middleware(request: web.Request, handler):
     if request.method == "OPTIONS":
         return _with_cors(web.Response(status=204))
+    # Rate limiting for sensitive endpoints
+    limiter = RATE_LIMITED_PATHS.get(request.path)
+    if limiter and request.method == "POST":
+        ip = client_ip(request)
+        if not limiter.is_allowed(ip):
+            return _json_response({"error": "Too many requests, try again later"}, status=429)
     try:
         response = await handler(request)
     except web.HTTPException as ex:
