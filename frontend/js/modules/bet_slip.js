@@ -17,10 +17,10 @@ const MAX_BET = 30000;
 const INTENT_TTL_MS = 15 * 60 * 1000;
 const REJECT_LABELS = {
     LATE_BET: { ru: 'Перевод пришёл после безопасного окна', en: 'The transfer arrived after the safe prematch window' },
-    LIVE_DISABLED: { ru: 'Live-ставки отключены в публичной версии', en: 'Live betting is disabled in the public version' },
+    LIVE_DISABLED: { ru: 'Live-прогнозы отключены в публичной версии', en: 'Live predictions are disabled in the public version' },
     MATCH_ALREADY_STARTED: { ru: 'Событие уже началось', en: 'The event has already started' },
     SENDER_MISMATCH: { ru: 'Перевод пришёл с другого кошелька', en: 'The transfer came from another wallet' },
-    INVALID_INTENT: { ru: 'Код ставки не распознан', en: 'The bet code was not recognized' },
+    INVALID_INTENT: { ru: 'Код прогноза не распознан', en: 'The prediction code was not recognized' },
     WALLET_ACTIVE_INTENT_EXISTS: { ru: 'На этот кошелёк уже выпущен активный купон. Используйте его или дождитесь окончания окна.', en: 'This wallet already has an active coupon. Use it or wait until it expires.' },
     WALLET_HAS_MULTIPLE_ACTIVE_INTENTS: { ru: 'На этом кошельке несколько активных купонов. Дождитесь окончания лишних купонов.', en: 'This wallet has multiple active coupons. Wait until the extra coupons expire.' },
     AMBIGUOUS_WALLET_INTENT: { ru: 'По кошельку найдено несколько активных купонов. Нужен только один активный купон на кошелёк.', en: 'Multiple active coupons were found for this wallet. Keep only one active coupon per wallet.' },
@@ -49,9 +49,9 @@ function isPublicBetUnavailable(match) {
 
 function getPublicBetUnavailableMessage(match) {
     if (Boolean(match?.is_live)) {
-        return isEnglish() ? 'Live betting is disabled in the public version.' : 'Live-ставки отключены в публичной версии.';
+        return isEnglish() ? 'Live predictions are disabled in the public version.' : 'Live-прогнозы отключены в публичной версии.';
     }
-    return isEnglish() ? 'This event is no longer available for prematch betting.' : 'Это событие уже недоступно для prematch-ставки.';
+    return isEnglish() ? 'This event is no longer available for prematch predictions.' : 'Это событие уже недоступно для prematch-прогноза.';
 }
 
 function getIntentIssueErrorMessage(code) {
@@ -231,17 +231,17 @@ export async function copyBetSlipData() {
     }
     if (!form.wallet) {
         dom.walletInput?.focus();
-        showToast('Введите кошелёк игрока, чтобы выпустить код ставки.');
+        showToast('Введите кошелёк игрока, чтобы выпустить код прогноза.');
         return;
     }
     if (form.amount < MIN_BET) {
         dom.amountInput?.focus();
-        showToast(`Минимальная ставка — ${formatNumber(MIN_BET)} PRIZM.`);
+        showToast(`Минимальная сумма — ${formatNumber(MIN_BET)} PRIZM.`);
         return;
     }
     if (form.amount > MAX_BET) {
         dom.amountInput?.focus();
-        showToast(`Максимальная ставка — ${formatNumber(MAX_BET)} PRIZM.`);
+        showToast(`Максимальная сумма — ${formatNumber(MAX_BET)} PRIZM.`);
         return;
     }
     if (!form.coef || form.coef < 1.01) {
@@ -276,7 +276,7 @@ export async function refreshSlipStatus() {
             dom.timeline.innerHTML = `
                 <div class="coupon-timeline-item">
                     <strong>Следующий шаг</strong>
-                    <div>Введите кошелёк и сумму, выпустите код ставки и отправьте перевод на кошелёк проекта с этим кодом.</div>
+                    <div>Введите кошелёк и сумму, выпустите код прогноза и отправьте перевод на кошелёк проекта с этим кодом.</div>
                 </div>
             `;
         }
@@ -483,7 +483,7 @@ async function issueIntent(form) {
     upsertIntentRecord(activeIntent);
     renderCoupon();
     dispatchIntentUpdate();
-    showToast(activeIntent.mode === 'live' ? 'Код ставки выпущен.' : 'Код ставки сохранён на этом устройстве.');
+    showToast(activeIntent.mode === 'live' ? 'Код прогноза выпущен.' : 'Код прогноза сохранён на этом устройстве.');
     startBetStatusPolling();
 }
 
@@ -743,7 +743,7 @@ function getFlowHint(form, statusMeta) {
         if (isIntentInSync(activeIntent, form)) {
             return isEnglish() ? 'The code is already issued. Send the transfer from the same wallet. If the wallet encrypts messages, keep only one active coupon on this wallet.' : 'Код уже выпущен. Отправьте перевод с этого же кошелька. Если кошелёк шифрует сообщение, держите только один активный купон на этот кошелёк.';
         }
-        return isEnglish() ? 'The bet parameters changed. Issue a new code to lock the updated coupon.' : 'Параметры ставки изменились. Выпустите новый код, чтобы зафиксировать обновлённый купон.';
+        return isEnglish() ? 'The bet parameters changed. Issue a new code to lock the updated coupon.' : 'Параметры прогноза изменились. Выпустите новый код, чтобы зафиксировать обновлённый купон.';
     }
     return statusMeta.hint;
 }
@@ -761,14 +761,14 @@ function getStatusMeta(status) {
         return {
             label: getStatusLabel('accepted'),
             className: 'coupon-status--accepted',
-            hint: isEnglish() ? 'The transfer was found and the bet is accepted. Follow settlement in the cabinet.' : 'Перевод найден, ставка принята. Следите за расчётом в кабинете.',
+            hint: isEnglish() ? 'The transfer was found and the prediction is accepted. Follow settlement in the cabinet.' : 'Перевод найден, прогноз принят. Следите за расчётом в кабинете.',
         };
     }
     if (status === 'rejected') {
         return {
             label: getStatusLabel('rejected'),
             className: 'coupon-status--rejected',
-            hint: getRejectLabel(activeIntent?.reject_reason) || (isEnglish() ? 'The bet was rejected by system rules.' : 'Ставка отклонена системными правилами.'),
+            hint: getRejectLabel(activeIntent?.reject_reason) || (isEnglish() ? 'The prediction was rejected by system rules.' : 'Прогноз отклонён системными правилами.'),
         };
     }
     if (status === 'expired') {
@@ -783,8 +783,8 @@ function getStatusMeta(status) {
             label: getStatusLabel(status),
             className: 'coupon-status--settled',
             hint: status === 'won'
-                ? (isEnglish() ? 'The bet is settled as a win.' : 'Ставка рассчитана как выигрыш.')
-                : (isEnglish() ? 'The bet is settled as a loss.' : 'Ставка рассчитана как проигрыш.'),
+                ? (isEnglish() ? 'The prediction is settled as a win.' : 'Прогноз рассчитан как выигрыш.')
+                : (isEnglish() ? 'The prediction is settled as a loss.' : 'Прогноз рассчитан как проигрыш.'),
         };
     }
     return {

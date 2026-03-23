@@ -238,7 +238,7 @@ function getMaxRankText() {
     return getIsEn() ? 'Maximum cabinet level reached.' : 'Максимальный уровень кабинета уже достигнут.';
 }
 function getFirstCouponHint() {
-    return getIsEn() ? 'The cabinet will fill after the first issued bet code.' : 'Кабинет заполнится после выпуска первого кода ставки.';
+    return getIsEn() ? 'The cabinet will fill after the first issued code.' : 'Кабинет заполнится после выпуска первого кода.';
 }
 function getPreviewText() {
     return getIsEn() ? 'Issued codes, statuses and settlement will appear here after the first coupon.' : 'После первого купона здесь появятся коды, статусы и результаты расчёта.';
@@ -247,7 +247,7 @@ function getPreviewHeadline() {
     return getIsEn() ? 'The cabinet appears after the first coupon.' : 'Кабинет станет активным после первого купона.';
 }
 function getPreviewCodeLabel() {
-    return getIsEn() ? 'Bet code' : 'Код ставки';
+    return getIsEn() ? 'Code' : 'Код';
 }
 function getPreviewCodeValue() {
     return getIsEn() ? 'waiting for transfer' : 'ожидает перевод';
@@ -275,5 +275,5 @@ function getStatRejectedHint() { return getIsEn() ? 'Did not pass validation' : 
 function getStatWon() { return getIsEn() ? 'Won' : 'Выиграли'; }
 function getStatWonHint() { return getIsEn() ? 'Settled as wins' : 'Рассчитаны как выигрыш'; }
 function getStatTurnover() { return getIsEn() ? 'Turnover' : 'Оборот'; }
-function getStatTurnoverHint() { return getIsEn() ? 'Counted betting volume' : 'Учтённый объём ставок'; }
+function getStatTurnoverHint() { return getIsEn() ? 'Counted volume' : 'Учтённый объём'; }
 function getIsEn() { return document.documentElement.lang === 'en'; }

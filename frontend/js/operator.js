@@ -279,7 +279,7 @@ function labelTab(tab) {
     ru: {
       control: 'Управление',
       users: 'Пользователи',
-      feed: 'Ставки',
+      feed: 'Прогнозы',
       audit: 'Аудит',
     },
     en: {

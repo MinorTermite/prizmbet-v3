@@ -5,7 +5,7 @@
     ru: {
       'page.title': 'PRIZMBET - Кабинет оператора',
       'hero.eyebrow': 'Кабинет оператора',
-      'hero.title': 'Ставки, пользователи и аудит',
+      'hero.title': 'Прогнозы, пользователи и аудит',
       'hero.copy': 'Компактная рабочая панель для ставок, выплат и аудита.',
       'hero.back': 'Вернуться на сайт',
       'access.apiBase': 'API base',
@@ -62,13 +62,13 @@
       'status.paid': 'Выплачена',
       'audit.eyebrow': 'Журнал аудита',
       'audit.title': 'Последние backend и operator события',
-      'audit.copy': 'Здесь фиксируются принятые, отклонённые, рассчитанные и выплаченные ставки. При включённом webhook те же события могут зеркалироваться в Google Sheets.'
+      'audit.copy': 'Здесь фиксируются принятые, отклонённые, рассчитанные и выплаченные прогнозы. При включённом webhook те же события могут зеркалироваться в Google Sheets.'
     },
     en: {
       'page.title': 'PRIZMBET - Operator Console',
       'hero.eyebrow': 'Operator Console',
-      'hero.title': 'Bets, users and audit',
-      'hero.copy': 'Compact workspace for bets, payouts and audit.',
+      'hero.title': 'Predictions, users and audit',
+      'hero.copy': 'Compact workspace for predictions, payouts and audit.',
       'hero.back': 'Back to site',
       'access.apiBase': 'API base',
       'access.apiBasePlaceholder': 'https://your-backend.example',
@@ -124,7 +124,7 @@
       'status.paid': 'Paid',
       'audit.eyebrow': 'Audit log',
       'audit.title': 'Recent backend and operator events',
-      'audit.copy': 'Accepted, rejected, settled and paid bets are logged here. If the webhook is enabled, the same events can also be mirrored to Google Sheets.'
+      'audit.copy': 'Accepted, rejected, settled and paid predictions are logged here. If the webhook is enabled, the same events can also be mirrored to Google Sheets.'
     }
   };
 
@@ -229,7 +229,7 @@
     out = out.replace(/^Logged in as (.+)\.$/u, 'Вход выполнен: $1.');
     out = out.replace(/^User (.+) created\.$/u, 'Пользователь $1 создан.');
     out = out.replace(/^User (.+) updated\.$/u, 'Пользователь $1 обновлён.');
-    out = out.replace(/^Bet (.+) marked as paid\.$/u, 'Ставка $1 отмечена как выплаченная.');
+    out = out.replace(/^Bet (.+) marked as paid\.$/u, 'Прогноз $1 отмечен как выплаченный.');
     out = out.replace(/^Updated (.+)$/u, 'Обновлено $1');
     out = out.replace(/^(\d+) bets$/u, 'Ставок: $1');
     out = out.replace(/^(\d+) events$/u, 'Событий: $1');

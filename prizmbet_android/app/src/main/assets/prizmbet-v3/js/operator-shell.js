@@ -278,7 +278,7 @@ function labelTab(tab) {
     ru: {
       control: 'Управление',
       users: 'Пользователи',
-      feed: 'Ставки',
+      feed: 'Прогнозы',
       audit: 'Аудит',
     },
     en: {
@@ -311,7 +311,7 @@ function syncWorkspace() {
   }
 
   if (dom.workspaceShell) {
-    setHidden(dom.workspaceShell, !authed);
+    setHidden(dom.workspaceShell, false);
   }
 
   const allowed = availableTabs();

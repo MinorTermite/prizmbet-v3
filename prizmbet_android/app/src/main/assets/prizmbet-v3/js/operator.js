@@ -235,11 +235,12 @@ function syncAutoRefresh() {
 }
 
 function detectApiBase() {
+  const origin = window.location.origin;
   const host = window.location.hostname;
   if (host === '127.0.0.1' || host === 'localhost') {
     return 'http://127.0.0.1:8081';
   }
-  const origin = window.location.origin;
+  // When served by the backend itself, use the same origin
   if (origin && origin !== 'null' && !origin.startsWith('file:')) {
     return origin;
   }
@@ -278,7 +279,7 @@ function labelTab(tab) {
     ru: {
       control: 'Управление',
       users: 'Пользователи',
-      feed: 'Ставки',
+      feed: 'Прогнозы',
       audit: 'Аудит',
     },
     en: {
@@ -311,7 +312,7 @@ function syncWorkspace() {
   }
 
   if (dom.workspaceShell) {
-    setHidden(dom.workspaceShell, !authed);
+    setHidden(dom.workspaceShell, false);
   }
 
   const allowed = availableTabs();

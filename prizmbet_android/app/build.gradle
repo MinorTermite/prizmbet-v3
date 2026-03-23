@@ -29,7 +29,7 @@ android {
     // versionNameSuffix уже добавляет "-debug" к variant.versionName, дублировать не нужно
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            outputFileName = "prizmbet_${variant.versionName}.apk"
+            outputFileName = "Prizmbet_${variant.versionName}.apk"
         }
     }
 
