@@ -435,8 +435,9 @@ async function issueIntent(form) {
             });
             if (!response.ok) {
                 let errorCode = `HTTP_${response.status}`;
+                let errorPayload = null;
                 try {
-                    const errorPayload = await response.json();
+                    errorPayload = await response.json();
                     errorCode = String(errorPayload.error || errorCode);
                 } catch (_) {
                     // Ignore payload parsing errors for validation messages.

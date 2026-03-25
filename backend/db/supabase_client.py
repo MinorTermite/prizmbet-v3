@@ -494,4 +494,32 @@ class Database:
             return None
 
 
+    async def get_app_config(self, key: str) -> str | None:
+        """Fetch a single value from app_config by key. Returns None if not found."""
+        if not self.initialized:
+            return None
+        try:
+            rows = self.client.table("app_config").select("value").eq("key", key).limit(1).execute().data
+            return rows[0]["value"] if rows else None
+        except Exception as exc:
+            print(f"Error fetching app_config key={key}: {exc}")
+            return None
+
+    async def set_app_config(self, key: str, value: str) -> bool:
+        """Upsert a key/value pair in app_config. Returns True on success."""
+        if not self.initialized:
+            return False
+        try:
+            from datetime import datetime, timezone
+            self.client.table("app_config").upsert({
+                "key": key,
+                "value": value,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }).execute()
+            return True
+        except Exception as exc:
+            print(f"Error setting app_config key={key}: {exc}")
+            return False
+
+
 db = Database()

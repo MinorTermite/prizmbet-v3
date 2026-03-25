@@ -38,6 +38,7 @@
       <button class="operator-tab" type="button" data-operator-tab="users">Users</button>
       <button class="operator-tab" type="button" data-operator-tab="feed">Feed</button>
       <button class="operator-tab" type="button" data-operator-tab="audit">Audit</button>
+      <button class="operator-tab" type="button" data-operator-tab="wallet">Wallet</button>
     </div>
   </section>
   <section class="section operator-access">
@@ -206,6 +207,68 @@
     </div>
     <div class="operator-audit-body">
       <div id="auditList" class="operator-audit-list"></div>
+    </div>
+  </section>
+
+  <section id="walletSection" class="section operator-wallet-section operator-hidden" hidden aria-hidden="true">
+    <div class="operator-access-card">
+      <div>
+        <div class="smart-banner-eyebrow" data-oi18n="wallet.eyebrow">Wallet Management</div>
+        <h2 class="operator-subtitle" data-oi18n="wallet.title">Hot &amp; Admin wallets</h2>
+        <p class="operator-copy operator-copy--compact" data-oi18n="wallet.copy">The hot wallet receives bets and sends payouts automatically. The admin wallet is the finance manager's cold wallet — never used by the system.</p>
+      </div>
+
+      <div id="walletInfo" class="operator-wallet-info">
+        <div class="operator-wallet-grid">
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.hotAddress">Hot Wallet</div>
+            <div id="walletHotAddress" class="operator-meta-value operator-meta-mono">—</div>
+          </div>
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.balance">Balance</div>
+            <div id="walletBalance" class="operator-meta-value">—</div>
+          </div>
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.passphraseStatus">Passphrase</div>
+            <div id="walletPassphraseStatus" class="operator-meta-value">—</div>
+          </div>
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.masterKeyStatus">Master Key</div>
+            <div id="walletMasterKeyStatus" class="operator-meta-value">—</div>
+          </div>
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.adminAddress">Admin (Cold) Wallet</div>
+            <div id="walletAdminAddress" class="operator-meta-value operator-meta-mono">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="operator-actions">
+        <button id="walletRefreshBtn" class="operator-btn" data-oi18n="wallet.refresh" type="button">Refresh</button>
+      </div>
+      <div id="walletStatus" class="operator-status-line"></div>
+    </div>
+
+    <div id="passphraseSection" class="operator-access-card operator-hidden" hidden>
+      <div>
+        <div class="smart-banner-eyebrow" data-oi18n="wallet.passphraseEyebrow">Set Hot Wallet Passphrase</div>
+        <h2 class="operator-subtitle" data-oi18n="wallet.passphraseTitle">Encrypt &amp; store passphrase</h2>
+        <p class="operator-copy operator-copy--compact" data-oi18n="wallet.passphraseCopy">The passphrase is encrypted with AES-256-GCM using the server master key (PRIZM_MASTER_KEY) and stored in the database. It is never returned to the client.</p>
+      </div>
+      <div class="operator-access-grid">
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="wallet.passphraseInput">PRIZM Passphrase (seed phrase)</span>
+          <input id="hotPassphraseInput" class="operator-input" type="password" placeholder="Enter the hot wallet passphrase…" autocomplete="new-password">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="wallet.passphraseConfirm">Confirm passphrase</span>
+          <input id="hotPassphraseConfirm" class="operator-input" type="password" placeholder="Repeat the passphrase…" autocomplete="new-password">
+        </label>
+      </div>
+      <div class="operator-actions">
+        <button id="savePassphraseBtn" class="operator-btn operator-btn--primary" data-oi18n="wallet.passphraseSave" type="button">Encrypt &amp; Save</button>
+      </div>
+      <div id="passphraseStatus" class="operator-status-line"></div>
     </div>
   </section></div>
 </main>

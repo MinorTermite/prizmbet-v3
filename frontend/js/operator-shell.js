@@ -78,6 +78,19 @@ function cacheDom() {
 
   dom.statsGrid = document.getElementById('statsGrid');
   dom.queryInput = document.getElementById('queryInput');
+  dom.walletSection = document.getElementById('walletSection');
+  dom.walletHotAddress = document.getElementById('walletHotAddress');
+  dom.walletBalance = document.getElementById('walletBalance');
+  dom.walletPassphraseStatus = document.getElementById('walletPassphraseStatus');
+  dom.walletMasterKeyStatus = document.getElementById('walletMasterKeyStatus');
+  dom.walletAdminAddress = document.getElementById('walletAdminAddress');
+  dom.walletRefreshBtn = document.getElementById('walletRefreshBtn');
+  dom.walletStatus = document.getElementById('walletStatus');
+  dom.passphraseSection = document.getElementById('passphraseSection');
+  dom.hotPassphraseInput = document.getElementById('hotPassphraseInput');
+  dom.hotPassphraseConfirm = document.getElementById('hotPassphraseConfirm');
+  dom.savePassphraseBtn = document.getElementById('savePassphraseBtn');
+  dom.passphraseStatus = document.getElementById('passphraseStatus');
   dom.statusFilter = document.getElementById('statusFilter');
   dom.feedMeta = document.getElementById('feedMeta');
   dom.feedList = document.getElementById('feedList');
@@ -162,6 +175,28 @@ function bindEvents() {
       await copyValue(copyButton.getAttribute('data-copy') || '');
     }
   });
+
+  if (dom.walletRefreshBtn) {
+    dom.walletRefreshBtn.addEventListener('click', async () => {
+      await loadWallet();
+    });
+  }
+
+  if (dom.savePassphraseBtn) {
+    dom.savePassphraseBtn.addEventListener('click', async () => {
+      await handleSavePassphrase();
+    });
+  }
+
+  if (dom.tabButtons.length) {
+    dom.tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        if (button.dataset.operatorTab === 'wallet' && state.currentUser) {
+          loadWallet();
+        }
+      });
+    });
+  }
 
   dom.userList.addEventListener('click', async (event) => {
     const toggleButton = event.target.closest('[data-toggle-user]');
@@ -260,9 +295,10 @@ function buildAuthHeaders() {
 
 function availableTabs() {
   if (!state.currentUser) return ['control'];
-  return state.currentUser.role === 'super_admin'
-    ? ['control', 'users', 'feed', 'audit']
-    : ['control', 'feed', 'audit'];
+  const role = state.currentUser.role;
+  if (role === 'super_admin') return ['control', 'users', 'feed', 'audit', 'wallet'];
+  if (role === 'finance') return ['control', 'feed', 'audit', 'wallet'];
+  return ['control', 'feed', 'audit'];
 }
 
 function getOperatorLang() {
@@ -280,12 +316,14 @@ function labelTab(tab) {
       users: 'Пользователи',
       feed: 'Прогнозы',
       audit: 'Аудит',
+      wallet: 'Кошельки',
     },
     en: {
       control: 'Control',
       users: 'Users',
       feed: 'Feed',
       audit: 'Audit',
+      wallet: 'Wallet',
     },
   };
   const lang = getOperatorLang();
@@ -343,7 +381,8 @@ function syncWorkspace() {
     return;
   }
 
-  const isSuper = state.currentUser.role === 'super_admin';
+  const role = state.currentUser.role;
+  const isSuper = role === 'super_admin';
   const active = state.activeTab || 'control';
   const showControl = active === 'control';
 
@@ -352,6 +391,11 @@ function syncWorkspace() {
   setHidden(dom.feedSection, active !== 'feed');
   setHidden(dom.auditSection, active !== 'audit');
   setHidden(dom.userManagementSection, !(isSuper && active === 'users'));
+  setHidden(dom.walletSection, active !== 'wallet');
+
+  if (dom.passphraseSection) {
+    setHidden(dom.passphraseSection, !(active === 'wallet' && isSuper));
+  }
 }
 
 async function connectFlow() {
@@ -437,6 +481,9 @@ async function refreshCurrentView() {
     const ok = await loadMe();
     if (ok) {
       await fetchFeed();
+      if (state.activeTab === 'wallet') {
+        await loadWallet();
+      }
       return;
     }
   }
@@ -1387,6 +1434,101 @@ function escapeHtml(value) {
 
 function escapeAttr(value) {
   return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
+async function loadWallet() {
+  if (!state.apiBase || !state.sessionToken) return;
+  if (dom.walletStatus) dom.walletStatus.textContent = 'Loading…';
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/wallet`, {
+      headers: buildAuthHeaders(),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      if (dom.walletStatus) dom.walletStatus.textContent = normalizeErrorMessage(err, 'Failed to load wallet info.');
+      return;
+    }
+    const data = await response.json();
+    renderWalletInfo(data);
+    if (dom.walletStatus) dom.walletStatus.textContent = '';
+  } catch (e) {
+    if (dom.walletStatus) dom.walletStatus.textContent = 'Network error loading wallet info.';
+  }
+}
+
+function renderWalletInfo(data) {
+  const hot = data.hot_wallet || {};
+  const admin = data.admin_wallet || {};
+  const lang = getOperatorLang();
+
+  if (dom.walletHotAddress) dom.walletHotAddress.textContent = hot.address || '—';
+
+  if (dom.walletBalance) {
+    if (hot.balance == null) {
+      dom.walletBalance.textContent = lang === 'ru' ? 'Нет данных' : 'Unavailable';
+    } else {
+      dom.walletBalance.textContent = `${Number(hot.balance).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} PRIZM`;
+    }
+  }
+
+  if (dom.walletPassphraseStatus) {
+    dom.walletPassphraseStatus.textContent = hot.passphrase_configured
+      ? (lang === 'ru' ? '✅ Настроена' : '✅ Configured')
+      : (lang === 'ru' ? '⚠️ Не настроена' : '⚠️ Not configured');
+  }
+
+  if (dom.walletMasterKeyStatus) {
+    dom.walletMasterKeyStatus.textContent = data.master_key_configured
+      ? (lang === 'ru' ? '✅ Есть в .env' : '✅ Set in .env')
+      : (lang === 'ru' ? '❌ Отсутствует' : '❌ Missing');
+  }
+
+  if (dom.walletAdminAddress) {
+    dom.walletAdminAddress.textContent = admin.address || (lang === 'ru' ? 'Не задан' : 'Not set');
+  }
+}
+
+async function handleSavePassphrase() {
+  const pass = dom.hotPassphraseInput ? dom.hotPassphraseInput.value : '';
+  const confirm = dom.hotPassphraseConfirm ? dom.hotPassphraseConfirm.value : '';
+  const lang = getOperatorLang();
+
+  if (!pass) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Введите парольную фразу.' : 'Enter the passphrase.';
+    return;
+  }
+  if (pass !== confirm) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Фразы не совпадают.' : 'Passphrases do not match.';
+    return;
+  }
+  if (pass.length < 8) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Минимум 8 символов.' : 'Minimum 8 characters.';
+    return;
+  }
+
+  if (dom.savePassphraseBtn) dom.savePassphraseBtn.disabled = true;
+  if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Сохранение…' : 'Saving…';
+
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/wallet/passphrase`, {
+      method: 'POST',
+      headers: { ...buildAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passphrase: pass }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (dom.passphraseStatus) dom.passphraseStatus.textContent = normalizeErrorMessage(result, 'Failed to save passphrase.');
+    } else {
+      if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? '✅ Парольная фраза зашифрована и сохранена.' : '✅ Passphrase encrypted and saved.';
+      if (dom.hotPassphraseInput) dom.hotPassphraseInput.value = '';
+      if (dom.hotPassphraseConfirm) dom.hotPassphraseConfirm.value = '';
+      await loadWallet();
+    }
+  } catch (e) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Ошибка сети.' : 'Network error.';
+  } finally {
+    if (dom.savePassphraseBtn) dom.savePassphraseBtn.disabled = false;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

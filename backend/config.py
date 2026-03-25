@@ -49,5 +49,15 @@ class Config:
     # Official PRIZM epoch from getConstants. Used for tx timestamp decoding.
     PRIZM_EPOCH = int(os.getenv("PRIZM_EPOCH", "1532715480"))
 
+    # Two-wallet setup:
+    # HOT wallet — receives bets and sends payouts automatically.
+    # Its passphrase is stored AES-256-GCM encrypted in app_config DB table.
+    # The encryption key (PRIZM_MASTER_KEY) lives ONLY in this .env file.
+    PRIZM_MASTER_KEY = os.getenv("PRIZM_MASTER_KEY", "")       # 32-byte base64url key for AES-256-GCM
+    PRIZM_HOT_WALLET = os.getenv("PRIZM_HOT_WALLET", "")       # Hot wallet public address
+    # ADMIN wallet — finance manager's personal wallet, never used automatically.
+    # Only its public address is stored here for display in the operator cabinet.
+    PRIZM_ADMIN_WALLET = os.getenv("PRIZM_ADMIN_WALLET", "")   # Admin/cold wallet public address
+
 
 config = Config()
