@@ -32,13 +32,14 @@ async def _ensure_db() -> None:
         raise RuntimeError("Supabase is not configured")
 
 
-def _send_prizm(recipient: str, amount: float, message: str = "") -> dict[str, Any] | None:
+async def _send_prizm(recipient: str, amount: float, passphrase: str, message: str = "") -> dict[str, Any] | None:
     """Send PRIZM via the blockchain sendMoney API.
 
     Returns the parsed JSON response on success, or None on failure.
+    The passphrase is passed explicitly — never read from a module-level variable.
     """
-    if not prizm_api.PASSPHRASE:
-        log.error("PRIZM_PASSPHRASE is not set — cannot send payouts")
+    if not passphrase:
+        log.error("Hot wallet passphrase is not available — cannot send payouts")
         return None
 
     amount_nqt = int(round(amount * prizm_api.NQT))
@@ -47,7 +48,7 @@ def _send_prizm(recipient: str, amount: float, message: str = "") -> dict[str, A
 
     params = {
         "requestType": "sendMoney",
-        "secretPhrase": prizm_api.PASSPHRASE,
+        "secretPhrase": passphrase,
         "recipient": recipient,
         "amountNQT": str(amount_nqt),
         "feeNQT": "5",
@@ -120,8 +121,9 @@ async def _process_payout(bet: dict[str, Any]) -> bool:
         log.warning("[INSUFFICIENT] Balance %.2f < payout %.2f — skipping tx=%s", balance, payout_amount, tx_id[:18])
         return False
 
+    passphrase = await prizm_api.get_hot_passphrase()
     message = f"PrizmBet payout | bet {tx_id[:18]}"
-    result = _send_prizm(sender_wallet, payout_amount, message=message)
+    result = await _send_prizm(sender_wallet, payout_amount, passphrase, message=message)
     if not result:
         log.error("[FAIL] sendMoney failed for tx=%s amount=%.2f to %s", tx_id[:18], payout_amount, sender_wallet)
         return False

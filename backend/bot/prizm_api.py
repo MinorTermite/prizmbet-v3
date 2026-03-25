@@ -64,6 +64,22 @@ def _get(params: dict, timeout=12) -> dict | None:
     return None
 
 
+def _post(params: dict, timeout=12) -> dict | None:
+    """Send a POST request to PRIZM nodes.  Use this for any call that
+    includes sensitive data (e.g. secretPhrase) to keep it out of
+    query strings / server access logs."""
+    for node in PRIZM_NODES:
+        try:
+            r = requests.post(f"{node}/prizm", data=params, timeout=timeout, verify=True)
+            if r.ok:
+                data = r.json()
+                if "errorCode" not in data:
+                    return data
+        except Exception:
+            continue
+    return None
+
+
 def get_transactions(first_index=0, last_index=99, account=None) -> list[dict]:
     """Получить список транзакций кошелька PRIZM"""
     data = _get({
@@ -103,20 +119,21 @@ def get_new_transactions() -> list[dict]:
     return new_txs
 
 
-def decrypt_message(tx: dict) -> str:
+def decrypt_message(tx: dict, passphrase: str = "") -> str:
     """
     Расшифровать зашифрованное сообщение транзакции через PRIZM API readMessage.
-    Требуется PASSPHRASE (приватный ключ кошелька).
+    Использует POST чтобы secretPhrase не попадал в URL / access-логи.
     """
-    if not PASSPHRASE:
+    secret = passphrase or PASSPHRASE
+    if not secret:
         return ""
     tx_id = tx.get("transaction", "")
     if not tx_id:
         return ""
-    data = _get({
+    data = _post({
         "requestType": "readMessage",
         "transaction": tx_id,
-        "secretPhrase": PASSPHRASE,
+        "secretPhrase": secret,
     })
     if data:
         return data.get("decryptedMessage", data.get("message", "")).strip()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import collections
 import json
+import os
 import secrets
 import string
 import time
@@ -1022,8 +1023,10 @@ async def admin_wallet_set_passphrase(request: web.Request) -> web.Response:
     try:
         from backend.utils.wallet_crypto import encrypt_passphrase
         encrypted = encrypt_passphrase(passphrase)
-    except Exception as exc:
-        return _json_response({"error": f"Encryption failed: {exc}"}, status=500)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Passphrase encryption failed")
+        return _json_response({"error": "Encryption failed. Check server configuration."}, status=500)
 
     ok = await db.set_app_config("hot_wallet_passphrase_enc", encrypted)
     if not ok:
@@ -1077,18 +1080,39 @@ class _RateLimiter:
 
 _login_limiter = _RateLimiter(max_requests=5, window_seconds=60)
 _intent_limiter = _RateLimiter(max_requests=config.RATE_LIMIT_REQUESTS, window_seconds=config.RATE_LIMIT_WINDOW)
+_passphrase_limiter = _RateLimiter(max_requests=3, window_seconds=60)
 
 RATE_LIMITED_PATHS = {
     "/api/admin/login": _login_limiter,
     "/api/admin/bootstrap": _login_limiter,
+    "/api/admin/wallet/passphrase": _passphrase_limiter,
     "/api/intents": _intent_limiter,
 }
+
+# Admin-path prefix — used to restrict CORS origin for sensitive endpoints.
+_ADMIN_PATH_PREFIX = "/api/admin/"
+_ALLOWED_ADMIN_ORIGIN = os.environ.get("ADMIN_CORS_ORIGIN", "").strip()
+
+ADMIN_CORS_HEADERS_STRICT = {
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, X-Admin-Session, Authorization",
+}
+
+
+def _cors_headers_for(request: web.Request) -> dict[str, str]:
+    """Return CORS headers.  Admin endpoints get a restricted origin
+    (if ADMIN_CORS_ORIGIN is set) instead of the wildcard."""
+    if request.path.startswith(_ADMIN_PATH_PREFIX) and _ALLOWED_ADMIN_ORIGIN:
+        return {**ADMIN_CORS_HEADERS_STRICT, "Access-Control-Allow-Origin": _ALLOWED_ADMIN_ORIGIN}
+    return CORS_HEADERS
 
 
 @web.middleware
 async def cors_middleware(request: web.Request, handler):
     if request.method == "OPTIONS":
-        return _with_cors(web.Response(status=204))
+        resp = web.Response(status=204)
+        resp.headers.update(_cors_headers_for(request))
+        return resp
     # Rate limiting for sensitive endpoints
     limiter = RATE_LIMITED_PATHS.get(request.path)
     if limiter and request.method == "POST":
@@ -1099,7 +1123,7 @@ async def cors_middleware(request: web.Request, handler):
         response = await handler(request)
     except web.HTTPException as ex:
         response = ex
-    response.headers.update(CORS_HEADERS)
+    response.headers.update(_cors_headers_for(request))
     return response
 
 

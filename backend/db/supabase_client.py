@@ -38,6 +38,15 @@ class Database:
                 self.client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
                 self.initialized = True
                 print("Database connected")
+                # Verify the key can access app_config (requires service-role key).
+                try:
+                    self.client.table("app_config").select("key").limit(1).execute()
+                except Exception:
+                    print(
+                        "WARNING: SUPABASE_KEY cannot read app_config table. "
+                        "Make sure you are using the service-role key, NOT the anon key. "
+                        "Encrypted passphrase storage will NOT work with the anon key."
+                    )
             except Exception as exc:
                 print(f"Database connection failed: {exc}")
                 self.initialized = False

@@ -220,25 +220,31 @@ function restoreState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     state.apiBase = normalizeApiBase(saved.apiBase || detectApiBase());
-    state.sessionToken = String(saved.sessionToken || '');
     state.query = String(saved.query || '');
     state.status = String(saved.status || '');
     state.autoRefresh = saved.autoRefresh !== false;
     state.activeTab = 'control';
+    // Session token is stored in sessionStorage (dies with tab) — not localStorage.
+    state.sessionToken = String(sessionStorage.getItem(STORAGE_KEY + '_token') || '');
   } catch {
     state.apiBase = detectApiBase();
   }
 }
 
 function persistState() {
+  // Preferences go to localStorage (persistent); token goes to sessionStorage (tab-scoped).
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     apiBase: state.apiBase,
-    sessionToken: state.sessionToken,
     query: state.query,
     status: state.status,
     autoRefresh: state.autoRefresh,
     activeTab: state.activeTab,
   }));
+  if (state.sessionToken) {
+    sessionStorage.setItem(STORAGE_KEY + '_token', state.sessionToken);
+  } else {
+    sessionStorage.removeItem(STORAGE_KEY + '_token');
+  }
 }
 
 function syncInputs() {
