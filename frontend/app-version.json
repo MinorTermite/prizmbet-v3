@@ -1,9 +1,9 @@
 {
   "prizmbet": {
-    "versionCode": 2,
-    "versionName": "1.1",
+    "versionCode": 3,
+    "versionName": "1.2",
     "apkUrl": "http://213.165.38.210/apk/prizmbet.apk",
-    "changelog": "Подключение к серверу, исправления интерфейса"
+    "changelog": "Дашборд статистики, CSV экспорт, исправления UI"
   },
   "operator": {
     "versionCode": 1,
