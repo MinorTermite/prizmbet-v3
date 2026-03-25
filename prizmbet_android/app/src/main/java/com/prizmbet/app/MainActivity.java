@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String SITE_URL     = "http://213.165.38.210/";
     private static final String VERSION_URL  = "http://213.165.38.210/app-version.json";
     private static final String APP_KEY      = "prizmbet";
-    private static final int    CURRENT_VERSION_CODE = 2;
+    private static final int    CURRENT_VERSION_CODE = 3;
     public  static final String EXTRA_SHORTCUT = "shortcut_action";
 
     private static final String[] ALLOWED_HOSTS = {
