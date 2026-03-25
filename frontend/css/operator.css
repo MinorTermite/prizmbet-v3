@@ -705,7 +705,7 @@
     }
 
     .operator-shell.operator-shell--authed .operator-stats {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .operator-shell.operator-shell--authed .operator-stat-card {
@@ -941,9 +941,33 @@
     background: linear-gradient(90deg, rgba(110, 99, 255, 0.18), rgba(42, 184, 255, 0.62), rgba(110, 99, 255, 0.18));
 }
 
+.operator-stat-card[data-tone="good"] .operator-stat-value { color: #4ade80; }
+.operator-stat-card[data-tone="bad"] .operator-stat-value { color: #f87171; }
+.operator-stat-card[data-tone="warn"] .operator-stat-value { color: #fbbf24; }
+
 .operator-stat-value {
     letter-spacing: -0.03em;
     text-shadow: 0 0 18px rgba(94, 82, 255, 0.16);
+}
+
+.operator-export-row {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 4px 0;
+}
+
+.operator-chip--export {
+    background: rgba(99, 102, 241, 0.14);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.operator-chip--export:hover {
+    background: rgba(99, 102, 241, 0.28);
+    border-color: rgba(99, 102, 241, 0.5);
 }
 
 .operator-card:hover,
@@ -1217,7 +1241,7 @@
     }
 
     .operator-shell.operator-shell--authed .operator-stats {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 6px;
     }
 
@@ -1523,7 +1547,7 @@
   }
 
   .operator-shell.operator-shell--authed .operator-stats {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
   }
 
@@ -1633,7 +1657,7 @@
   }
 
   .operator-shell.operator-shell--authed[data-active-tab='control'] .operator-stats {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
   }
 

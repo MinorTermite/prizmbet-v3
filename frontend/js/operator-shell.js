@@ -975,32 +975,85 @@ function renderStats() {
   const stats = state.stats;
   if (!stats) {
     dom.statsGrid.innerHTML = [
-      buildStatCard('Feed size', '0'),
-      buildStatCard('Accepted', '0'),
-      buildStatCard('To payout', '0'),
-      buildStatCard('Paid', '0'),
-      buildStatCard('Turnover', '0 PRIZM'),
+      buildStatCard('Turnover', '0 PRIZM', 'neutral'),
+      buildStatCard('Profit', '0 PRIZM', 'neutral'),
+      buildStatCard('Win rate', '0%', 'neutral'),
+      buildStatCard('Avg bet', '0 PRIZM', 'neutral'),
+      buildStatCard('Accepted', '0', 'neutral'),
+      buildStatCard('To payout', '0', 'neutral'),
+      buildStatCard('Paid', '0', 'neutral'),
+      buildStatCard('Lost', '0', 'neutral'),
     ].join('');
     return;
   }
 
+  const profit = stats.profit_prizm ?? 0;
+  const profitTone = profit > 0 ? 'good' : profit < 0 ? 'bad' : 'neutral';
+
   dom.statsGrid.innerHTML = [
-    buildStatCard('Feed size', formatNumber(stats.total_items)),
-    buildStatCard('Accepted', formatNumber(stats.accepted_count)),
-    buildStatCard('To payout', formatNumber(stats.to_payout_count ?? stats.won_count ?? 0)),
-    buildStatCard('Paid', formatNumber(stats.paid_count ?? 0)),
-    buildStatCard('Turnover', `${formatNumber(stats.turnover_prizm)} PRIZM`),
-  ].join('');
+    buildStatCard('Turnover', `${formatNumber(stats.turnover_prizm)} PRIZM`, 'neutral'),
+    buildStatCard('Profit', `${profit >= 0 ? '+' : ''}${formatNumber(profit)} PRIZM`, profitTone),
+    buildStatCard('Win rate', `${stats.win_rate ?? 0}%`, 'neutral'),
+    buildStatCard('Avg bet', `${formatNumber(stats.avg_bet_prizm ?? 0)} PRIZM`, 'neutral'),
+    buildStatCard('Accepted', formatNumber(stats.accepted_count), 'good'),
+    buildStatCard('To payout', formatNumber(stats.to_payout_count ?? stats.won_count ?? 0), 'warn'),
+    buildStatCard('Paid', `${formatNumber(stats.paid_count ?? 0)} (${formatNumber(stats.paid_amount_prizm ?? 0)} PRIZM)`, 'good'),
+    buildStatCard('Lost', formatNumber(stats.lost_count), 'bad'),
+  ].join('') + renderExportButton();
 }
 
-function buildStatCard(label, value) {
+function buildStatCard(label, value, tone) {
   return `
-    <article class="operator-stat-card">
+    <article class="operator-stat-card" data-tone="${tone || 'neutral'}">
       <div class="operator-stat-label">${escapeHtml(label)}</div>
       <div class="operator-stat-value">${escapeHtml(value)}</div>
     </article>
   `;
 }
+
+function renderExportButton() {
+  const role = state.currentUser?.role;
+  if (role !== 'super_admin' && role !== 'finance') return '';
+  return `
+    <div class="operator-export-row">
+      <button class="operator-chip operator-chip--export" type="button" onclick="exportCSV()">Export CSV</button>
+      <button class="operator-chip operator-chip--export" type="button" onclick="exportCSV('accepted')">Accepted</button>
+      <button class="operator-chip operator-chip--export" type="button" onclick="exportCSV('won')">Won</button>
+      <button class="operator-chip operator-chip--export" type="button" onclick="exportCSV('paid')">Paid</button>
+    </div>
+  `;
+}
+
+window.exportCSV = async function(statusFilter) {
+  if (!state.apiBase || !state.sessionToken) {
+    renderStatus('Log in first.', 'warn');
+    return;
+  }
+  const url = new URL(`${state.apiBase}/api/admin/export-csv`);
+  url.searchParams.set('limit', '2000');
+  if (statusFilter) url.searchParams.set('status', statusFilter);
+  try {
+    const resp = await fetch(url.toString(), { headers: buildAuthHeaders() });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      renderStatus(normalizeErrorMessage(err, 'CSV export failed.'), 'bad');
+      return;
+    }
+    const blob = await resp.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const cd = resp.headers.get('content-disposition') || '';
+    const match = cd.match(/filename="?([^"]+)"?/);
+    a.download = match ? match[1] : 'prizmbet_export.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    renderStatus('CSV exported.', 'good');
+  } catch {
+    renderStatus('Network error during CSV export.', 'bad');
+  }
+};
 
 function renderFeedMeta() {
   const parts = [];

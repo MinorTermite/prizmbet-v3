@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import collections
+import csv
+import io
 import json
 import os
 import secrets
@@ -838,20 +840,34 @@ async def operator_feed(request: web.Request) -> web.Response:
         if len(items) >= limit:
             break
 
-    turnover = round(sum(item["amount_prizm"] for item in items if item["status"] in ACCEPTED_STATUSES), 2)
-    potential = round(sum(item["potential_payout_prizm"] for item in items if item["status"] in ACCEPTED_STATUSES), 2)
+    accepted_items = [item for item in items if item["status"] in ACCEPTED_STATUSES]
+    turnover = round(sum(item["amount_prizm"] for item in accepted_items), 2)
+    potential = round(sum(item["potential_payout_prizm"] for item in accepted_items), 2)
+    won_count = sum(1 for item in items if item["status"] == "won")
+    lost_count = sum(1 for item in items if item["status"] == "lost")
+    paid_count = sum(1 for item in items if item["status"] == "paid")
+    paid_amount = round(sum(float(item.get("potential_payout_prizm") or 0) for item in items if item["status"] == "paid"), 2)
+    lost_amount = round(sum(float(item.get("amount_prizm") or 0) for item in items if item["status"] == "lost"), 2)
+    settled_count = won_count + lost_count + paid_count
+    win_rate = round((won_count + paid_count) / settled_count * 100, 1) if settled_count else 0.0
+    avg_bet = round(turnover / len(accepted_items), 2) if accepted_items else 0.0
+    profit = round(lost_amount - paid_amount, 2)
 
     stats = {
         "total_items": len(items),
         "accepted_count": sum(1 for item in items if item["status"] == "accepted"),
         "rejected_count": sum(1 for item in items if item["status"] == "rejected"),
-        "won_count": sum(1 for item in items if item["status"] == "won"),
-        "lost_count": sum(1 for item in items if item["status"] == "lost"),
+        "won_count": won_count,
+        "lost_count": lost_count,
         "refund_count": sum(1 for item in items if item["status"] in {"refund_pending", "refunded"}),
-        "to_payout_count": sum(1 for item in items if item["status"] == "won"),
-        "paid_count": sum(1 for item in items if item["status"] == "paid"),
+        "to_payout_count": won_count,
+        "paid_count": paid_count,
         "turnover_prizm": turnover,
         "potential_payout_prizm": potential,
+        "paid_amount_prizm": paid_amount,
+        "profit_prizm": profit,
+        "win_rate": win_rate,
+        "avg_bet_prizm": avg_bet,
     }
 
     return _json_response({
@@ -1127,6 +1143,76 @@ async def cors_middleware(request: web.Request, handler):
     return response
 
 
+async def export_bets_csv(request: web.Request) -> web.Response:
+    """Export bets as CSV for accounting."""
+    context, error = await _require_admin(request)
+    if error:
+        return error
+
+    role = str(context["user"].get("role") or "")
+    if role not in ("super_admin", "finance"):
+        return _json_response({"error": "Forbidden"}, status=403)
+
+    try:
+        limit = int(request.query.get("limit", "500"))
+    except ValueError:
+        limit = 500
+    limit = min(max(limit, 1), 5000)
+    status_filter = str(request.query.get("status") or "").strip().lower()
+
+    bets = await db.get_recent_bets(limit)
+    intent_map = await db.get_bet_intents_map([str(bet.get("intent_hash") or "") for bet in bets])
+    match_ids = []
+    for bet in bets:
+        mid = str(bet.get("match_id") or "").strip()
+        if mid:
+            match_ids.append(mid)
+    match_cache = _load_matches_cache()
+    match_map = await db.get_matches_map(match_ids)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "tx_id", "intent_hash", "status", "match", "outcome", "odds",
+        "amount_prizm", "potential_payout", "payout_tx_id", "sender_wallet",
+        "match_time", "created_at", "reject_reason",
+    ])
+
+    for bet in bets:
+        intent_hash = str(bet.get("intent_hash") or "").strip().upper()
+        intent = intent_map.get(intent_hash) or {}
+        match_id = str(bet.get("match_id") or intent.get("match_id") or "").strip()
+        match = match_map.get(match_id) or match_cache.get(match_id) or {}
+        view = build_bet_view(bet, intent=intent, match=match, match_cache=match_cache)
+        if status_filter and view["status"] != status_filter:
+            continue
+        writer.writerow([
+            view["tx_id"],
+            view["intent_hash"],
+            view["status"],
+            view["match_label"],
+            view["outcome_label"],
+            view["odds_fixed"],
+            view["amount_prizm"],
+            view["potential_payout_prizm"],
+            view["payout_tx_id"],
+            view["sender_wallet"],
+            view["match_time"],
+            view["created_at"],
+            view.get("reject_reason", ""),
+        ])
+
+    now_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    resp = web.Response(
+        text=output.getvalue(),
+        content_type="text/csv",
+        charset="utf-8",
+    )
+    resp.headers["Content-Disposition"] = f'attachment; filename="prizmbet_bets_{now_str}.csv"'
+    resp.headers.update(CORS_HEADERS)
+    return resp
+
+
 def create_app() -> web.Application:
     app = web.Application(middlewares=[cors_middleware])
     app.router.add_get("/health", health)
@@ -1147,6 +1233,7 @@ def create_app() -> web.Application:
     app.router.add_post("/api/admin/bets/{tx_id}/mark-paid", mark_bet_paid)
     app.router.add_get("/api/admin/wallet", admin_wallet_info)
     app.router.add_post("/api/admin/wallet/passphrase", admin_wallet_set_passphrase)
+    app.router.add_get("/api/admin/export-csv", export_bets_csv)
 
     # Serve frontend static files
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
