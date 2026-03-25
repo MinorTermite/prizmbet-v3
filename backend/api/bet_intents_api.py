@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import collections
 import json
+import os
 import secrets
 import string
 import time
@@ -949,6 +950,104 @@ async def mark_bet_paid(request: web.Request) -> web.Response:
     return _json_response({"ok": True, "item": view})
 
 
+async def admin_wallet_info(request: web.Request) -> web.Response:
+    """GET /api/admin/wallet — wallet addresses and hot-wallet balance.
+
+    Accessible to: super_admin, finance, operator, viewer (all authenticated roles).
+    The passphrase is NEVER returned — only the wallet address and balance.
+    """
+    context, error = await _require_admin(request)
+    if error:
+        return error
+
+    from backend.bot import prizm_api
+    from backend.config import config as _cfg
+
+    hot_address = prizm_api.HOT_WALLET
+    admin_address = _cfg.PRIZM_ADMIN_WALLET or ""
+
+    balance_info = prizm_api.get_balance()
+    passphrase_configured = False
+    try:
+        enc = await db.get_app_config("hot_wallet_passphrase_enc")
+        passphrase_configured = bool(enc)
+    except Exception:
+        if prizm_api.PASSPHRASE:
+            passphrase_configured = True
+
+    return _json_response({
+        "hot_wallet": {
+            "address": hot_address,
+            "balance": balance_info.get("balance"),
+            "unconfirmed_balance": balance_info.get("unconfirmed"),
+            "node": balance_info.get("node"),
+            "passphrase_configured": passphrase_configured,
+        },
+        "admin_wallet": {
+            "address": admin_address,
+        },
+        "master_key_configured": bool(_cfg.PRIZM_MASTER_KEY),
+    })
+
+
+async def admin_wallet_set_passphrase(request: web.Request) -> web.Response:
+    """POST /api/admin/wallet/passphrase — encrypt and store the hot-wallet passphrase.
+
+    Accessible to: super_admin only.
+    Body: { "passphrase": "<raw PRIZM passphrase>" }
+    The raw passphrase is encrypted with PRIZM_MASTER_KEY (AES-256-GCM)
+    and stored in app_config.  It is NEVER returned or logged.
+    """
+    context, error = await _require_admin(request, {"super_admin"})
+    if error:
+        return error
+
+    from backend.config import config as _cfg
+    if not _cfg.PRIZM_MASTER_KEY:
+        return _json_response(
+            {"error": "PRIZM_MASTER_KEY is not configured on the server. Set it in .env first."},
+            status=503,
+        )
+
+    try:
+        body = await request.json()
+    except Exception:
+        return _json_response({"error": "Invalid JSON body"}, status=400)
+
+    passphrase = str(body.get("passphrase") or "").strip()
+    if not passphrase:
+        return _json_response({"error": "passphrase is required"}, status=400)
+    if len(passphrase) < 8:
+        return _json_response({"error": "passphrase is too short (minimum 8 characters)"}, status=400)
+
+    try:
+        from backend.utils.wallet_crypto import encrypt_passphrase
+        encrypted = encrypt_passphrase(passphrase)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Passphrase encryption failed")
+        return _json_response({"error": "Encryption failed. Check server configuration."}, status=500)
+
+    ok = await db.set_app_config("hot_wallet_passphrase_enc", encrypted)
+    if not ok:
+        return _json_response({"error": "Failed to save encrypted passphrase to DB"}, status=500)
+
+    await log_operator_event(
+        "wallet_passphrase_updated",
+        {"hot_wallet": prizm_api_wallet()},
+        actor=context["actor"],
+    )
+    return _json_response({"ok": True, "message": "Hot wallet passphrase encrypted and saved."})
+
+
+def prizm_api_wallet() -> str:
+    try:
+        from backend.bot import prizm_api
+        return prizm_api.HOT_WALLET
+    except Exception:
+        return ""
+
+
 async def health(_: web.Request) -> web.Response:
     return _json_response({"ok": True})
 
@@ -981,18 +1080,39 @@ class _RateLimiter:
 
 _login_limiter = _RateLimiter(max_requests=5, window_seconds=60)
 _intent_limiter = _RateLimiter(max_requests=config.RATE_LIMIT_REQUESTS, window_seconds=config.RATE_LIMIT_WINDOW)
+_passphrase_limiter = _RateLimiter(max_requests=3, window_seconds=60)
 
 RATE_LIMITED_PATHS = {
     "/api/admin/login": _login_limiter,
     "/api/admin/bootstrap": _login_limiter,
+    "/api/admin/wallet/passphrase": _passphrase_limiter,
     "/api/intents": _intent_limiter,
 }
+
+# Admin-path prefix — used to restrict CORS origin for sensitive endpoints.
+_ADMIN_PATH_PREFIX = "/api/admin/"
+_ALLOWED_ADMIN_ORIGIN = os.environ.get("ADMIN_CORS_ORIGIN", "").strip()
+
+ADMIN_CORS_HEADERS_STRICT = {
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, X-Admin-Session, Authorization",
+}
+
+
+def _cors_headers_for(request: web.Request) -> dict[str, str]:
+    """Return CORS headers.  Admin endpoints get a restricted origin
+    (if ADMIN_CORS_ORIGIN is set) instead of the wildcard."""
+    if request.path.startswith(_ADMIN_PATH_PREFIX) and _ALLOWED_ADMIN_ORIGIN:
+        return {**ADMIN_CORS_HEADERS_STRICT, "Access-Control-Allow-Origin": _ALLOWED_ADMIN_ORIGIN}
+    return CORS_HEADERS
 
 
 @web.middleware
 async def cors_middleware(request: web.Request, handler):
     if request.method == "OPTIONS":
-        return _with_cors(web.Response(status=204))
+        resp = web.Response(status=204)
+        resp.headers.update(_cors_headers_for(request))
+        return resp
     # Rate limiting for sensitive endpoints
     limiter = RATE_LIMITED_PATHS.get(request.path)
     if limiter and request.method == "POST":
@@ -1003,7 +1123,7 @@ async def cors_middleware(request: web.Request, handler):
         response = await handler(request)
     except web.HTTPException as ex:
         response = ex
-    response.headers.update(CORS_HEADERS)
+    response.headers.update(_cors_headers_for(request))
     return response
 
 
@@ -1025,6 +1145,8 @@ def create_app() -> web.Application:
     app.router.add_get("/api/admin/feed", operator_feed)
     app.router.add_get("/api/admin/audit-log", operator_audit_log)
     app.router.add_post("/api/admin/bets/{tx_id}/mark-paid", mark_bet_paid)
+    app.router.add_get("/api/admin/wallet", admin_wallet_info)
+    app.router.add_post("/api/admin/wallet/passphrase", admin_wallet_set_passphrase)
 
     # Serve frontend static files
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

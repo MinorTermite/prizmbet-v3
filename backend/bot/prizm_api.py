@@ -11,18 +11,66 @@ PRIZM_NODES = [
     "https://core.prizm.vip",
     "https://blockchain.prizm.vip",
 ]
-WALLET = "PRIZM-4N7T-L2A7-RQZA-5BETW"
+
 import os
-PASSPHRASE = os.getenv("PRIZM_PASSPHRASE", "")  # Приватный ключ (фраза) для расшифровки сообщений
+from backend.config import config as _cfg
+
+# HOT wallet — used for all automatic operations (receiving bets, sending payouts).
+# Address comes from PRIZM_HOT_WALLET env var; falls back to legacy PRIZM-4N7T address.
+HOT_WALLET = _cfg.PRIZM_HOT_WALLET or "PRIZM-4N7T-L2A7-RQZA-5BETW"
+
+# Legacy alias so existing code that imports `WALLET` keeps working unchanged.
+WALLET = HOT_WALLET
+
+# Passphrase: loaded lazily via get_hot_passphrase().
+# Falls back to PRIZM_PASSPHRASE env var if no encrypted passphrase is stored in DB.
+PASSPHRASE = os.getenv("PRIZM_PASSPHRASE", "")  # legacy fallback only
+
 CACHE_FILE = os.path.join(os.path.dirname(__file__), "prizm_last_tx.json")
 OUT_CACHE_FILE = os.path.join(os.path.dirname(__file__), "prizm_last_out_tx.json")
 NQT = 100  # 1 PRIZM = 100 NQT
+
+
+async def get_hot_passphrase() -> str:
+    """Return the decrypted hot-wallet passphrase.
+
+    Priority:
+    1. Encrypted passphrase stored in DB (app_config.hot_wallet_passphrase_enc).
+    2. Legacy PRIZM_PASSPHRASE env var (for existing deployments).
+    Returns empty string if neither is set.
+    """
+    try:
+        from backend.db.supabase_client import db as _db
+        from backend.utils.wallet_crypto import decrypt_passphrase
+        if _db.initialized:
+            enc = await _db.get_app_config("hot_wallet_passphrase_enc")
+            if enc:
+                return decrypt_passphrase(enc)
+    except Exception:
+        pass
+    return PASSPHRASE
 
 
 def _get(params: dict, timeout=12) -> dict | None:
     for node in PRIZM_NODES:
         try:
             r = requests.get(f"{node}/prizm", params=params, timeout=timeout, verify=True)
+            if r.ok:
+                data = r.json()
+                if "errorCode" not in data:
+                    return data
+        except Exception:
+            continue
+    return None
+
+
+def _post(params: dict, timeout=12) -> dict | None:
+    """Send a POST request to PRIZM nodes.  Use this for any call that
+    includes sensitive data (e.g. secretPhrase) to keep it out of
+    query strings / server access logs."""
+    for node in PRIZM_NODES:
+        try:
+            r = requests.post(f"{node}/prizm", data=params, timeout=timeout, verify=True)
             if r.ok:
                 data = r.json()
                 if "errorCode" not in data:
@@ -71,20 +119,21 @@ def get_new_transactions() -> list[dict]:
     return new_txs
 
 
-def decrypt_message(tx: dict) -> str:
+def decrypt_message(tx: dict, passphrase: str = "") -> str:
     """
     Расшифровать зашифрованное сообщение транзакции через PRIZM API readMessage.
-    Требуется PASSPHRASE (приватный ключ кошелька).
+    Использует POST чтобы secretPhrase не попадал в URL / access-логи.
     """
-    if not PASSPHRASE:
+    secret = passphrase or PASSPHRASE
+    if not secret:
         return ""
     tx_id = tx.get("transaction", "")
     if not tx_id:
         return ""
-    data = _get({
+    data = _post({
         "requestType": "readMessage",
         "transaction": tx_id,
-        "secretPhrase": PASSPHRASE,
+        "secretPhrase": secret,
     })
     if data:
         return data.get("decryptedMessage", data.get("message", "")).strip()

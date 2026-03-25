@@ -62,7 +62,22 @@
       'status.paid': 'Выплачена',
       'audit.eyebrow': 'Журнал аудита',
       'audit.title': 'Последние backend и operator события',
-      'audit.copy': 'Здесь фиксируются принятые, отклонённые, рассчитанные и выплаченные прогнозы. При включённом webhook те же события могут зеркалироваться в Google Sheets.'
+      'audit.copy': 'Здесь фиксируются принятые, отклонённые, рассчитанные и выплаченные прогнозы. При включённом webhook те же события могут зеркалироваться в Google Sheets.',
+      'wallet.eyebrow': 'Управление кошельками',
+      'wallet.title': 'Горячий и холодный кошельки',
+      'wallet.copy': 'Горячий кошелёк принимает ставки и автоматически выплачивает выигрыши. Холодный кошелёк — личный кошелёк финансового управляющего, система к нему не обращается.',
+      'wallet.hotAddress': 'Горячий кошелёк (HOT)',
+      'wallet.balance': 'Баланс',
+      'wallet.passphraseStatus': 'Парольная фраза',
+      'wallet.masterKeyStatus': 'Мастер-ключ',
+      'wallet.adminAddress': 'Холодный кошелёк (ADMIN)',
+      'wallet.refresh': 'Обновить',
+      'wallet.passphraseEyebrow': 'Парольная фраза горячего кошелька',
+      'wallet.passphraseTitle': 'Зашифровать и сохранить фразу',
+      'wallet.passphraseCopy': 'Фраза шифруется алгоритмом AES-256-GCM с использованием серверного мастер-ключа (PRIZM_MASTER_KEY) и сохраняется в базе данных. Клиенту она никогда не возвращается.',
+      'wallet.passphraseInput': 'Парольная фраза PRIZM (seed phrase)',
+      'wallet.passphraseConfirm': 'Подтвердите фразу',
+      'wallet.passphraseSave': 'Зашифровать и сохранить'
     },
     en: {
       'page.title': 'PRIZMBET - Operator Console',
@@ -124,7 +139,22 @@
       'status.paid': 'Paid',
       'audit.eyebrow': 'Audit log',
       'audit.title': 'Recent backend and operator events',
-      'audit.copy': 'Accepted, rejected, settled and paid predictions are logged here. If the webhook is enabled, the same events can also be mirrored to Google Sheets.'
+      'audit.copy': 'Accepted, rejected, settled and paid predictions are logged here. If the webhook is enabled, the same events can also be mirrored to Google Sheets.',
+      'wallet.eyebrow': 'Wallet Management',
+      'wallet.title': 'Hot & Admin wallets',
+      'wallet.copy': 'The hot wallet receives bets and sends payouts automatically. The admin wallet is the finance manager\'s cold wallet — never used by the system.',
+      'wallet.hotAddress': 'Hot Wallet (HOT)',
+      'wallet.balance': 'Balance',
+      'wallet.passphraseStatus': 'Passphrase',
+      'wallet.masterKeyStatus': 'Master Key',
+      'wallet.adminAddress': 'Admin Wallet (Cold)',
+      'wallet.refresh': 'Refresh',
+      'wallet.passphraseEyebrow': 'Hot Wallet Passphrase',
+      'wallet.passphraseTitle': 'Encrypt & store passphrase',
+      'wallet.passphraseCopy': 'The passphrase is encrypted with AES-256-GCM using the server master key (PRIZM_MASTER_KEY) and stored in the database. It is never returned to the client.',
+      'wallet.passphraseInput': 'PRIZM Passphrase (seed phrase)',
+      'wallet.passphraseConfirm': 'Confirm passphrase',
+      'wallet.passphraseSave': 'Encrypt & Save'
     }
   };
 

@@ -38,6 +38,15 @@ class Database:
                 self.client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
                 self.initialized = True
                 print("Database connected")
+                # Verify the key can access app_config (requires service-role key).
+                try:
+                    self.client.table("app_config").select("key").limit(1).execute()
+                except Exception:
+                    print(
+                        "WARNING: SUPABASE_KEY cannot read app_config table. "
+                        "Make sure you are using the service-role key, NOT the anon key. "
+                        "Encrypted passphrase storage will NOT work with the anon key."
+                    )
             except Exception as exc:
                 print(f"Database connection failed: {exc}")
                 self.initialized = False
@@ -492,6 +501,34 @@ class Database:
         except Exception as exc:
             print(f"Error upserting listener state: {exc}")
             return None
+
+
+    async def get_app_config(self, key: str) -> str | None:
+        """Fetch a single value from app_config by key. Returns None if not found."""
+        if not self.initialized:
+            return None
+        try:
+            rows = self.client.table("app_config").select("value").eq("key", key).limit(1).execute().data
+            return rows[0]["value"] if rows else None
+        except Exception as exc:
+            print(f"Error fetching app_config key={key}: {exc}")
+            return None
+
+    async def set_app_config(self, key: str, value: str) -> bool:
+        """Upsert a key/value pair in app_config. Returns True on success."""
+        if not self.initialized:
+            return False
+        try:
+            from datetime import datetime, timezone
+            self.client.table("app_config").upsert({
+                "key": key,
+                "value": value,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }).execute()
+            return True
+        except Exception as exc:
+            print(f"Error setting app_config key={key}: {exc}")
+            return False
 
 
 db = Database()

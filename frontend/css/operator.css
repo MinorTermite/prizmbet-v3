@@ -1799,3 +1799,32 @@
 .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-audit-section {
   display: none !important;
 }
+
+
+/* ── Wallet tab ─────────────────────────────────────────────────── */
+.operator-wallet-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.operator-meta-mono {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.82rem;
+    word-break: break-all;
+}
+.operator-wallet-info {
+    margin: 14px 0 8px;
+}
+.operator-shell.operator-shell--authed .operator-wallet-section {
+    display: none !important;
+}
+.operator-shell.operator-shell--authed[data-active-tab='wallet'] .operator-wallet-section {
+    display: block !important;
+}
+.operator-shell.operator-shell--authed[data-active-tab='wallet'] .operator-access,
+.operator-shell.operator-shell--authed[data-active-tab='wallet'] .operator-stats-section,
+.operator-shell.operator-shell--authed[data-active-tab='wallet'] .operator-users-section,
+.operator-shell.operator-shell--authed[data-active-tab='wallet'] .operator-feed-section,
+.operator-shell.operator-shell--authed[data-active-tab='wallet'] .operator-audit-section {
+    display: none !important;
+}

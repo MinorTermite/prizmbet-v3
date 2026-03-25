@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -80,11 +81,19 @@ def session_expires_at() -> str:
     return (datetime.now(timezone.utc) + timedelta(hours=lifetime_hours)).isoformat()
 
 
+_TRUSTED_PROXIES = frozenset(
+    filter(None, (s.strip() for s in os.environ.get("TRUSTED_PROXY_IPS", "127.0.0.1,::1").split(",")))
+)
+
+
 def client_ip(request: web.Request) -> str:
-    forwarded = str(request.headers.get("X-Forwarded-For") or "").strip()
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return str(request.remote or "")
+    real_remote = str(request.remote or "")
+    # Only trust X-Forwarded-For when the direct connection is from a known proxy.
+    if real_remote in _TRUSTED_PROXIES:
+        forwarded = str(request.headers.get("X-Forwarded-For") or "").strip()
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+    return real_remote
 
 
 def serialize_admin_user(user: dict[str, Any] | None) -> dict[str, Any] | None:
