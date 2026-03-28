@@ -31,9 +31,12 @@ IO_BOOKMAKER = "1xbet"  # bookmaker available on free plan
 # Free plan: 500 requests/month, 10 requests/minute
 # Optimized: Only top 3 leagues to stay within limits
 ODDS_API_SPORTS: Dict[str, Tuple[str, str]] = {
-    "soccer_uefa_champions_league": ("football", "Лига чемпионов УЕФА"),
+    "soccer_uefa_champs_league":    ("football", "Лига чемпионов УЕФА"),
     "soccer_epl":                   ("football", "Англия. Премьер-лига"),
     "soccer_spain_la_liga":         ("football", "Испания. Ла Лига"),
+    "soccer_germany_bundesliga":    ("football", "Германия. Бундеслига"),
+    "soccer_italy_serie_a":         ("football", "Италия. Серия А"),
+    "soccer_france_ligue_one":      ("football", "Франция. Лига 1"),
 }
 
 # Top-league slug keywords for odds-api.io filtering

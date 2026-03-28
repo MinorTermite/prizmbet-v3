@@ -5,6 +5,7 @@ Leonbets JSON API Parser
 API: https://leon.ru/api-2/betline/events/all
 """
 
+import asyncio
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from backend.parsers.base_parser import BaseParser
@@ -51,17 +52,60 @@ class LeonbetsParser(BaseParser):
                 events = data.get("events", [])
                 print(f"[Leonbets] total events from API: {len(events)}")
 
-                matches = []
+                # Filter to supported sports with markets available
+                candidates = []
                 for event in events:
-                    match = self._parse_event(event)
-                    if match:
-                        matches.append(match)
+                    league_obj = event.get("league", {}) or {}
+                    sport_obj = league_obj.get("sport", {}) or {}
+                    family = sport_obj.get("family", "")
+                    if family not in SPORTS_MAP:
+                        continue
+                    if event.get("marketsCount", 0) <= 0:
+                        continue
+                    candidates.append(event)
+
+                print(f"[Leonbets] {len(candidates)} events with supported sports & markets")
+
+                # Fetch markets for top events (limit to avoid rate limiting)
+                MAX_FETCH = 200
+                candidates = candidates[:MAX_FETCH]
+
+                # Fetch markets in batches of 20
+                matches = []
+                BATCH = 20
+                for i in range(0, len(candidates), BATCH):
+                    batch = candidates[i:i+BATCH]
+                    tasks = [self._fetch_event_markets(e, headers) for e in batch]
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+                    for result in results:
+                        if isinstance(result, dict):
+                            matches.append(result)
 
                 return matches
 
         except Exception as e:
             print(f"[ERROR] Leonbets: {e}")
             return []
+
+    async def _fetch_event_markets(self, event: Dict, headers: Dict) -> Optional[Dict]:
+        """Fetch full event data with markets from Leon API."""
+        eid = event.get("id")
+        if not eid:
+            return None
+        url = f"{BASE_URL}/api-2/betline/event/all"
+        params = {"ctag": "ru-RU", "eventId": str(eid)}
+        try:
+            async with self.session.get(
+                url, params=params, headers=headers, proxy=self.proxy
+            ) as r:
+                if r.status != 200:
+                    return None
+                full_event = await r.json()
+                # Merge markets into the original event data
+                event_with_markets = {**event, "markets": full_event.get("markets", [])}
+                return self._parse_event(event_with_markets)
+        except Exception:
+            return None
 
     def _parse_event(self, event: Dict) -> Optional[Dict]:
         """Convert a Leonbets event dict to internal match format."""
