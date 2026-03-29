@@ -14,8 +14,18 @@ android {
         versionName "1.2"
     }
 
+    signingConfigs {
+        release {
+            storeFile file("../prizmbet-release.jks")
+            storePassword "PrizmBet2026Key"
+            keyAlias "prizmbet"
+            keyPassword "PrizmBet2026Key"
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

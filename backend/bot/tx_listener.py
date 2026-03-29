@@ -147,6 +147,19 @@ async def _process_tx(tx: dict):
         await db.insert_bet(bet_row)
         if bet_row["status"] == "accepted":
             log.info("[ACCEPTED] Tx %s amount=%.2f intent=%s", tx_id[:16], amount, intent_hash)
+            # Write ledger entry for the deposit
+            try:
+                await db.insert_ledger_entry({
+                    "tx_type": "deposit",
+                    "bet_tx_id": tx_id,
+                    "prizm_tx_id": tx_id,
+                    "wallet": sender_wallet,
+                    "amount_prizm": amount,
+                    "fee_prizm": 0,
+                    "note": f"bet deposit intent {intent_hash}",
+                })
+            except Exception as le:
+                log.warning("Ledger write failed for tx=%s: %s", tx_id[:16], le)
         else:
             log.info("[REJECTED] Tx %s Reason: %s", tx_id[:16], bet_row["reject_reason"])
 

@@ -502,6 +502,98 @@ class Database:
             print(f"Error upserting listener state: {exc}")
             return None
 
+    # ── Financial / Ledger ──────────────────────────────────────────
+
+    async def get_financial_summary(self) -> dict[str, Any]:
+        """Query v_financial_summary view."""
+        if not self.initialized:
+            return {}
+        try:
+            response = self.client.table("v_financial_summary").select("*").limit(1).execute()
+            return response.data[0] if response.data else {}
+        except Exception as exc:
+            print(f"Error fetching financial summary: {exc}")
+            return {}
+
+    async def get_daily_pnl(self, days: int = 30) -> list[dict]:
+        """Query v_daily_pnl view for the last N days."""
+        if not self.initialized:
+            return []
+        try:
+            response = (
+                self.client
+                .table("v_daily_pnl")
+                .select("*")
+                .order("day", desc=True)
+                .limit(days)
+                .execute()
+            )
+            return response.data or []
+        except Exception as exc:
+            print(f"Error fetching daily PnL: {exc}")
+            return []
+
+    async def insert_ledger_entry(self, entry: dict) -> list | None:
+        """Insert a row into prizm_ledger."""
+        if not self.initialized:
+            return None
+        try:
+            return self.client.table("prizm_ledger").insert(entry).execute().data
+        except Exception as exc:
+            print(f"Error inserting ledger entry: {exc}")
+            return None
+
+    async def get_ledger_entries(self, limit: int = 100, tx_type: str | None = None) -> list[dict]:
+        """Read prizm_ledger, optionally filtered by tx_type."""
+        if not self.initialized:
+            return []
+        try:
+            q = self.client.table("prizm_ledger").select("*").order("created_at", desc=True)
+            if tx_type:
+                q = q.eq("tx_type", tx_type)
+            response = q.limit(limit).execute()
+            return response.data or []
+        except Exception as exc:
+            print(f"Error fetching ledger entries: {exc}")
+            return []
+
+    async def get_bets_for_export(self, status: str | None = None, date_from: str | None = None, date_to: str | None = None, limit: int = 5000) -> list[dict]:
+        """Fetch bets for export with optional filters."""
+        if not self.initialized:
+            return []
+        try:
+            q = self.client.table("bets").select("*").order("created_at", desc=True)
+            if status:
+                q = q.eq("status", status)
+            if date_from:
+                q = q.gte("created_at", date_from)
+            if date_to:
+                q = q.lte("created_at", date_to)
+            response = q.limit(limit).execute()
+            return response.data or []
+        except Exception as exc:
+            print(f"Error fetching bets for export: {exc}")
+            return []
+
+    async def mark_bet_refunded(self, tx_id: str, refund_tx_id: str = "", refund_amount: float | None = None) -> list | None:
+        """Update bet status to refunded."""
+        if not self.initialized:
+            return None
+        payload: dict[str, Any] = {
+            "status": "refunded",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        refund_tx_id = str(refund_tx_id or "").strip()
+        if refund_tx_id:
+            payload["payout_tx_id"] = refund_tx_id
+        if refund_amount is not None:
+            payload["payout_amount"] = round(float(refund_amount or 0), 2)
+        try:
+            return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+        except Exception as exc:
+            print(f"Error marking bet refunded: {exc}")
+            return None
+
 
     async def get_app_config(self, key: str) -> str | None:
         """Fetch a single value from app_config by key. Returns None if not found."""

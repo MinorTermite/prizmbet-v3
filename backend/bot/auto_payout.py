@@ -32,54 +32,15 @@ async def _ensure_db() -> None:
         raise RuntimeError("Supabase is not configured")
 
 
-async def _send_prizm(recipient: str, amount: float, passphrase: str, message: str = "") -> dict[str, Any] | None:
-    """Send PRIZM via the blockchain sendMoney API.
-
-    Returns the parsed JSON response on success, or None on failure.
-    The passphrase is passed explicitly — never read from a module-level variable.
-    """
-    if not passphrase:
-        log.error("Hot wallet passphrase is not available — cannot send payouts")
+def _send_prizm(recipient: str, amount: float, message: str = "") -> dict[str, Any] | None:
+    """Send PRIZM via prizm_api.send_money (shared helper)."""
+    if not prizm_api.PASSPHRASE:
+        log.error("PRIZM_PASSPHRASE is not set — cannot send payouts")
         return None
-
-    amount_nqt = int(round(amount * prizm_api.NQT))
-    if amount_nqt <= 0:
-        return None
-
-    params = {
-        "requestType": "sendMoney",
-        "secretPhrase": passphrase,
-        "recipient": recipient,
-        "amountNQT": str(amount_nqt),
-        "feeNQT": "5",
-        "deadline": "1440",
-    }
-    if message:
-        params["message"] = message
-        params["messageIsText"] = "true"
-
-    import requests
-    for node in prizm_api.PRIZM_NODES:
-        try:
-            resp = requests.post(
-                f"{node}/prizm",
-                data=params,
-                timeout=20,
-                verify=True,
-            )
-            if not resp.ok:
-                continue
-            data = resp.json()
-            if "errorCode" in data:
-                log.warning("sendMoney error from %s: %s", node, data.get("errorDescription", data))
-                continue
-            if data.get("transaction"):
-                return data
-        except Exception as exc:
-            log.warning("sendMoney request to %s failed: %s", node, exc)
-            continue
-
-    return None
+    result = prizm_api.send_money(recipient, amount, message)
+    if not result:
+        log.warning("sendMoney failed for %s amount=%.2f", recipient, amount)
+    return result
 
 
 async def _check_balance_alert() -> float | None:
@@ -121,9 +82,8 @@ async def _process_payout(bet: dict[str, Any]) -> bool:
         log.warning("[INSUFFICIENT] Balance %.2f < payout %.2f — skipping tx=%s", balance, payout_amount, tx_id[:18])
         return False
 
-    passphrase = await prizm_api.get_hot_passphrase()
     message = f"PrizmBet payout | bet {tx_id[:18]}"
-    result = await _send_prizm(sender_wallet, payout_amount, passphrase, message=message)
+    result = _send_prizm(sender_wallet, payout_amount, message=message)
     if not result:
         log.error("[FAIL] sendMoney failed for tx=%s amount=%.2f to %s", tx_id[:18], payout_amount, sender_wallet)
         return False
@@ -132,6 +92,20 @@ async def _process_payout(bet: dict[str, Any]) -> bool:
     log.info("[PAID] tx=%s payout_tx=%s amount=%.2f to %s", tx_id[:18], payout_tx_id, payout_amount, sender_wallet)
 
     await db.mark_bet_paid(tx_id, payout_tx_id=payout_tx_id, payout_amount=payout_amount)
+
+    # Write ledger entry for the payout
+    try:
+        await db.insert_ledger_entry({
+            "tx_type": "payout",
+            "bet_tx_id": tx_id,
+            "prizm_tx_id": payout_tx_id,
+            "wallet": sender_wallet,
+            "amount_prizm": payout_amount,
+            "fee_prizm": 0.05,
+            "note": f"auto payout bet {tx_id[:18]}",
+        })
+    except Exception as exc:
+        log.warning("Ledger write failed for tx=%s: %s", tx_id[:18], exc)
 
     await log_operator_event(
         "auto_payout",
