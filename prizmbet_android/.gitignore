@@ -1,0 +1,10 @@
+# Build outputs
+.gradle/
+build/
+app/build/
+local.properties
+
+# Keystore (secrets)
+keystore/
+*.jks
+*.keystore
