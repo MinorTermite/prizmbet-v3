@@ -120,7 +120,7 @@ class Database:
             print(f"Error logging parser run: {exc}")
             return None
 
-    async def create_bet_intent(self, intent_hash: str, match_id: str, sender_wallet: str, outcome: str, odds_fixed: float, expires_at: str | None = None):
+    async def create_bet_intent(self, intent_hash: str, match_id: str, sender_wallet: str, outcome: str, odds_fixed: float, expires_at: str | None = None, payment_currency: str = "PRIZM"):
         if not self.initialized:
             return None
         payload = {
@@ -129,6 +129,7 @@ class Database:
             "sender_wallet": sender_wallet,
             "outcome": outcome,
             "odds_fixed": round(float(odds_fixed), 2),
+            "payment_currency": payment_currency,
         }
         if expires_at:
             payload["expires_at"] = expires_at
@@ -487,15 +488,19 @@ class Database:
             print(f"Error fetching listener state: {exc}")
             return None
 
-    async def upsert_listener_state(self, last_prizm_timestamp: int, last_tx_id: str):
+    async def upsert_listener_state(self, last_prizm_timestamp: int | None = None, last_tx_id: str | None = None, usdt_last_block_ts: int | None = None):
         if not self.initialized:
             return None
-        row = {
+        row: dict = {
             "id": 1,
-            "last_prizm_timestamp": int(last_prizm_timestamp),
-            "last_tx_id": last_tx_id,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
+        if last_prizm_timestamp is not None:
+            row["last_prizm_timestamp"] = int(last_prizm_timestamp)
+        if last_tx_id is not None:
+            row["last_tx_id"] = last_tx_id
+        if usdt_last_block_ts is not None:
+            row["usdt_last_block_ts"] = int(usdt_last_block_ts)
         try:
             return self.client.table("tx_listener_state").upsert(row).execute().data
         except Exception as exc:

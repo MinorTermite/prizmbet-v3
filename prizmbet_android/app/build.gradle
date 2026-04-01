@@ -20,6 +20,8 @@ android {
             storePassword 'PrizmBet2026!'
             keyAlias 'prizmbet'
             keyPassword 'PrizmBet2026!'
+            v1SigningEnabled true
+            v2SigningEnabled true
         }
     }
 
@@ -31,6 +33,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
+            signingConfig signingConfigs.release
             versionNameSuffix "-debug"
         }
     }

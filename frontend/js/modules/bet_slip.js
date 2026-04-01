@@ -4,7 +4,7 @@
 import { showToast } from './notifications.js';
 import { escapeHtml } from './utils.js';
 import { formatDateTime as formatDateTimeI18n, formatNumber as formatNumberI18n, formatOutcomeLabel, t } from './i18n.js';
-import { getActiveRail, getCopyDoneMessage, getCopyMissingMessage, getCouponRailHint, getRailAddress, getTransferChipText, getTransferInstruction, initPaymentRails, renderPaymentRailUI } from './payment_rails.js';
+import { getActiveRail, getActiveRailCurrency, getActiveRailLimits, getCopyDoneMessage, getCopyMissingMessage, getCouponRailHint, getRailAddress, getTransferChipText, getTransferInstruction, initPaymentRails, renderPaymentRailUI } from './payment_rails.js';
 import {
     getWalletAddress,
     saveWalletAddress,
@@ -12,8 +12,16 @@ import {
     upsertIntentRecord,
 } from './storage.js';
 
-const MIN_BET = 1500;
-const MAX_BET = 30000;
+const PRIZM_MIN_BET = 1500;
+const PRIZM_MAX_BET = 30000;
+
+function getBetLimits() {
+    const limits = getActiveRailLimits();
+    return {
+        minBet: limits.minBet || PRIZM_MIN_BET,
+        maxBet: limits.maxBet || PRIZM_MAX_BET,
+    };
+}
 const INTENT_TTL_MS = 15 * 60 * 1000;
 const REJECT_LABELS = {
     LATE_BET: { ru: 'Перевод пришёл после безопасного окна', en: 'The transfer arrived after the safe prematch window' },
@@ -234,14 +242,16 @@ export async function copyBetSlipData() {
         showToast('Введите кошелёк игрока, чтобы выпустить код прогноза.');
         return;
     }
-    if (form.amount < MIN_BET) {
+    const { minBet, maxBet } = getBetLimits();
+    const currency = getActiveRailCurrency();
+    if (form.amount < minBet) {
         dom.amountInput?.focus();
-        showToast(`Минимальная сумма — ${formatNumber(MIN_BET)} PRIZM.`);
+        showToast(`Минимальная сумма — ${formatNumber(minBet)} ${currency}.`);
         return;
     }
-    if (form.amount > MAX_BET) {
+    if (form.amount > maxBet) {
         dom.amountInput?.focus();
-        showToast(`Максимальная сумма — ${formatNumber(MAX_BET)} PRIZM.`);
+        showToast(`Максимальная сумма — ${formatNumber(maxBet)} ${currency}.`);
         return;
     }
     if (!form.coef || form.coef < 1.01) {
@@ -431,6 +441,7 @@ async function issueIntent(form) {
                     match_id: String(currentBet.id || ''),
                     outcome: form.apiOutcome,
                     sender_wallet: form.wallet,
+                    payment_currency: getActiveRailCurrency(),
                 }),
             });
             if (!response.ok) {
@@ -493,6 +504,7 @@ function buildLocalIntent(form) {
         intent_hash: randomHash(),
         sender_wallet: form.wallet,
         amount_prizm: form.amount,
+        payment_currency: getActiveRailCurrency(),
         odds_fixed: form.coef,
         outcome: currentBet.betType,
         api_outcome: form.apiOutcome,

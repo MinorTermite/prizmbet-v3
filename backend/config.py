@@ -59,5 +59,15 @@ class Config:
     # Only its public address is stored here for display in the operator cabinet.
     PRIZM_ADMIN_WALLET = os.getenv("PRIZM_ADMIN_WALLET", "")   # Admin/cold wallet public address
 
+    # ── USDT TRC-20 (TRON) ──────────────────────────────────────
+    USDT_HOT_WALLET = os.getenv("USDT_HOT_WALLET", "")           # TRON base58 address (T...)
+    USDT_PRIVATE_KEY = os.getenv("USDT_PRIVATE_KEY", "")         # Hex private key for auto-payout
+    USDT_CONTRACT = os.getenv("USDT_CONTRACT", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")  # Mainnet USDT
+    TRON_API_URL = os.getenv("TRON_API_URL", "https://api.trongrid.io")
+    TRON_API_KEY = os.getenv("TRON_API_KEY", "")                 # TronGrid API key (free tier: 10 QPS)
+    USDT_MIN_BET = float(os.getenv("USDT_MIN_BET", "5"))        # Min bet in USDT
+    USDT_MAX_BET = float(os.getenv("USDT_MAX_BET", "1000"))     # Max bet in USDT
+    USDT_ENABLED = os.getenv("USDT_ENABLED", "false").lower() == "true"
+
 
 config = Config()

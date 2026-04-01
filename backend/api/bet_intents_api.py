@@ -549,6 +549,9 @@ async def create_intent(request: web.Request) -> web.Response:
     match_id = str(payload.get("match_id") or "").strip()
     outcome = str(payload.get("outcome") or "").strip().upper()
     sender_wallet = str(payload.get("sender_wallet") or "").strip().upper()
+    payment_currency = str(payload.get("payment_currency") or "PRIZM").strip().upper()
+    if payment_currency not in ("PRIZM", "USDT"):
+        payment_currency = "PRIZM"
 
     if not match_id or not outcome or not sender_wallet:
         return _json_response({"error": "match_id, outcome, sender_wallet are required"}, status=400)
@@ -590,6 +593,7 @@ async def create_intent(request: web.Request) -> web.Response:
                 outcome=outcome,
                 odds_fixed=odds,
                 expires_at=expires_at,
+                payment_currency=payment_currency,
             )
             intent = {
                 "intent_hash": intent_hash,
@@ -597,6 +601,7 @@ async def create_intent(request: web.Request) -> web.Response:
                 "expires_at": expires_at,
                 "match_id": match_id,
                 "sender_wallet": sender_wallet,
+                "payment_currency": payment_currency,
             }
             break
         except Exception:
@@ -991,6 +996,20 @@ async def admin_wallet_info(request: web.Request) -> web.Response:
         if prizm_api.PASSPHRASE:
             passphrase_configured = True
 
+    # USDT TRC-20 wallet info
+    usdt_info = {
+        "address": _cfg.USDT_HOT_WALLET or "",
+        "enabled": _cfg.USDT_ENABLED,
+        "contract": _cfg.USDT_CONTRACT,
+    }
+    if _cfg.USDT_ENABLED and _cfg.USDT_HOT_WALLET:
+        try:
+            from backend.bot import usdt_api
+            usdt_balance = await usdt_api.get_balance()
+            usdt_info["balance"] = usdt_balance
+        except Exception:
+            usdt_info["balance"] = None
+
     return _json_response({
         "hot_wallet": {
             "address": hot_address,
@@ -1002,6 +1021,7 @@ async def admin_wallet_info(request: web.Request) -> web.Response:
         "admin_wallet": {
             "address": admin_address,
         },
+        "usdt_wallet": usdt_info,
         "master_key_configured": bool(_cfg.PRIZM_MASTER_KEY),
     })
 
