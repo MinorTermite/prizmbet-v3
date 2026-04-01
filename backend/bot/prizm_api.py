@@ -273,6 +273,46 @@ def get_sender_address(tx: dict) -> str:
     return tx.get("senderRS", tx.get("sender", "unknown"))
 
 
+def send_money(recipient: str, amount: float, message: str = "") -> dict | None:
+    """Send PRIZM via the blockchain sendMoney API.
+
+    Returns the parsed JSON response on success (contains 'transaction' key),
+    or None on failure.
+    """
+    if not PASSPHRASE:
+        return None
+
+    amount_nqt = int(round(amount * NQT))
+    if amount_nqt <= 0:
+        return None
+
+    params = {
+        "requestType": "sendMoney",
+        "secretPhrase": PASSPHRASE,
+        "recipient": recipient,
+        "amountNQT": str(amount_nqt),
+        "feeNQT": "5",
+        "deadline": "1440",
+    }
+    if message:
+        params["message"] = message
+        params["messageIsText"] = "true"
+
+    for node in PRIZM_NODES:
+        try:
+            resp = requests.post(f"{node}/prizm", data=params, timeout=20, verify=True)
+            if not resp.ok:
+                continue
+            data = resp.json()
+            if "errorCode" in data:
+                continue
+            if data.get("transaction"):
+                return data
+        except Exception:
+            continue
+    return None
+
+
 def get_balance() -> dict:
     """
     Получить баланс кошелька PRIZM.

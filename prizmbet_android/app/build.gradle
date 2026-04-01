@@ -16,10 +16,10 @@ android {
 
     signingConfigs {
         release {
-            storeFile file('../keystore/prizmbet-release.jks')
-            storePassword 'PrizmBet2026!'
-            keyAlias 'prizmbet'
-            keyPassword 'PrizmBet2026!'
+            storeFile file("../prizmbet-release.jks")
+            storePassword "PrizmBet2026Key"
+            keyAlias "prizmbet"
+            keyPassword "PrizmBet2026Key"
             v1SigningEnabled true
             v2SigningEnabled true
         }
