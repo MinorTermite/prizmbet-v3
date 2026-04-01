@@ -8,6 +8,7 @@ Starts all backend services concurrently:
   3. PRIZM Tx Listener    (every 30s)
   4. v3 Settler           (every 180s)
   5. Auto-payout          (every 60s)
+  6. USDT Tx Listener     (every 30s, if USDT_ENABLED=true)
 
 Usage:
     python -m backend.main
@@ -69,6 +70,11 @@ async def _run_auto_payout() -> None:
     await payout_main()
 
 
+async def _run_usdt_listener() -> None:
+    from backend.bot.usdt_listener import main as usdt_main
+    await usdt_main()
+
+
 async def main() -> None:
     log.info("=" * 50)
     log.info("PrizmBet v3 — Unified Service Runner")
@@ -85,6 +91,7 @@ async def main() -> None:
         asyncio.create_task(_run_tx_listener(), name="tx_listener"),
         asyncio.create_task(_run_settler(), name="settler"),
         asyncio.create_task(_run_auto_payout(), name="auto_payout"),
+        asyncio.create_task(_run_usdt_listener(), name="usdt_listener"),
     ]
 
     log.info(

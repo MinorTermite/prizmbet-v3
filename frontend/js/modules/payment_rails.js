@@ -4,12 +4,12 @@ const STORAGE_KEY = 'prizmbet_payment_rail_v1';
 const EMPTY_QR = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" rx="28" fill="%230c0c16"/><rect x="22" y="22" width="276" height="276" rx="24" fill="%23141422" stroke="%23363756" stroke-width="2"/><text x="160" y="134" fill="%23b8bfdc" font-family="Arial,sans-serif" font-size="30" text-anchor="middle">RAIL</text><text x="160" y="172" fill="%235e678a" font-family="Arial,sans-serif" font-size="18" text-anchor="middle">QR pending</text></svg>';
 
 const DEFAULT_RAILS = [
-    { key: 'prizm', code: 'PRIZM', chain: 'PRIZM', mode: 'auto', settlementCurrency: 'PRIZM', wallet: 'PRIZM-4N7T-L2A7-RQZA-5BETW', qr: 'qr_wallet.webp' },
-    { key: 'btc', code: 'BTC', chain: 'Bitcoin', mode: 'pending', settlementCurrency: 'PRIZM', wallet: '', qr: '' },
-    { key: 'eth', code: 'ETH', chain: 'Ethereum', mode: 'pending', settlementCurrency: 'PRIZM', wallet: '', qr: '' },
-    { key: 'usdt-trc20', code: 'USDT', chain: 'TRON (TRC20)', mode: 'manual', settlementCurrency: 'PRIZM', wallet: '', qr: '' },
-    { key: 'usdt-erc20', code: 'USDT', chain: 'Ethereum (ERC20)', mode: 'pending', settlementCurrency: 'PRIZM', wallet: '', qr: '' },
-    { key: 'sol', code: 'SOL', chain: 'Solana', mode: 'pending', settlementCurrency: 'PRIZM', wallet: '', qr: '' },
+    { key: 'prizm', code: 'PRIZM', chain: 'PRIZM', mode: 'auto', settlementCurrency: 'PRIZM', wallet: 'PRIZM-4N7T-L2A7-RQZA-5BETW', qr: 'qr_wallet.webp', minBet: 10, maxBet: 30000 },
+    { key: 'usdt-trc20', code: 'USDT', chain: 'TRON (TRC20)', mode: 'auto', settlementCurrency: 'USDT', wallet: '', qr: '', minBet: 5, maxBet: 1000 },
+    { key: 'btc', code: 'BTC', chain: 'Bitcoin', mode: 'pending', settlementCurrency: 'BTC', wallet: '', qr: '', minBet: 0, maxBet: 0 },
+    { key: 'eth', code: 'ETH', chain: 'Ethereum', mode: 'pending', settlementCurrency: 'ETH', wallet: '', qr: '', minBet: 0, maxBet: 0 },
+    { key: 'usdt-erc20', code: 'USDT', chain: 'Ethereum (ERC20)', mode: 'pending', settlementCurrency: 'USDT', wallet: '', qr: '', minBet: 0, maxBet: 0 },
+    { key: 'sol', code: 'SOL', chain: 'Solana', mode: 'pending', settlementCurrency: 'SOL', wallet: '', qr: '', minBet: 0, maxBet: 0 },
 ];
 
 const TEXT = {
@@ -109,7 +109,22 @@ export function getTransferInstruction({ amountPrizm, code } = {}) {
     if (rail.mode === 'manual') return TEXT.transferManual;
     if (rail.mode === 'pending') return TEXT.transferPending;
     const amount = Number(amountPrizm || 0).toLocaleString(getLanguage() === 'en' ? 'en-US' : 'ru-RU');
-    return `Send ${amount} PRIZM to ${getRailAddress(rail)}. Put code ${code || ''} into the transfer message.`;
+    const currency = rail.code || 'PRIZM';
+    if (currency === 'USDT') {
+        return getLanguage() === 'ru'
+            ? `Отправьте ${amount} USDT (TRC-20) на адрес ${getRailAddress(rail)}. TRON не поддерживает сообщения — ставка привяжется по кошельку.`
+            : `Send ${amount} USDT (TRC-20) to ${getRailAddress(rail)}. TRON does not support messages — bet will be matched by wallet.`;
+    }
+    return `Send ${amount} ${currency} to ${getRailAddress(rail)}. Put code ${code || ''} into the transfer message.`;
+}
+
+export function getActiveRailCurrency() {
+    return getActiveRail()?.settlementCurrency || 'PRIZM';
+}
+
+export function getActiveRailLimits() {
+    const rail = getActiveRail();
+    return { minBet: rail?.minBet || 0, maxBet: rail?.maxBet || 0 };
 }
 
 export function getTransferChipText() {
