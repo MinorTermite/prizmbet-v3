@@ -8,6 +8,9 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -50,7 +53,7 @@ import java.net.URL;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String SITE_URL     = "http://213.165.38.210/";
+    private static final String SITE_URL     = "http://213.165.38.210/index.html";
     private static final String VERSION_URL  = "http://213.165.38.210/app-version.json";
     private static final String APP_KEY      = "prizmbet";
     private static final int    CURRENT_VERSION_CODE = 3;
@@ -69,11 +72,17 @@ public class MainActivity extends AppCompatActivity {
     private View                errorView;
     private SwipeRefreshLayout  swipeRefresh;
 
+    private static final String TAG = "PrizmBet";
+    private static final int MAX_AUTO_RETRIES = 3;
+    private static final long RETRY_DELAY_MS = 2000;
+
     // ── State ──────────────────────────────────────────────────────────────────
     private WebViewAssetLoader assetLoader;
+    private final Handler handler = new Handler(Looper.getMainLooper());
     /** Pending shortcut action applied via JS once page is ready. */
     private String pendingShortcut = null;
     private boolean hasError = false;
+    private int autoRetryCount = 0;
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -282,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
                 swipeRefresh.setRefreshing(false);  // сброс pull-to-refresh спиннера
 
                 if (!hasError) {
+                    autoRetryCount = 0;
                     showWebView();
                 }
                 // Применяем shortcut после загрузки DOM
@@ -294,9 +304,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
+                    Log.w(TAG, "WebView error: code=" + error.getErrorCode()
+                            + " desc=" + error.getDescription()
+                            + " url=" + request.getUrl());
                     hasError = true;
                     swipeRefresh.setRefreshing(false);
-                    showError("Ошибка загрузки. Проверьте соединение.");
+                    if (autoRetryCount < MAX_AUTO_RETRIES) {
+                        autoRetryCount++;
+                        Log.i(TAG, "Auto-retry " + autoRetryCount + "/" + MAX_AUTO_RETRIES);
+                        handler.postDelayed(() -> {
+                            webView.stopLoading();
+                            webView.loadUrl(SITE_URL);
+                        }, RETRY_DELAY_MS);
+                    } else {
+                        showError("Ошибка загрузки. Проверьте соединение.");
+                    }
                 }
             }
         });
@@ -355,6 +377,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void retry() {
+        autoRetryCount = 0;
         swipeRefresh.setVisibility(View.VISIBLE);
         showWebView();
         webView.loadUrl(SITE_URL);
