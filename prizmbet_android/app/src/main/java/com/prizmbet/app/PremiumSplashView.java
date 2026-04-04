@@ -23,79 +23,88 @@ import androidx.appcompat.content.res.AppCompatResources;
 import java.util.Random;
 
 /**
- * Cryptographic-style animated splash screen.
+ * 2026 Cybernetic cryptographic splash.
  *
- * Features:
- * - Falling hex-code rain (matrix-style)
- * - Blockchain node network with connecting lines
- * - Animated hash visualization ring
- * - Pulsing PRIZM logo with glow
- * - Digital particle field
+ * Layers:
+ * 1. Deep space gradient background with scan lines
+ * 2. Hex data stream (vertical matrix rain)
+ * 3. Orbital rings system around logo
+ * 4. Blockchain lattice mesh with pulsing nodes
+ * 5. Holographic logo with chromatic aberration glow
+ * 6. Glitch title with reveal animation
+ * 7. Rolling hash + verification bar
+ * 8. Cinematic outro fade
  */
 public class PremiumSplashView extends View {
 
-    private static final int BG = 0xFF06060E;
-    private static final int ACCENT = 0xFF903EBC;
-    private static final int ACCENT_LITE = 0xFFC684F1;
-    private static final int CYAN = 0xFF00E5FF;
-    private static final int GREEN = 0xFF39FF14;
-    private static final int WHITE = 0xFFF0F0FF;
-    private static final int ANIM_MS = 3600;
-    private static final float COMPLETE_AT = 0.88f;
+    // ── Palette — dark carbon base with electric accents ──
+    private static final int BG_DEEP    = 0xFF020208;
+    private static final int BG_MID     = 0xFF08081A;
+    private static final int ELECTRIC   = 0xFF00F0FF;   // primary cyan
+    private static final int NEON_VIOLET= 0xFFBF5AF2;   // iOS purple
+    private static final int PLASMA     = 0xFF6366F1;    // indigo
+    private static final int HOLO_GREEN = 0xFF30D158;    // success green
+    private static final int HOLO_PINK  = 0xFFFF375F;    // danger accent
+    private static final int WHITE      = 0xFFF5F5FF;
+    private static final int GHOST      = 0xFF4A4A6A;
+    private static final int ANIM_MS    = 3800;
+    private static final float COMPLETE_AT = 0.85f;
 
-    // Hex rain
-    private static final int HEX_COLUMNS = 18;
-    private static final String HEX_CHARS = "0123456789ABCDEF";
+    // Hex rain config
+    private static final int HEX_COLS = 22;
+    private static final int HEX_ROWS = 8;
+    private static final String HEX = "0123456789ABCDEF";
 
-    // Blockchain nodes
-    private static final int NODE_COUNT = 12;
+    // Mesh config
+    private static final int MESH_NODES = 18;
+    private static final int ORBIT_SEGMENTS = 3;
+    private static final int PARTICLE_COUNT = 55;
 
-    // Particles
-    private static final int PARTICLE_COUNT = 40;
-
-    // ── Data classes ──────────────────────────────
+    // ── Data classes ──
     private static final class HexDrop {
-        float x, y, speed, alpha;
+        float x, y, speed, alpha, size;
         String ch;
-        float size;
+        boolean bright;
     }
 
-    private static final class Node {
-        float x, y, radius, pulsePhase;
+    private static final class MeshNode {
+        float x, y, baseX, baseY, radius, phase;
         int color;
         boolean active;
     }
 
-    private static final class Particle {
-        float x, y, vx, vy, radius, alpha, phase;
+    private static final class Spark {
+        float x, y, vx, vy, radius, alpha, phase, life;
         int color;
     }
 
-    // ── Fields ────────────────────────────────────
-    private final Random rng = new Random(42);
-    private final HexDrop[] hexDrops = new HexDrop[HEX_COLUMNS * 6];
-    private final Node[] nodes = new Node[NODE_COUNT];
-    private final Particle[] particles = new Particle[PARTICLE_COUNT];
+    // ── Fields ──
+    private final Random rng = new Random(2026);
+    private final HexDrop[] drops = new HexDrop[HEX_COLS * HEX_ROWS];
+    private final MeshNode[] mesh = new MeshNode[MESH_NODES];
+    private final Spark[] sparks = new Spark[PARTICLE_COUNT];
 
-    private final Paint bgPaint = new Paint();
-    private final Paint hexPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint nodePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint nodeGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint particlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint ringGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint logoPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-    private final Paint logoGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Paint bgPaint    = new Paint();
+    private final Paint scanPaint  = new Paint();
+    private final Paint hexPaint   = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint meshPaint  = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint meshGlow   = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint linePaint  = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint sparkPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint ringPaint  = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint ringGlow   = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint logoPaint  = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Paint logoGlow1  = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Paint logoGlow2  = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint titleGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint subtitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint hashPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint orbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint titleGlow  = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint subPaint   = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint hashPaint  = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint barPaint   = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint orbPaint   = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint outroPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final RectF ringRect = new RectF();
-    private final Path hexPath = new Path();
+    private final Paint vignetPaint= new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF tmpRect    = new RectF();
 
     private Bitmap logoBitmap;
     private ValueAnimator animator;
@@ -106,148 +115,152 @@ public class PremiumSplashView extends View {
     private boolean completeFired = false;
     private String currentHash = "";
 
-    public PremiumSplashView(Context context) { super(context); setup(context); }
-    public PremiumSplashView(Context context, AttributeSet attrs) { super(context, attrs); setup(context); }
-    public PremiumSplashView(Context context, AttributeSet attrs, int defStyleAttr) { super(context, attrs, defStyleAttr); setup(context); }
+    public PremiumSplashView(Context c) { super(c); init(c); }
+    public PremiumSplashView(Context c, AttributeSet a) { super(c, a); init(c); }
+    public PremiumSplashView(Context c, AttributeSet a, int d) { super(c, a, d); init(c); }
 
-    public void setOnCompleteListener(Runnable runnable) { onComplete = runnable; }
+    public void setOnCompleteListener(Runnable r) { onComplete = r; }
 
-    private void setup(Context context) {
+    private void init(Context ctx) {
         setLayerType(LAYER_TYPE_SOFTWARE, null);
-        density = context.getResources().getDisplayMetrics().density;
+        density = ctx.getResources().getDisplayMetrics().density;
 
-        // Load logo
-        Drawable drawable = AppCompatResources.getDrawable(context, R.drawable.ic_prizm_mark);
-        if (drawable != null) {
-            logoBitmap = drawableToBitmap(drawable, (int) (200f * density), (int) (174f * density));
-        }
+        Drawable d = AppCompatResources.getDrawable(ctx, R.drawable.ic_prizm_mark);
+        if (d != null) logoBitmap = toBitmap(d, (int)(220*density), (int)(192*density));
 
-        // Hex rain paint
-        Typeface mono = Typeface.create("monospace", Typeface.NORMAL);
+        Typeface mono = Typeface.create("monospace", Typeface.BOLD);
+        Typeface sans = Typeface.create("sans-serif-medium", Typeface.BOLD);
+
         hexPaint.setTypeface(mono);
         hexPaint.setTextAlign(Paint.Align.CENTER);
 
-        // Node paints
-        nodePaint.setStyle(Paint.Style.FILL);
-        nodeGlowPaint.setStyle(Paint.Style.FILL);
-        nodeGlowPaint.setMaskFilter(new BlurMaskFilter(16f * density, BlurMaskFilter.Blur.NORMAL));
+        meshPaint.setStyle(Paint.Style.FILL);
+        meshGlow.setStyle(Paint.Style.FILL);
+        meshGlow.setMaskFilter(new BlurMaskFilter(20*density, BlurMaskFilter.Blur.NORMAL));
 
         linePaint.setStyle(Paint.Style.STROKE);
-        linePaint.setStrokeWidth(0.8f * density);
+        linePaint.setStrokeWidth(0.6f*density);
 
-        // Particle paint
-        particlePaint.setStyle(Paint.Style.FILL);
-        particlePaint.setMaskFilter(new BlurMaskFilter(6f * density, BlurMaskFilter.Blur.NORMAL));
+        sparkPaint.setStyle(Paint.Style.FILL);
+        sparkPaint.setMaskFilter(new BlurMaskFilter(8*density, BlurMaskFilter.Blur.NORMAL));
 
-        // Ring paint
         ringPaint.setStyle(Paint.Style.STROKE);
-        ringPaint.setStrokeWidth(2.5f * density);
         ringPaint.setStrokeCap(Paint.Cap.ROUND);
 
-        ringGlowPaint.setStyle(Paint.Style.STROKE);
-        ringGlowPaint.setStrokeWidth(6f * density);
-        ringGlowPaint.setMaskFilter(new BlurMaskFilter(12f * density, BlurMaskFilter.Blur.NORMAL));
+        ringGlow.setStyle(Paint.Style.STROKE);
+        ringGlow.setMaskFilter(new BlurMaskFilter(16*density, BlurMaskFilter.Blur.NORMAL));
 
-        // Logo glow
-        logoGlowPaint.setMaskFilter(new BlurMaskFilter(28f * density, BlurMaskFilter.Blur.NORMAL));
-        logoGlowPaint.setColor(ACCENT);
+        logoGlow1.setMaskFilter(new BlurMaskFilter(36*density, BlurMaskFilter.Blur.NORMAL));
+        logoGlow1.setColor(ELECTRIC);
+        logoGlow2.setMaskFilter(new BlurMaskFilter(48*density, BlurMaskFilter.Blur.NORMAL));
+        logoGlow2.setColor(NEON_VIOLET);
 
-        // Title paints
-        Typeface bold = Typeface.create(Typeface.DEFAULT, Typeface.BOLD);
-        titlePaint.setColor(WHITE);
+        titlePaint.setTypeface(sans);
         titlePaint.setTextAlign(Paint.Align.CENTER);
-        titlePaint.setTypeface(bold);
-        titlePaint.setLetterSpacing(0.22f);
+        titlePaint.setLetterSpacing(0.28f);
+        titlePaint.setColor(WHITE);
 
-        titleGlowPaint.setColor(CYAN);
-        titleGlowPaint.setTextAlign(Paint.Align.CENTER);
-        titleGlowPaint.setTypeface(bold);
-        titleGlowPaint.setLetterSpacing(0.22f);
-        titleGlowPaint.setMaskFilter(new BlurMaskFilter(14f * density, BlurMaskFilter.Blur.NORMAL));
+        titleGlow.setTypeface(sans);
+        titleGlow.setTextAlign(Paint.Align.CENTER);
+        titleGlow.setLetterSpacing(0.28f);
+        titleGlow.setColor(ELECTRIC);
+        titleGlow.setMaskFilter(new BlurMaskFilter(18*density, BlurMaskFilter.Blur.NORMAL));
 
-        subtitlePaint.setColor(ACCENT_LITE);
-        subtitlePaint.setTextAlign(Paint.Align.CENTER);
-        subtitlePaint.setTypeface(mono);
-        subtitlePaint.setLetterSpacing(0.08f);
+        subPaint.setTypeface(mono);
+        subPaint.setTextAlign(Paint.Align.CENTER);
+        subPaint.setLetterSpacing(0.12f);
 
         hashPaint.setTypeface(mono);
         hashPaint.setTextAlign(Paint.Align.CENTER);
 
-        // Grid
-        gridPaint.setStyle(Paint.Style.STROKE);
-        gridPaint.setStrokeWidth(0.5f * density);
+        barPaint.setStyle(Paint.Style.FILL);
+
+        scanPaint.setStyle(Paint.Style.FILL);
 
         // Init hex drops
-        for (int i = 0; i < hexDrops.length; i++) {
-            HexDrop d = new HexDrop();
-            d.x = (i % HEX_COLUMNS) / (float) HEX_COLUMNS;
-            d.y = -rng.nextFloat() * 2f;
-            d.speed = 0.003f + rng.nextFloat() * 0.006f;
-            d.alpha = 0.08f + rng.nextFloat() * 0.22f;
-            d.ch = String.valueOf(HEX_CHARS.charAt(rng.nextInt(16)));
-            d.size = (9f + rng.nextFloat() * 5f) * density;
-            hexDrops[i] = d;
+        for (int i = 0; i < drops.length; i++) {
+            HexDrop h = new HexDrop();
+            h.x = (i % HEX_COLS) / (float)HEX_COLS;
+            h.y = -rng.nextFloat() * 2.5f;
+            h.speed = 0.0025f + rng.nextFloat() * 0.005f;
+            h.alpha = 0.05f + rng.nextFloat() * 0.18f;
+            h.ch = String.valueOf(HEX.charAt(rng.nextInt(16)));
+            h.size = (8f + rng.nextFloat() * 4f) * density;
+            h.bright = rng.nextFloat() < 0.08f;
+            drops[i] = h;
         }
 
-        // Init nodes
-        for (int i = 0; i < nodes.length; i++) {
-            Node n = new Node();
-            // Distribute nodes around center in an arc pattern
-            double angle = (i / (double) NODE_COUNT) * Math.PI * 2.0 + rng.nextDouble() * 0.5;
-            double dist = 0.22 + rng.nextDouble() * 0.22;
-            n.x = 0.5f + (float) (Math.cos(angle) * dist);
-            n.y = 0.42f + (float) (Math.sin(angle) * dist * 0.7);
-            n.radius = (2.5f + rng.nextFloat() * 2.5f) * density;
-            n.pulsePhase = rng.nextFloat() * 6.28f;
-            n.color = (i % 3 == 0) ? CYAN : (i % 3 == 1) ? ACCENT_LITE : GREEN;
+        // Init mesh nodes — distributed in a wider field
+        for (int i = 0; i < MESH_NODES; i++) {
+            MeshNode n = new MeshNode();
+            double ang = (i/(double)MESH_NODES) * Math.PI*2 + rng.nextDouble()*0.6;
+            double dist = 0.18 + rng.nextDouble()*0.30;
+            n.baseX = 0.5f + (float)(Math.cos(ang)*dist);
+            n.baseY = 0.40f + (float)(Math.sin(ang)*dist*0.65);
+            n.x = n.baseX; n.y = n.baseY;
+            n.radius = (2f + rng.nextFloat()*3f) * density;
+            n.phase = rng.nextFloat() * 6.28f;
+            n.color = pickMeshColor(i);
             n.active = false;
-            nodes[i] = n;
+            mesh[i] = n;
         }
 
-        // Init particles
-        for (int i = 0; i < particles.length; i++) {
-            Particle p = new Particle();
-            p.x = rng.nextFloat();
-            p.y = rng.nextFloat();
-            p.vx = (rng.nextFloat() - 0.5f) * 0.0007f;
-            p.vy = (rng.nextFloat() - 0.5f) * 0.0007f;
-            p.radius = (0.8f + rng.nextFloat() * 2f) * density;
-            p.alpha = 0.12f + rng.nextFloat() * 0.28f;
-            p.phase = rng.nextFloat() * 6.28f;
-            p.color = pickColor(i);
-            particles[i] = p;
-        }
-    }
-
-    private int pickColor(int i) {
-        switch (i % 4) {
-            case 0: return ACCENT;
-            case 1: return CYAN;
-            case 2: return ACCENT_LITE;
-            default: return GREEN;
+        // Init sparks
+        for (int i = 0; i < PARTICLE_COUNT; i++) {
+            Spark s = new Spark();
+            s.x = rng.nextFloat();
+            s.y = rng.nextFloat();
+            s.vx = (rng.nextFloat()-0.5f) * 0.0006f;
+            s.vy = (rng.nextFloat()-0.5f) * 0.0006f;
+            s.radius = (0.6f + rng.nextFloat()*2.2f) * density;
+            s.alpha = 0.08f + rng.nextFloat() * 0.22f;
+            s.phase = rng.nextFloat() * 6.28f;
+            s.life = 0.6f + rng.nextFloat() * 0.4f;
+            s.color = pickSparkColor(i);
+            sparks[i] = s;
         }
     }
 
-    private Bitmap drawableToBitmap(Drawable drawable, int w, int h) {
-        Bitmap bmp = Bitmap.createBitmap(Math.max(w, 1), Math.max(h, 1), Bitmap.Config.ARGB_8888);
+    private int pickMeshColor(int i) {
+        switch (i % 5) {
+            case 0: return ELECTRIC;
+            case 1: return NEON_VIOLET;
+            case 2: return PLASMA;
+            case 3: return HOLO_GREEN;
+            default: return ELECTRIC;
+        }
+    }
+
+    private int pickSparkColor(int i) {
+        switch (i % 6) {
+            case 0: return ELECTRIC;
+            case 1: return NEON_VIOLET;
+            case 2: return PLASMA;
+            case 3: return HOLO_GREEN;
+            case 4: return HOLO_PINK;
+            default: return WHITE;
+        }
+    }
+
+    private Bitmap toBitmap(Drawable d, int w, int h) {
+        Bitmap bmp = Bitmap.createBitmap(Math.max(w,1), Math.max(h,1), Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bmp);
-        drawable.setBounds(0, 0, c.getWidth(), c.getHeight());
-        drawable.draw(c);
+        d.setBounds(0, 0, w, h);
+        d.draw(c);
         return bmp;
     }
 
-    @Override
-    protected void onAttachedToWindow() {
+    @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         animator = ValueAnimator.ofFloat(0f, 1f);
         animator.setDuration(ANIM_MS);
         animator.setInterpolator(new LinearInterpolator());
         animator.addUpdateListener(va -> {
             progress = (float) va.getAnimatedValue();
-            tick = progress * 12f;
-            advanceHexRain();
-            advanceParticles();
-            updateNodes();
+            tick = progress * 14f;
+            advanceDrops();
+            advanceSparks();
+            advanceMesh();
             updateHash();
             if (!completeFired && progress >= COMPLETE_AT) {
                 completeFired = true;
@@ -258,310 +271,399 @@ public class PremiumSplashView extends View {
         animator.start();
     }
 
-    @Override
-    protected void onDetachedFromWindow() {
+    @Override protected void onDetachedFromWindow() {
         if (animator != null) animator.cancel();
         super.onDetachedFromWindow();
     }
 
-    private void advanceHexRain() {
-        for (HexDrop d : hexDrops) {
-            d.y += d.speed;
-            if (d.y > 1.2f) {
-                d.y = -rng.nextFloat() * 0.3f;
-                d.ch = String.valueOf(HEX_CHARS.charAt(rng.nextInt(16)));
-                d.alpha = 0.08f + rng.nextFloat() * 0.22f;
+    // ── Simulation ──
+
+    private void advanceDrops() {
+        for (HexDrop h : drops) {
+            h.y += h.speed;
+            if (h.y > 1.3f) {
+                h.y = -rng.nextFloat()*0.4f;
+                h.ch = String.valueOf(HEX.charAt(rng.nextInt(16)));
+                h.bright = rng.nextFloat() < 0.08f;
             }
         }
     }
 
-    private void advanceParticles() {
-        for (Particle p : particles) {
-            p.x += p.vx;
-            p.y += p.vy;
-            if (p.x < -0.05f) p.x = 1.05f;
-            if (p.x > 1.05f) p.x = -0.05f;
-            if (p.y < -0.05f) p.y = 1.05f;
-            if (p.y > 1.05f) p.y = -0.05f;
+    private void advanceSparks() {
+        for (Spark s : sparks) {
+            s.x += s.vx; s.y += s.vy;
+            if (s.x < -0.05f) s.x = 1.05f;
+            if (s.x > 1.05f) s.x = -0.05f;
+            if (s.y < -0.05f) s.y = 1.05f;
+            if (s.y > 1.05f) s.y = -0.05f;
         }
     }
 
-    private void updateNodes() {
-        float nodeProgress = phase(0.15f, 0.65f, progress);
-        for (int i = 0; i < nodes.length; i++) {
-            nodes[i].active = nodeProgress > (i / (float) NODE_COUNT);
+    private void advanceMesh() {
+        float p = phase(0.10f, 0.55f, progress);
+        for (int i = 0; i < mesh.length; i++) {
+            MeshNode n = mesh[i];
+            n.active = p > (i/(float)MESH_NODES);
+            // Subtle drift
+            float drift = (float)Math.sin(tick*0.8 + n.phase) * 0.008f;
+            n.x = n.baseX + drift;
+            n.y = n.baseY + (float)Math.cos(tick*0.6 + n.phase) * 0.005f;
         }
     }
 
     private void updateHash() {
-        int len = (int) (progress * 64);
+        int len = (int)(progress * 64);
         StringBuilder sb = new StringBuilder();
-        Random hashRng = new Random((long) (progress * 1000));
-        for (int i = 0; i < Math.min(len, 16); i++) {
-            sb.append(HEX_CHARS.charAt(hashRng.nextInt(16)));
+        Random hr = new Random((long)(progress*1000));
+        for (int i = 0; i < Math.min(len, 20); i++) {
+            sb.append(HEX.charAt(hr.nextInt(16)));
         }
         currentHash = sb.toString();
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        int w = getWidth();
-        int h = getHeight();
-        float cx = w / 2f;
-        float cy = h * 0.40f;
+    // ── Draw pipeline ──
 
-        canvas.drawColor(BG);
-        drawGrid(canvas, w, h);
+    @Override protected void onDraw(Canvas canvas) {
+        int w = getWidth(), h = getHeight();
+        float cx = w/2f, cy = h*0.38f;
+
+        drawBackground(canvas, w, h);
+        drawScanLines(canvas, w, h);
         drawAmbientOrbs(canvas, w, h);
         drawHexRain(canvas, w, h);
-        drawNodeNetwork(canvas, w, h);
-        drawParticles(canvas, w, h);
-        drawHashRing(canvas, cx, cy);
+        drawMeshNetwork(canvas, w, h);
+        drawSparks(canvas, w, h);
+        drawOrbitRings(canvas, cx, cy);
         drawLogo(canvas, cx, cy);
         drawTitle(canvas, cx, cy);
-        drawHashVisualization(canvas, cx, h);
+        drawHashBar(canvas, cx, w, h);
+        drawVignette(canvas, w, h);
         drawOutro(canvas, w, h);
     }
 
-    private void drawGrid(Canvas canvas, int w, int h) {
-        float appear = Math.min(1f, progress / 0.3f) * 0.06f;
-        gridPaint.setColor(Color.argb((int) (255 * appear), 0, 229, 255));
-        float spacing = 48f * density;
-        for (float x = 0; x < w; x += spacing) {
-            canvas.drawLine(x, 0, x, h, gridPaint);
+    private void drawBackground(Canvas c, int w, int h) {
+        bgPaint.setShader(new LinearGradient(0, 0, 0, h,
+                new int[]{BG_DEEP, BG_MID, 0xFF040414, BG_DEEP},
+                new float[]{0f, 0.35f, 0.7f, 1f}, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, bgPaint);
+    }
+
+    private void drawScanLines(Canvas c, int w, int h) {
+        float a = Math.min(1f, progress/0.3f) * 0.035f;
+        scanPaint.setColor(Color.argb((int)(255*a), 0, 240, 255));
+        float gap = 3f * density;
+        for (float y = 0; y < h; y += gap) {
+            c.drawRect(0, y, w, y + 1, scanPaint);
         }
-        for (float y = 0; y < h; y += spacing) {
-            canvas.drawLine(0, y, w, y, gridPaint);
+
+        // Moving scan beam
+        if (progress < 0.7f) {
+            float beamY = (tick * 80f) % (h + 100) - 50;
+            scanPaint.setShader(new LinearGradient(0, beamY-30*density, 0, beamY+30*density,
+                    new int[]{Color.TRANSPARENT, Color.argb(30, 0, 240, 255), Color.TRANSPARENT},
+                    null, Shader.TileMode.CLAMP));
+            c.drawRect(0, beamY-30*density, w, beamY+30*density, scanPaint);
+            scanPaint.setShader(null);
         }
     }
 
-    private void drawAmbientOrbs(Canvas canvas, int w, int h) {
-        float alpha = Math.min(1f, progress / 0.4f);
+    private void drawAmbientOrbs(Canvas c, int w, int h) {
+        float a = Math.min(1f, progress/0.35f);
 
-        orbPaint.setShader(new RadialGradient(w * 0.2f, h * 0.15f, w * 0.5f,
-                new int[]{Color.argb((int) (alpha * 40), 0, 229, 255), Color.TRANSPARENT},
-                new float[]{0f, 1f}, Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, orbPaint);
+        // Top-left electric cyan orb
+        orbPaint.setShader(new RadialGradient(w*0.15f, h*0.12f, w*0.55f,
+                new int[]{Color.argb((int)(a*30), 0, 240, 255), Color.TRANSPARENT},
+                null, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, orbPaint);
 
-        orbPaint.setShader(new RadialGradient(w * 0.8f, h * 0.7f, w * 0.4f,
-                new int[]{Color.argb((int) (alpha * 35), 144, 62, 188), Color.TRANSPARENT},
-                new float[]{0f, 1f}, Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, orbPaint);
+        // Center violet orb
+        orbPaint.setShader(new RadialGradient(w*0.55f, h*0.38f, w*0.4f,
+                new int[]{Color.argb((int)(a*35), 191, 90, 242), Color.TRANSPARENT},
+                null, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, orbPaint);
 
-        orbPaint.setShader(new RadialGradient(w * 0.5f, h * 0.4f, w * 0.35f,
-                new int[]{Color.argb((int) (alpha * 25), 57, 255, 20), Color.TRANSPARENT},
-                new float[]{0f, 1f}, Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, orbPaint);
+        // Bottom-right plasma orb
+        orbPaint.setShader(new RadialGradient(w*0.85f, h*0.75f, w*0.45f,
+                new int[]{Color.argb((int)(a*20), 99, 102, 241), Color.TRANSPARENT},
+                null, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, orbPaint);
+
+        orbPaint.setShader(null);
     }
 
-    private void drawHexRain(Canvas canvas, int w, int h) {
-        float appear = Math.min(1f, progress / 0.2f);
-        for (HexDrop d : hexDrops) {
+    private void drawHexRain(Canvas c, int w, int h) {
+        float appear = Math.min(1f, progress/0.15f);
+        float fade = progress > 0.7f ? 1f - phase(0.7f, 0.9f, progress) : 1f;
+        float layer = appear * fade;
+        if (layer <= 0) return;
+
+        for (HexDrop d : drops) {
             if (d.y < 0 || d.y > 1f) continue;
-            float fadeEdge = Math.min(1f, Math.min(d.y * 5f, (1f - d.y) * 5f));
-            hexPaint.setColor(GREEN);
-            hexPaint.setAlpha((int) (255 * d.alpha * appear * fadeEdge));
+            float edge = Math.min(1f, Math.min(d.y*6f, (1f-d.y)*6f));
+            int color = d.bright ? ELECTRIC : HOLO_GREEN;
+            hexPaint.setColor(color);
+            hexPaint.setAlpha((int)(255 * (d.bright ? 0.5f : d.alpha) * layer * edge));
             hexPaint.setTextSize(d.size);
-            float px = d.x * w + w / (float) HEX_COLUMNS / 2f;
-            float py = d.y * h;
-            canvas.drawText(d.ch, px, py, hexPaint);
+            float px = d.x*w + w/(float)HEX_COLS/2f;
+            c.drawText(d.ch, px, d.y*h, hexPaint);
         }
     }
 
-    private void drawNodeNetwork(Canvas canvas, int w, int h) {
-        float appear = phase(0.10f, 0.50f, progress);
+    private void drawMeshNetwork(Canvas c, int w, int h) {
+        float appear = phase(0.08f, 0.45f, progress);
         if (appear <= 0) return;
 
-        // Draw connections first
-        for (int i = 0; i < nodes.length; i++) {
-            if (!nodes[i].active) continue;
-            for (int j = i + 1; j < nodes.length; j++) {
-                if (!nodes[j].active) continue;
-                float dx = nodes[i].x - nodes[j].x;
-                float dy = nodes[i].y - nodes[j].y;
-                float dist = (float) Math.sqrt(dx * dx + dy * dy);
-                if (dist < 0.35f) {
-                    float lineAlpha = (1f - dist / 0.35f) * appear * 0.3f;
-                    linePaint.setColor(CYAN);
-                    linePaint.setAlpha((int) (255 * lineAlpha));
-                    canvas.drawLine(
-                            nodes[i].x * w, nodes[i].y * h,
-                            nodes[j].x * w, nodes[j].y * h,
-                            linePaint
-                    );
+        // Connections
+        for (int i = 0; i < mesh.length; i++) {
+            if (!mesh[i].active) continue;
+            for (int j = i+1; j < mesh.length; j++) {
+                if (!mesh[j].active) continue;
+                float dx = mesh[i].x - mesh[j].x;
+                float dy = mesh[i].y - mesh[j].y;
+                float dist = (float)Math.sqrt(dx*dx + dy*dy);
+                if (dist < 0.30f) {
+                    float la = (1f - dist/0.30f) * appear * 0.25f;
+                    float pulse = (float)(0.5f + 0.5f * Math.sin(tick*1.5 + i + j));
+                    linePaint.setColor(ELECTRIC);
+                    linePaint.setAlpha((int)(255 * la * pulse));
+                    c.drawLine(mesh[i].x*w, mesh[i].y*h, mesh[j].x*w, mesh[j].y*h, linePaint);
                 }
             }
         }
 
-        // Draw nodes
-        for (Node n : nodes) {
+        // Nodes
+        for (MeshNode n : mesh) {
             if (!n.active) continue;
-            float pulse = (float) ((Math.sin(tick * 2 + n.pulsePhase) + 1f) * 0.5f);
-            float r = n.radius * (0.8f + pulse * 0.4f);
+            float pulse = (float)((Math.sin(tick*2.5 + n.phase) + 1f) * 0.5f);
+            float r = n.radius * (0.7f + pulse*0.5f);
 
-            // Glow
-            nodeGlowPaint.setColor(n.color);
-            nodeGlowPaint.setAlpha((int) (80 * appear * pulse));
-            canvas.drawCircle(n.x * w, n.y * h, r * 3f, nodeGlowPaint);
+            meshGlow.setColor(n.color);
+            meshGlow.setAlpha((int)(60 * appear * pulse));
+            c.drawCircle(n.x*w, n.y*h, r*4f, meshGlow);
 
-            // Core
-            nodePaint.setColor(n.color);
-            nodePaint.setAlpha((int) (220 * appear));
-            canvas.drawCircle(n.x * w, n.y * h, r, nodePaint);
+            meshPaint.setColor(n.color);
+            meshPaint.setAlpha((int)(200 * appear));
+            c.drawCircle(n.x*w, n.y*h, r, meshPaint);
 
-            // Bright center
-            nodePaint.setColor(WHITE);
-            nodePaint.setAlpha((int) (180 * appear * pulse));
-            canvas.drawCircle(n.x * w, n.y * h, r * 0.4f, nodePaint);
+            meshPaint.setColor(WHITE);
+            meshPaint.setAlpha((int)(160 * appear * pulse));
+            c.drawCircle(n.x*w, n.y*h, r*0.35f, meshPaint);
         }
     }
 
-    private void drawParticles(Canvas canvas, int w, int h) {
-        float layer = Math.min(1f, progress / 0.2f);
-        for (Particle p : particles) {
-            float twinkle = (float) ((Math.sin(tick + p.phase) + 1f) * 0.5f);
-            particlePaint.setColor(p.color);
-            particlePaint.setAlpha((int) (255f * p.alpha * layer * (0.3f + twinkle * 0.7f)));
-            canvas.drawCircle(p.x * w, p.y * h, p.radius, particlePaint);
+    private void drawSparks(Canvas c, int w, int h) {
+        float layer = Math.min(1f, progress/0.2f);
+        for (Spark s : sparks) {
+            float twinkle = (float)((Math.sin(tick*1.2 + s.phase) + 1f) * 0.5f);
+            float vis = layer * s.alpha * (0.2f + twinkle*0.8f);
+            if (progress > s.life) vis *= Math.max(0f, 1f - (progress - s.life)*5f);
+            sparkPaint.setColor(s.color);
+            sparkPaint.setAlpha((int)(255 * vis));
+            c.drawCircle(s.x*w, s.y*h, s.radius, sparkPaint);
         }
     }
 
-    private void drawHashRing(Canvas canvas, float cx, float cy) {
-        float appear = phase(0.20f, 0.55f, progress);
+    private void drawOrbitRings(Canvas c, float cx, float cy) {
+        float appear = phase(0.15f, 0.50f, progress);
         if (appear <= 0) return;
 
-        float radius = 72f * density;
-        ringRect.set(cx - radius, cy - radius, cx + radius, cy + radius);
+        float rot = tick * 20f;
 
-        // Outer rotating segmented ring
-        float rotation = tick * 25f;
-        int segments = 8;
-        float segAngle = 360f / segments;
-        float gap = 8f;
+        // Outer ring — segmented, rotating
+        float r1 = 82f * density;
+        tmpRect.set(cx-r1, cy-r1, cx+r1, cy+r1);
+        ringPaint.setStrokeWidth(2f*density);
+        ringGlow.setStrokeWidth(7f*density);
 
-        for (int i = 0; i < segments; i++) {
-            float startAngle = rotation + i * segAngle + gap / 2f;
-            float sweepAngle = segAngle - gap;
-            float segAlpha = appear * (0.4f + 0.6f * (float) Math.abs(Math.sin(tick + i * 0.8f)));
+        int segs = 10;
+        float segAng = 360f / segs;
+        for (int i = 0; i < segs; i++) {
+            float start = rot + i*segAng + 3f;
+            float sweep = segAng - 6f;
+            float sa = appear * (0.3f + 0.7f*(float)Math.abs(Math.sin(tick*1.5 + i*0.7)));
 
-            // Glow
-            ringGlowPaint.setColor(i % 2 == 0 ? CYAN : ACCENT_LITE);
-            ringGlowPaint.setAlpha((int) (100 * segAlpha));
-            canvas.drawArc(ringRect, startAngle, sweepAngle, false, ringGlowPaint);
+            int col = i%3==0 ? ELECTRIC : i%3==1 ? NEON_VIOLET : PLASMA;
+            ringGlow.setColor(col);
+            ringGlow.setAlpha((int)(80*sa));
+            c.drawArc(tmpRect, start, sweep, false, ringGlow);
 
-            // Core
-            ringPaint.setColor(i % 2 == 0 ? CYAN : ACCENT_LITE);
-            ringPaint.setAlpha((int) (220 * segAlpha));
-            canvas.drawArc(ringRect, startAngle, sweepAngle, false, ringPaint);
+            ringPaint.setColor(col);
+            ringPaint.setAlpha((int)(220*sa));
+            c.drawArc(tmpRect, start, sweep, false, ringPaint);
         }
 
-        // Inner ring (counter-rotate)
-        float innerRadius = 58f * density;
-        RectF innerRect = new RectF(cx - innerRadius, cy - innerRadius, cx + innerRadius, cy + innerRadius);
-        for (int i = 0; i < 12; i++) {
-            float startAngle = -rotation * 0.7f + i * 30f + 4f;
-            float sweepAngle = 22f;
-            ringPaint.setColor(GREEN);
-            ringPaint.setAlpha((int) (80 * appear * (float) Math.abs(Math.sin(tick * 1.5 + i))));
-            ringPaint.setStrokeWidth(1.2f * density);
-            canvas.drawArc(innerRect, startAngle, sweepAngle, false, ringPaint);
+        // Middle ring — counter-rotating, dashed
+        float r2 = 66f * density;
+        tmpRect.set(cx-r2, cy-r2, cx+r2, cy+r2);
+        ringPaint.setStrokeWidth(1.2f*density);
+        for (int i = 0; i < 16; i++) {
+            float start = -rot*0.6f + i*22.5f + 2f;
+            float sweep = 16f;
+            float sa = appear * (float)Math.abs(Math.sin(tick*1.8 + i));
+            ringPaint.setColor(HOLO_GREEN);
+            ringPaint.setAlpha((int)(100*sa));
+            c.drawArc(tmpRect, start, sweep, false, ringPaint);
         }
-        ringPaint.setStrokeWidth(2.5f * density);
+
+        // Inner ring — fast, thin
+        float r3 = 52f * density;
+        tmpRect.set(cx-r3, cy-r3, cx+r3, cy+r3);
+        ringPaint.setStrokeWidth(0.8f*density);
+        for (int i = 0; i < 24; i++) {
+            float start = rot*1.4f + i*15f + 1f;
+            float sweep = 10f;
+            float sa = appear * 0.4f * (float)Math.abs(Math.sin(tick*2.2 + i*0.5));
+            ringPaint.setColor(ELECTRIC);
+            ringPaint.setAlpha((int)(120*sa));
+            c.drawArc(tmpRect, start, sweep, false, ringPaint);
+        }
+
+        ringPaint.setStrokeWidth(2f*density);
     }
 
-    private void drawLogo(Canvas canvas, float cx, float cy) {
+    private void drawLogo(Canvas c, float cx, float cy) {
         if (logoBitmap == null) return;
-        float appear = phase(0.25f, 0.55f, progress);
+        float appear = phase(0.20f, 0.50f, progress);
         if (appear <= 0) return;
 
         float eased = decel(appear);
-        float scale = 0.85f + eased * 0.15f;
-        float logoW = 42f * density * scale;
-        float aspect = logoBitmap.getHeight() / (float) logoBitmap.getWidth();
+        float scale = 0.8f + eased*0.2f;
+        float logoW = 44f * density * scale;
+        float aspect = logoBitmap.getHeight() / (float)logoBitmap.getWidth();
         float logoH = logoW * aspect;
         android.graphics.Rect src = new android.graphics.Rect(0, 0, logoBitmap.getWidth(), logoBitmap.getHeight());
 
-        // Glow
-        float glowW = logoW * 2f;
-        float glowH = logoH * 2f;
-        logoGlowPaint.setAlpha((int) (140 * eased));
-        canvas.drawBitmap(logoBitmap, src, new RectF(cx - glowW / 2, cy - glowH / 2, cx + glowW / 2, cy + glowH / 2), logoGlowPaint);
+        // Chromatic aberration glow — violet layer offset
+        float glowW2 = logoW*2.2f;
+        float glowH2 = logoH*2.2f;
+        float offset = 3f * density * eased;
+        logoGlow2.setAlpha((int)(90*eased));
+        c.drawBitmap(logoBitmap, src, new RectF(
+                cx-glowW2/2+offset, cy-glowH2/2,
+                cx+glowW2/2+offset, cy+glowH2/2), logoGlow2);
 
-        // Logo
-        logoPaint.setAlpha((int) (255 * eased));
-        canvas.drawBitmap(logoBitmap, src, new RectF(cx - logoW / 2, cy - logoH / 2, cx + logoW / 2, cy + logoH / 2), logoPaint);
+        // Cyan glow layer
+        float glowW1 = logoW*2f;
+        float glowH1 = logoH*2f;
+        logoGlow1.setAlpha((int)(120*eased));
+        c.drawBitmap(logoBitmap, src, new RectF(
+                cx-glowW1/2-offset*0.5f, cy-glowH1/2,
+                cx+glowW1/2-offset*0.5f, cy+glowH1/2), logoGlow1);
+
+        // Sharp logo
+        logoPaint.setAlpha((int)(255*eased));
+        c.drawBitmap(logoBitmap, src, new RectF(
+                cx-logoW/2, cy-logoH/2,
+                cx+logoW/2, cy+logoH/2), logoPaint);
     }
 
-    private void drawTitle(Canvas canvas, float cx, float cy) {
-        float appear = phase(0.40f, 0.70f, progress);
+    private void drawTitle(Canvas c, float cx, float cy) {
+        float appear = phase(0.35f, 0.60f, progress);
         if (appear <= 0) return;
 
         float eased = decel(appear);
-        float titleY = cy + 92f * density + (1f - eased) * 14f * density;
+        float y = cy + 100f*density + (1f-eased)*18f*density;
 
-        titlePaint.setTextSize(16f * density);
-        titleGlowPaint.setTextSize(16f * density);
+        titlePaint.setTextSize(18f*density);
+        titleGlow.setTextSize(18f*density);
+
+        // Glitch effect: slight offset during reveal
+        float glitch = appear < 0.5f ? (float)Math.sin(tick*20) * 2f * density * (1f-appear*2) : 0f;
 
         // Glow
-        titleGlowPaint.setAlpha((int) (120 * eased));
-        canvas.drawText("PRIZMBET", cx, titleY, titleGlowPaint);
+        titleGlow.setAlpha((int)(100*eased));
+        c.drawText("PRIZMBET", cx + glitch, y, titleGlow);
 
         // Text
-        titlePaint.setAlpha((int) (240 * eased));
-        canvas.drawText("PRIZMBET", cx, titleY, titlePaint);
+        titlePaint.setAlpha((int)(250*eased));
+        c.drawText("PRIZMBET", cx, y, titlePaint);
 
-        // Subtitle
-        subtitlePaint.setTextSize(8.5f * density);
-        subtitlePaint.setAlpha((int) (140 * eased));
-        float subY = titleY + 18f * density;
-        canvas.drawText("CRYPTO · PREDICTION · ANALYTICS", cx, subY, subtitlePaint);
+        // Subtitle with typing reveal
+        subPaint.setTextSize(8f*density);
+        subPaint.setColor(GHOST);
+        float subAppear = phase(0.45f, 0.70f, progress);
+        if (subAppear > 0) {
+            String full = "CRYPTO \u00B7 PREDICTION \u00B7 ANALYTICS";
+            int reveal = (int)(full.length() * subAppear);
+            String shown = full.substring(0, Math.min(reveal, full.length()));
+            subPaint.setAlpha((int)(180 * Math.min(1f, subAppear*2)));
+            c.drawText(shown, cx, y + 20f*density, subPaint);
+
+            // Cursor blink
+            if (subAppear < 1f && (int)(tick*8)%2 == 0) {
+                float tw = subPaint.measureText(shown);
+                barPaint.setColor(ELECTRIC);
+                barPaint.setAlpha(180);
+                c.drawRect(cx+tw/2+2*density, y+8*density, cx+tw/2+4*density, y+20*density, barPaint);
+            }
+        }
     }
 
-    private void drawHashVisualization(Canvas canvas, float cx, float h) {
-        float appear = phase(0.50f, 0.80f, progress);
+    private void drawHashBar(Canvas c, float cx, int w, int h) {
+        float appear = phase(0.50f, 0.78f, progress);
         if (appear <= 0 || currentHash.isEmpty()) return;
 
-        float y = h * 0.72f;
-        hashPaint.setTextSize(10f * density);
-        hashPaint.setColor(GREEN);
-        hashPaint.setAlpha((int) (100 * appear));
+        float y = h * 0.68f;
 
-        // Show rolling hash
-        String display = "0x" + currentHash;
-        canvas.drawText(display, cx, y, hashPaint);
+        // Label
+        hashPaint.setTextSize(7f*density);
+        hashPaint.setColor(ELECTRIC);
+        hashPaint.setAlpha((int)(50*appear));
+        c.drawText("BLOCK VERIFICATION", cx, y - 18*density, hashPaint);
 
-        // Small label above
-        hashPaint.setTextSize(7f * density);
-        hashPaint.setColor(CYAN);
-        hashPaint.setAlpha((int) (60 * appear));
-        canvas.drawText("SHA-256 VERIFY", cx, y - 16f * density, hashPaint);
+        // Hash
+        hashPaint.setTextSize(10f*density);
+        hashPaint.setColor(HOLO_GREEN);
+        hashPaint.setAlpha((int)(90*appear));
+        c.drawText("0x" + currentHash, cx, y, hashPaint);
+
+        // Progress bar underneath
+        float barW = 140f * density;
+        float barH = 2f * density;
+        float barX = cx - barW/2;
+        float barY = y + 12*density;
+
+        // Background
+        barPaint.setColor(GHOST);
+        barPaint.setAlpha((int)(30*appear));
+        c.drawRoundRect(barX, barY, barX+barW, barY+barH, barH, barH, barPaint);
+
+        // Fill
+        float fillW = barW * Math.min(1f, progress/0.75f);
+        barPaint.setShader(new LinearGradient(barX, barY, barX+fillW, barY,
+                new int[]{ELECTRIC, NEON_VIOLET}, null, Shader.TileMode.CLAMP));
+        barPaint.setAlpha((int)(200*appear));
+        c.drawRoundRect(barX, barY, barX+fillW, barY+barH, barH, barH, barPaint);
+        barPaint.setShader(null);
     }
 
-    private void drawOutro(Canvas canvas, int w, int h) {
-        float outro = phase(0.82f, 1f, progress);
+    private void drawVignette(Canvas c, int w, int h) {
+        vignetPaint.setShader(new RadialGradient(w/2f, h*0.4f, w*0.85f,
+                new int[]{Color.TRANSPARENT, Color.argb(120, 2, 2, 8)},
+                new float[]{0.5f, 1f}, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, vignetPaint);
+    }
+
+    private void drawOutro(Canvas c, int w, int h) {
+        float outro = phase(0.80f, 1f, progress);
         if (outro <= 0) return;
-        int alpha = (int) (120 * easeInOut(outro));
+        int a = (int)(180 * easeInOut(outro));
         outroPaint.setShader(new LinearGradient(0, 0, 0, h,
-                new int[]{Color.argb(alpha, 4, 4, 10), Color.argb((int) (alpha * 0.3f), 4, 4, 10), Color.argb(alpha, 4, 4, 10)},
-                new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, outroPaint);
+                new int[]{Color.argb(a, 2, 2, 8), Color.argb((int)(a*0.2f), 2, 2, 8), Color.argb(a, 2, 2, 8)},
+                new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, outroPaint);
     }
 
-    // ── Easing helpers ──────────────────────────
-    private float phase(float start, float end, float v) {
-        if (v <= start) return 0f;
-        if (v >= end) return 1f;
-        return (v - start) / (end - start);
+    // ── Easing ──
+    private float phase(float s, float e, float v) {
+        return v<=s ? 0f : v>=e ? 1f : (v-s)/(e-s);
     }
-
     private float decel(float v) {
-        float t = Math.max(0f, Math.min(1f, v));
-        return 1f - (1f - t) * (1f - t);
+        float t = Math.max(0,Math.min(1,v));
+        return 1f-(1f-t)*(1f-t);
     }
-
     private float easeInOut(float v) {
-        float t = Math.max(0f, Math.min(1f, v));
-        return (float) (t < 0.5f ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+        float t = Math.max(0,Math.min(1,v));
+        return (float)(t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2);
     }
 }
