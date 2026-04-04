@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
@@ -18,9 +17,6 @@ public class SplashActivity extends AppCompatActivity {
     private static final int FALLBACK_MS = 5000;
 
     private PremiumSplashView premiumSplash;
-    private View entryScrim;
-    private View entryPanel;
-    private boolean entryShown = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,54 +34,10 @@ public class SplashActivity extends AppCompatActivity {
         setContentView(R.layout.activity_splash);
 
         premiumSplash = findViewById(R.id.premiumSplash);
-        entryScrim = findViewById(R.id.entryScrim);
-        entryPanel = findViewById(R.id.entryPanel);
-        Button enterButton = findViewById(R.id.enterButton);
 
-        if (enterButton != null) {
-            enterButton.setOnClickListener(v -> launchMain());
-        }
-        if (entryPanel != null) {
-            entryPanel.setOnClickListener(v -> { /* block click-through */ });
-        }
-
-        premiumSplash.setOnCompleteListener(this::showEntryScreen);
-        premiumSplash.postDelayed(this::showEntryScreen, FALLBACK_MS);
-    }
-
-    private void showEntryScreen() {
-        if (entryShown) return;
-        entryShown = true;
-
-        if (entryScrim != null) {
-            entryScrim.setVisibility(View.VISIBLE);
-            entryScrim.setAlpha(0f);
-            entryScrim.animate()
-                    .alpha(1f)
-                    .setDuration(420)
-                    .start();
-        }
-
-        if (premiumSplash != null) {
-            premiumSplash.animate()
-                    .alpha(0.82f)
-                    .scaleX(1.035f)
-                    .scaleY(1.035f)
-                    .setDuration(520)
-                    .start();
-        }
-
-        if (entryPanel != null) {
-            entryPanel.setVisibility(View.VISIBLE);
-            entryPanel.setAlpha(0f);
-            entryPanel.setTranslationY(42f);
-            entryPanel.animate()
-                    .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(460)
-                    .setStartDelay(120)
-                    .start();
-        }
+        // Auto-launch when animation completes — no entry panel
+        premiumSplash.setOnCompleteListener(this::launchMain);
+        premiumSplash.postDelayed(this::launchMain, FALLBACK_MS);
     }
 
     private void launchMain() {
