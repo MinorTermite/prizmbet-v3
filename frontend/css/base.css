@@ -9,18 +9,18 @@
 
         :root {
             /* Clean dark palette � Vercel/Linear inspired */
-            --bg-primary: #09090b;
-            --bg-secondary: #0c0c0f;
-            --bg-tertiary: #131316;
-            --bg-card: rgba(18, 18, 22, 0.75);
-            --bg-card-hover: rgba(24, 24, 30, 0.85);
-            --bg-elevated: rgba(22, 22, 28, 0.9);
+            --bg-primary: #06060e;
+            --bg-secondary: #0a0a16;
+            --bg-tertiary: #0e0e1a;
+            --bg-card: rgba(14, 14, 28, 0.75);
+            --bg-card-hover: rgba(20, 20, 40, 0.85);
+            --bg-elevated: rgba(18, 18, 36, 0.9);
 
             /* Accent � soft blue-violet */
-            --accent: #6366f1;
-            --accent-bright: #818cf8;
-            --accent-glow: rgba(99, 102, 241, 0.2);
-            --accent-soft: rgba(99, 102, 241, 0.06);
+            --accent: #8b5cf6;
+            --accent-bright: #a78bfa;
+            --accent-glow: rgba(139, 92, 246, 0.25);
+            --accent-soft: rgba(139, 92, 246, 0.08);
 
             /* Semantic */
             --green: #22c55e;
@@ -36,15 +36,15 @@
             --cyan-glow: rgba(6, 182, 212, 0.1);
             --pink: #ec4899;
 
-            /* Surface & border */
-            --border: rgba(255, 255, 255, 0.06);
-            --border-hover: rgba(255, 255, 255, 0.12);
-            --border-bright: rgba(255, 255, 255, 0.18);
+            /* Surface & border — violet-tinted */
+            --border: rgba(139, 92, 246, 0.1);
+            --border-hover: rgba(139, 92, 246, 0.25);
+            --border-bright: rgba(139, 92, 246, 0.4);
 
             /* Text */
-            --text-primary: #fafafa;
-            --text-secondary: rgba(250, 250, 250, 0.6);
-            --text-tertiary: rgba(250, 250, 250, 0.35);
+            --text-primary: #f1f0f5;
+            --text-secondary: rgba(241, 240, 245, 0.62);
+            --text-tertiary: rgba(241, 240, 245, 0.5);
 
             /* Spacing & radius */
             --radius-xl: 16px;
@@ -127,7 +127,7 @@
 
         .orb-1 {
             width: 70vw; height: 70vw;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, rgba(99, 102, 241, 0) 70%);
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0) 70%);
             top: -20%; left: -20%;
             animation-duration: 35s;
         }
@@ -157,6 +157,21 @@
             0% { transform: translate(0, 0) scale(1); }
             50% { transform: translate(5vw, -5vh) scale(1.05); }
             100% { transform: translate(-3vw, 3vh) scale(0.95); }
+        }
+
+
+        /* ===== BG GRID OVERLAY (v2 cyber effect) ===== */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black 20%, transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black 20%, transparent 75%);
         }
 
         /* ===== MY BETS MODAL ===== */
@@ -306,14 +321,14 @@
             background: rgba(14, 14, 28, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.15);
             margin: -12px -12px 14px -12px;
         }
 
         .logo-wrapper {
             position: relative;
-            width: 44px;
-            height: 44px;
+            width: 68px;
+            height: 68px;
             margin: 0;
             flex-shrink: 0;
         }
@@ -327,6 +342,11 @@
             opacity: 0.7;
         }
 
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.06); opacity: 0.88; }
+        }
         @keyframes logoSpin {
             to {
                 transform: rotate(360deg);
@@ -342,8 +362,8 @@
         }
 
         .logo-container {
-            width: 44px;
-            height: 44px;
+            width: 68px;
+            height: 68px;
             border-radius: 50%;
             overflow: hidden;
             position: relative;
@@ -358,6 +378,7 @@
             object-fit: cover;
             display: block;
             border-radius: 50%;
+            animation: logoPulse 3s ease-in-out infinite;
         }
 
         .logo-video {
@@ -370,9 +391,10 @@
         .brand-name {
             font-size: 1.4rem;
             font-weight: 900;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             margin: 0 12px;
-            background: linear-gradient(135deg, #fff 0%, var(--accent-bright) 100%);
+            background: linear-gradient(135deg, #fff 0%, var(--accent-bright) 50%, var(--pink) 100%);
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.35));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -1861,7 +1883,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.15);
             padding-bottom: 16px;
             margin-bottom: 16px;
         }
