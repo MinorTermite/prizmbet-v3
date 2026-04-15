@@ -53,14 +53,15 @@ import java.net.URL;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String SITE_URL     = "http://213.165.38.210/index.html";
-    private static final String VERSION_URL  = "http://213.165.38.210/app-version.json";
+    private static final String SITE_URL     = "https://prizmbet.net/";
+    private static final String VERSION_URL  = "https://prizmbet.net/app-version.json";
     private static final String APP_KEY      = "prizmbet";
     private static final int    CURRENT_VERSION_CODE = 3;
     public  static final String EXTRA_SHORTCUT = "shortcut_action";
 
     private static final String[] ALLOWED_HOSTS = {
-            "213.165.38.210",
+            "prizmbet.net",
+            "www.prizmbet.net",
             "minortermite.github.io",
             "fonts.googleapis.com",
             "fonts.gstatic.com",

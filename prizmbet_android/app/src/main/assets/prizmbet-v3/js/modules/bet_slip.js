@@ -714,7 +714,7 @@ function detectApiBase() {
     if (origin && origin !== 'null' && !origin.startsWith('file:')) {
         return origin;
     }
-    return 'http://213.165.38.210';
+    return 'https://prizmbet.net';
 }
 
 function mapOutcomeToApiOutcome(outcome) {
