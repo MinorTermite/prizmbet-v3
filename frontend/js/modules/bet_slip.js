@@ -812,12 +812,12 @@ function buildTransferInstructions(intent) {
     const rail = getActiveRail();
     const base = getTransferInstruction({ amountPrizm: intent.amount_prizm, code: intent.intent_hash });
     const tail = apiLive
-        ? (isEnglish() ? 'After the transfer open the cabinet to see the status.' : '????? ???????? ???????? ???????, ????? ??????? ??????.')
-        : (isEnglish() ? 'The code and history are already saved on this device.' : '??? ? ??????? ??? ????????? ?? ???? ??????????.');
+        ? (isEnglish() ? 'After the transfer open the cabinet to see the status.' : 'После перевода откройте кабинет, чтобы увидеть статус.')
+        : (isEnglish() ? 'The code and history are already saved on this device.' : 'Код и история уже сохранены на этом устройстве.');
     const formula = getPayoutFormulaText(intent.amount_prizm, intent.odds_fixed);
     const railLead = rail.mode === 'auto'
-        ? (isEnglish() ? `Settlement rail: ${rail.code} / ${rail.chain}.` : `????????? ?????: ${rail.code} / ${rail.chain}.`)
-        : (isEnglish() ? `Selected rail: ${rail.code} / ${rail.chain}.` : `????????? ?????: ${rail.code} / ${rail.chain}.`);
+        ? (isEnglish() ? `Settlement rail: ${rail.code} / ${rail.chain}.` : `Расчётный рельс: ${rail.code} / ${rail.chain}.`)
+        : (isEnglish() ? `Selected rail: ${rail.code} / ${rail.chain}.` : `Выбранный рельс: ${rail.code} / ${rail.chain}.`);
     return `${formula}. ${railLead} ${base} ${tail}`;
 }
 
@@ -898,7 +898,7 @@ function mapDashboardToCabinet(wallet, payload) {
 
 function deriveRank(turnover, acceptedCount) {
     const tiers = [
-        { name: 'Начинающий игрок', threshold: 0 },
+        { name: 'Наблюдатель', threshold: 0 },
         { name: 'Игрок', threshold: 1500 },
         { name: 'Постоянный игрок', threshold: 5000 },
         { name: 'Профи', threshold: 15000 },

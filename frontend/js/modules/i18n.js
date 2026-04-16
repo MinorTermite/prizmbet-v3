@@ -120,7 +120,7 @@ const DICTIONARY = {
         'status.finished': 'Завершён',
         'status.live': 'LIVE',
         'status.imminent': 'Старт < 15 мин',
-        'rank.start': 'Начинающий игрок',
+        'rank.start': 'Наблюдатель',
         'rank.player': 'Игрок',
         'rank.tactic': 'Постоянный игрок',
         'rank.pro': 'Профи',
@@ -277,7 +277,7 @@ const DICTIONARY = {
         'status.finished': 'Finished',
         'status.live': 'LIVE',
         'status.imminent': 'Starts < 15 min',
-        'rank.start': 'Beginner',
+        'rank.start': 'Observer',
         'rank.player': 'Player',
         'rank.tactic': 'Regular',
         'rank.pro': 'Pro',
@@ -386,6 +386,7 @@ export function formatTime(value, options = {}) {
         timeZone: getTimeZone(),
         hour: '2-digit',
         minute: '2-digit',
+        hour12: false,   // Always 24-hour format regardless of locale
         ...options,
     });
 }

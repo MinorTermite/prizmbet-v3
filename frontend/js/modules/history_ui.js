@@ -22,6 +22,7 @@ const RANK_LABELS = {
     Pro: 'rank.pro',
     Master: 'rank.emperor',
     'Старт': 'rank.start',
+    'Наблюдатель': 'rank.start',
     'Начинающий игрок': 'rank.start',
     'Игрок': 'rank.player',
     'Тактик': 'rank.tactic',
