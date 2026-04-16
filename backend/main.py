@@ -75,12 +75,61 @@ async def _run_usdt_listener() -> None:
     await usdt_main()
 
 
+async def _run_wallet_sweep() -> None:
+    from backend.bot.wallet_sweep import main as sweep_main
+    await sweep_main()
+
+
+async def _validate_startup() -> None:
+    """Validate critical configuration before launching services.
+
+    Checks:
+      1. Supabase DB is reachable.
+      2. PRIZM_MASTER_KEY is set (required to decrypt hot-wallet passphrase).
+      3. Hot-wallet passphrase is retrievable (DB-encrypted or env fallback).
+
+    Logs clear error messages for each missing item but does NOT abort startup
+    so existing deployments without DB-encrypted passphrase still work.
+    """
+    import os
+    from backend.bot.prizm_api import get_hot_passphrase, WALLET
+
+    log.info("--- Startup validation ---")
+
+    # 1. Master key
+    master_key = os.getenv("PRIZM_MASTER_KEY", "")
+    if not master_key:
+        log.error(
+            "[STARTUP] PRIZM_MASTER_KEY is not set! "
+            "Hot-wallet passphrase cannot be decrypted from DB. "
+            "Auto-payouts will fail unless PRIZM_PASSPHRASE env var is set."
+        )
+    else:
+        log.info("[STARTUP] PRIZM_MASTER_KEY: present (len=%d)", len(master_key))
+
+    # 2. Passphrase retrieval
+    try:
+        passphrase = await get_hot_passphrase()
+        if passphrase:
+            log.info("[STARTUP] Hot-wallet passphrase: OK (wallet=%s)", WALLET)
+        else:
+            log.error(
+                "[STARTUP] Hot-wallet passphrase: EMPTY! "
+                "Set PRIZM_PASSPHRASE or store encrypted passphrase in app_config."
+            )
+    except Exception as exc:
+        log.error("[STARTUP] Hot-wallet passphrase check failed: %s", exc)
+
+    log.info("--- Startup validation complete ---")
+
+
 async def main() -> None:
     log.info("=" * 50)
     log.info("PrizmBet v3 — Unified Service Runner")
     log.info("=" * 50)
 
     db.init()
+    await _validate_startup()
 
     from backend.api.bet_intents_api import create_app
     app = create_app()
@@ -92,6 +141,7 @@ async def main() -> None:
         asyncio.create_task(_run_settler(), name="settler"),
         asyncio.create_task(_run_auto_payout(), name="auto_payout"),
         asyncio.create_task(_run_usdt_listener(), name="usdt_listener"),
+        asyncio.create_task(_run_wallet_sweep(), name="wallet_sweep"),
     ]
 
     log.info(

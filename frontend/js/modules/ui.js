@@ -313,7 +313,7 @@ function buildStaleSnapshotNotice(meta, matches) {
     `;
 }
 
-const LEAGUES_PER_PAGE = 6;
+const LEAGUES_PER_PAGE = 15;
 let observer = null;
 
 function renderLeagueChunk(container, pendingLeagues, matchesMap, favorites) {

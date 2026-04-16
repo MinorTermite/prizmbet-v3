@@ -286,7 +286,18 @@ class Database:
         if payout_amount is not None:
             payload["payout_amount"] = round(float(payout_amount or 0), 2)
         try:
-            return self.client.table("bets").update(payload).eq("tx_id", tx_id).execute().data
+            # Idempotency guard: only update bets that are in 'won' state and
+            # have not been paid yet (payout_tx_id IS NULL). This prevents
+            # double-payouts in case of network retries or service restarts.
+            result = (
+                self.client.table("bets")
+                .update(payload)
+                .eq("tx_id", tx_id)
+                .eq("status", "won")
+                .is_("payout_tx_id", "null")
+                .execute()
+            )
+            return result.data
         except Exception as exc:
             print(f"Error marking bet paid: {exc}")
             return None

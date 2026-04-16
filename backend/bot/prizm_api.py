@@ -273,13 +273,14 @@ def get_sender_address(tx: dict) -> str:
     return tx.get("senderRS", tx.get("sender", "unknown"))
 
 
-def send_money(recipient: str, amount: float, message: str = "") -> dict | None:
+async def send_money(recipient: str, amount: float, message: str = "") -> dict | None:
     """Send PRIZM via the blockchain sendMoney API.
 
     Returns the parsed JSON response on success (contains 'transaction' key),
     or None on failure.
     """
-    if not PASSPHRASE:
+    passphrase = await get_hot_passphrase()
+    if not passphrase:
         return None
 
     amount_nqt = int(round(amount * NQT))
@@ -288,7 +289,7 @@ def send_money(recipient: str, amount: float, message: str = "") -> dict | None:
 
     params = {
         "requestType": "sendMoney",
-        "secretPhrase": PASSPHRASE,
+        "secretPhrase": passphrase,
         "recipient": recipient,
         "amountNQT": str(amount_nqt),
         "feeNQT": "5",
