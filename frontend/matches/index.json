@@ -1,0 +1,30 @@
+{
+  "last_update": "2026-04-20T10:37:49+03:00",
+  "sports": [
+    {
+      "sport": "football",
+      "count": 66
+    },
+    {
+      "sport": "tennis",
+      "count": 48
+    },
+    {
+      "sport": "basket",
+      "count": 17
+    },
+    {
+      "sport": "baseball",
+      "count": 11
+    },
+    {
+      "sport": "volleyball",
+      "count": 11
+    },
+    {
+      "sport": "hockey",
+      "count": 5
+    }
+  ],
+  "total": 158
+}

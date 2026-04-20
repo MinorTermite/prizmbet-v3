@@ -259,6 +259,47 @@ def _write_json(matches: List[Dict[str, Any]]) -> int:
         json.dump(today_doc, fh, ensure_ascii=False, indent=2)
     print(f"[generate_json] wrote {len(today_matches)} today/tomorrow matches -> {today_out}")
 
+    # Per-sport segments: pages like tennis.html / popular.html don't need the
+    # full 140 KB matches.json — they can fetch only the sport they render,
+    # cutting first-paint payload by ~70–80 %. nginx should cache /matches/*.json
+    # with the same 1-minute TTL as matches.json.
+    sports_dir = os.path.join(os.path.dirname(out), "matches")
+    os.makedirs(sports_dir, exist_ok=True)
+
+    buckets: Dict[str, List[Dict[str, Any]]] = {}
+    for item in matches:
+        key = (item.get("sport") or "").lower().strip()
+        if not key:
+            continue
+        buckets.setdefault(key, []).append(item)
+
+    for sport, bucket in buckets.items():
+        sport_doc = {
+            "last_update": final_doc["last_update"],
+            "source": "multi-parser",
+            "sport": sport,
+            "total": len(bucket),
+            "matches": bucket,
+        }
+        sport_path = os.path.join(sports_dir, f"{sport}.json")
+        with open(sport_path, "w", encoding="utf-8") as fh:
+            json.dump(sport_doc, fh, ensure_ascii=False, indent=2)
+
+    # Manifest lets the frontend discover which segments exist without
+    # hard-coding the sport list client-side.
+    manifest = {
+        "last_update": final_doc["last_update"],
+        "sports": sorted(
+            [{"sport": s, "count": len(b)} for s, b in buckets.items()],
+            key=lambda x: -x["count"],
+        ),
+        "total": len(matches),
+    }
+    manifest_path = os.path.join(sports_dir, "index.json")
+    with open(manifest_path, "w", encoding="utf-8") as fh:
+        json.dump(manifest, fh, ensure_ascii=False, indent=2)
+    print(f"[generate_json] wrote {len(buckets)} per-sport segments -> {sports_dir}")
+
     return len(matches)
 
 
