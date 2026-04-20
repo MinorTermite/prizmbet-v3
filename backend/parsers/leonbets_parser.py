@@ -6,11 +6,20 @@ API: https://leon.ru/api-2/betline/events/all
 """
 
 import asyncio
+import os
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from backend.parsers.base_parser import BaseParser
 
 BASE_URL = "https://leon.ru"
+
+# Per-cycle cap on events we fetch full markets for. Leon returns 2–5k events
+# for a typical day; we sort by Leon's own ordering (most-popular first) and
+# take the top N. Raising this adds more matches per refresh at the cost of
+# extra HTTP calls — the event-market endpoint allows ~20 concurrent requests
+# before rate limiting, so every +20 to the cap is +~1 second of wall time.
+LEONBETS_MAX_FETCH = int(os.getenv("LEONBETS_MAX_FETCH", "200"))
+LEONBETS_BATCH = int(os.getenv("LEONBETS_BATCH", "20"))
 
 # leon.ru sport family -> internal sport key
 SPORTS_MAP = {
@@ -66,13 +75,16 @@ class LeonbetsParser(BaseParser):
 
                 print(f"[Leonbets] {len(candidates)} events with supported sports & markets")
 
-                # Fetch markets for top events (limit to avoid rate limiting)
-                MAX_FETCH = 200
-                candidates = candidates[:MAX_FETCH]
+                # Fetch markets for top events (limit to avoid rate limiting).
+                # Cap and batch size come from env so ops can tune without
+                # redeploying the parser — see LEONBETS_MAX_FETCH / LEONBETS_BATCH.
+                candidates = candidates[:LEONBETS_MAX_FETCH]
+                print(f"[Leonbets] fetching markets for top {len(candidates)} "
+                      f"events (cap={LEONBETS_MAX_FETCH}, batch={LEONBETS_BATCH})")
 
-                # Fetch markets in batches of 20
+                # Fetch markets in batches
                 matches = []
-                BATCH = 20
+                BATCH = LEONBETS_BATCH
                 for i in range(0, len(candidates), BATCH):
                     batch = candidates[i:i+BATCH]
                     tasks = [self._fetch_event_markets(e, headers) for e in batch]
