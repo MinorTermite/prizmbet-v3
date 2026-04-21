@@ -101,7 +101,12 @@ class OddsAPIParser(BaseParser):
             params = {
                 "apiKey": API_KEY,
                 "regions": "eu,us",
-                "markets": "h2h,totals,alternate_totals,spreads",
+                # Drop `alternate_totals` — the-odds-api's /odds endpoint
+                # only supports featured markets; alt lines need a separate
+                # per-event endpoint. Including it here causes a blanket 422
+                # ("Markets not supported by this endpoint: alternate_totals")
+                # and the parser returns zero matches from all soccer leagues.
+                "markets": "h2h,totals,spreads",
                 "oddsFormat": "decimal",
                 "dateFormat": "iso",
             }
