@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "backend.main"],
       "port": 8081
+    },
+    {
+      "name": "PrizmBet Frontend",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5173", "--directory", "frontend"],
+      "port": 5173
     }
   ]
 }

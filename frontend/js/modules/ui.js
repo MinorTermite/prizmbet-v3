@@ -316,15 +316,19 @@ function buildStaleSnapshotNotice(meta, matches) {
 const LEAGUES_PER_PAGE = 15;
 let observer = null;
 
-function renderLeagueChunk(container, pendingLeagues, matchesMap, favorites) {
-    const chunk = pendingLeagues.splice(0, LEAGUES_PER_PAGE);
-    chunk.forEach((league) => {
+function appendLeagueSections(container, leagues, matchesMap, favorites) {
+    leagues.forEach((league) => {
         const section = document.createElement('div');
         section.className = 'section';
         section.innerHTML = `<h2 class="section-title">${escapeHtml(league)}</h2>`;
         (matchesMap[league] || []).forEach((match) => section.appendChild(createMatchCard(match, favorites)));
         container.appendChild(section);
     });
+}
+
+function renderLeagueChunk(container, pendingLeagues, matchesMap, favorites) {
+    const chunk = pendingLeagues.splice(0, LEAGUES_PER_PAGE);
+    appendLeagueSections(container, chunk, matchesMap, favorites);
 
     if (pendingLeagues.length > 0) {
         attachSentinel(container, pendingLeagues, matchesMap);
@@ -337,16 +341,35 @@ function attachSentinel(container, pendingLeagues, matchesMap) {
         observer = null;
     }
 
+    const control = document.createElement('div');
+    control.className = 'load-more-control';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'load-more-btn';
+    button.textContent = t('common.showAllLeagues', { count: pendingLeagues.length });
+    button.addEventListener('click', () => {
+        observer?.disconnect();
+        observer = null;
+        control.remove();
+        appendLeagueSections(container, pendingLeagues.splice(0, pendingLeagues.length), matchesMap, getFavorites());
+    });
+
     const sentinel = document.createElement('div');
     sentinel.id = 'load-more-sentinel';
-    sentinel.style.cssText = 'height:1px;width:100%;pointer-events:none;';
-    container.appendChild(sentinel);
+    sentinel.className = 'load-more-sentinel';
+
+    control.appendChild(button);
+    control.appendChild(sentinel);
+    container.appendChild(control);
+
+    if (typeof IntersectionObserver !== 'function') return;
 
     observer = new IntersectionObserver((entries) => {
         if (!entries[0].isIntersecting) return;
         observer.disconnect();
         observer = null;
-        sentinel.remove();
+        control.remove();
         renderLeagueChunk(container, pendingLeagues, matchesMap, getFavorites());
     }, { rootMargin: '400px' });
 
@@ -379,7 +402,7 @@ export function renderMatches(matches, options = {}) {
             container.innerHTML = `${buildStaleSnapshotNotice(meta, options.sourceMatches)}<div class="section"><p style="text-align:center; color:var(--text-tertiary);">${escapeHtml(t('common.archivedEmpty'))}</p></div>`;
             return;
         }
-        container.innerHTML = `<div class="section"><p style="text-align:center; color:var(--text-tertiary);">${escapeHtml(t('common.matchesNotFound'))}</p></div>`;
+        container.innerHTML = `<div class="section"><p style="text-align:center; color:var(--text-tertiary);">${escapeHtml(options.emptyMessage || t('common.matchesNotFound'))}</p></div>`;
         return;
     }
 

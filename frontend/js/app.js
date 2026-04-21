@@ -79,6 +79,7 @@ function updateApp(newMatches) {
 
     let displayMatches = filtered;
     let staleFallback = false;
+    let emptyMessage = '';
 
     if (!filtered.length && allMatches.length && meta.isStale && !state.search) {
         const fallbackMatches = getStaleFallbackMatches(allMatches, state);
@@ -88,13 +89,22 @@ function updateApp(newMatches) {
         }
     }
 
+    if (!displayMatches.length && allMatches.length && !meta.isStale && !state.search) {
+        const liveCount = allMatches.filter((match) => Boolean(match.is_live)).length;
+        if (liveCount === allMatches.length && state.sport !== 'results') {
+            emptyMessage = i18n.getLanguage() === 'en'
+                ? 'The current snapshot contains live events only. Prematch events will appear after the next parser refresh.'
+                : 'Сейчас в срезе только live-события. Prematch-линия появится после следующего обновления парсеров.';
+        }
+    }
+
     const gameFilterSource = meta.isStale
         ? getStaleFallbackMatches(allMatches, { ...state, league: 'all', date: 'all', search: '' })
         : filters.filterMatches(allMatches, { ...state, league: 'all' });
 
     ui.buildGameFilter(gameFilterSource);
-    ui.updateStats(displayMatches, { sourceMatches: displayMatches, meta, staleFallback });
-    ui.renderMatches(displayMatches, { sourceMatches: allMatches, meta, staleFallback, sort: state.sort });
+    ui.updateStats(displayMatches, { sourceMatches: allMatches, meta, staleFallback });
+    ui.renderMatches(displayMatches, { sourceMatches: allMatches, meta, staleFallback, sort: state.sort, emptyMessage });
 }
 
 function updateHeaderClock() {
@@ -109,6 +119,25 @@ function startHeaderClock() {
     updateHeaderClock();
     if (timeTicker) clearInterval(timeTicker);
     timeTicker = window.setInterval(updateHeaderClock, 1000 * 20);
+}
+
+function normalizePublicUrl() {
+    const url = new URL(window.location.href);
+    let changed = false;
+
+    if (url.pathname.endsWith('/index.html')) {
+        url.pathname = url.pathname.slice(0, -'/index.html'.length) || '/';
+        changed = true;
+    }
+
+    if (url.hash === '#content') {
+        url.hash = '';
+        changed = true;
+    }
+
+    if (changed) {
+        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    }
 }
 
 function closeMobileMenu() {
@@ -153,6 +182,11 @@ function bindHeaderUI() {
     document.getElementById('mobileNotifBtn')?.addEventListener('click', () => {
         closeMobileMenu();
         window.requestNotificationPermission();
+    });
+    document.querySelector('.hero-action-btn--primary')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        document.getElementById('content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
     });
     window.addEventListener('resize', () => {
         if (window.innerWidth > 767) closeMobileMenu();
@@ -214,6 +248,11 @@ Object.assign(window, {
 });
 
 function wireFilters() {
+    const activeSport = filters.getFilterState().sport;
+    document.querySelectorAll('.tab').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.sport === activeSport);
+    });
+
     document.querySelectorAll('.tab').forEach((btn) => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab').forEach((item) => item.classList.remove('active'));
@@ -261,6 +300,7 @@ window.addEventListener('prizmbet:language-changed', () => {
 });
 
 window.addEventListener('load', () => {
+    normalizePublicUrl();
     i18n.applyTranslations();
     utils.initScrollProgress();
     utils.initTabsHint();

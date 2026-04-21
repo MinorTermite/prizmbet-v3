@@ -165,6 +165,25 @@ def to_frontend(match: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return out
 
 
+def _drop_reason(match: Dict[str, Any]) -> str:
+    raw_time = match.get("match_time", "")
+    if raw_time:
+        try:
+            dt = datetime.fromisoformat(str(raw_time).replace("Z", "+00:00"))
+            if (dt.astimezone(MSK) - datetime.now(MSK)).days > 3:
+                return "future_window"
+        except Exception:
+            return "bad_match_time"
+
+    odds_1 = match.get("odds_1", 0)
+    odds_x = match.get("odds_x", 0)
+    odds_2 = match.get("odds_2", 0)
+    if not odds_1 and not odds_x and not odds_2:
+        return "missing_core_odds"
+
+    return "other"
+
+
 def _match_day(match: Dict[str, Any]) -> int:
     try:
         return int((match.get("date") or "").split()[0])
@@ -309,10 +328,18 @@ async def collect_all_matches() -> List[Dict[str, Any]]:
 
 async def generate_from_raw(raw: List[Dict[str, Any]]) -> int:
     matches = []
+    dropped: dict[str, int] = {}
     for item in raw:
         converted = to_frontend(item)
         if converted:
             matches.append(converted)
+        else:
+            reason = _drop_reason(item)
+            dropped[reason] = dropped.get(reason, 0) + 1
+    print(
+        f"[generate_json] raw_total={len(raw)} converted_total={len(matches)} "
+        f"dropped_total={sum(dropped.values())} dropped_by_reason={dropped}"
+    )
     return _write_json(matches)
 
 

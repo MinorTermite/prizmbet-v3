@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Automatic PRIZM payout for won bets via sendMoney API.
+"""Automatic PRIZM payout worker for won bets.
 
-Features:
-  - PayoutCircuitBreaker: stops auto-payouts after 5 consecutive failures
-    (30-minute cooldown). Prevents runaway retries on blockchain errors.
-  - Rate limiter: max 50 payouts per hour (sliding window).
-  - Idempotency: mark_bet_paid() only updates bets with status='won' and
-    payout_tx_id IS NULL (double-payout guard in DB layer).
-  - Passphrase: loaded from DB (AES-256-GCM encrypted) via get_hot_passphrase(),
-    NOT from module-level PASSPHRASE env var.
+Current guarantees:
+  - circuit breaker after repeated blockchain failures
+  - 50 payouts/hour sliding window rate limit
+  - emergency stop gate from app_config
+  - DB idempotency via mark_bet_paid(status='won' AND payout_tx_id IS NULL)
+  - payout reservations for in-flight transfers
+  - append-only financial_events rows for pending/completed/failed lifecycle
 """
 from __future__ import annotations
 
@@ -18,72 +17,60 @@ import logging
 import time
 from collections import deque
 from typing import Any
+from uuid import uuid4
 
+from backend.bot import prizm_api
 from backend.config import config
 from backend.db.supabase_client import db
-from backend.bot import prizm_api
-from backend.utils.operator_audit import log_operator_event
 from backend.utils.operator_alerts import notify_payout_sent
+from backend.utils.operator_audit import log_operator_event
 from backend.utils.telegram_v3 import telegram_v3
 
 POLL_INTERVAL_SECONDS = 60
 FETCH_LIMIT = 50
-# Payouts above this threshold require manual operator confirmation.
 AUTO_PAYOUT_MAX = float(config.MAX_BET) * 10
-# Alert when wallet balance drops below this amount.
 LOW_BALANCE_THRESHOLD = 5000.0
 
-# Circuit breaker settings
-CB_FAILURE_THRESHOLD = 5        # open after this many consecutive failures
-CB_COOLDOWN_SECONDS  = 1800     # 30 minutes before half-open attempt
+CB_FAILURE_THRESHOLD = 5
+CB_COOLDOWN_SECONDS = 1800
 
-# Rate limiter: max 50 payouts per hour (sliding window)
-RATE_LIMIT_MAX   = 50
-RATE_LIMIT_WINDOW = 3600        # 1 hour in seconds
+RATE_LIMIT_MAX = 50
+RATE_LIMIT_WINDOW = 3600
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Circuit Breaker
-# ---------------------------------------------------------------------------
-
 class PayoutCircuitBreaker:
-    """Three-state circuit breaker: CLOSED → OPEN → HALF-OPEN → CLOSED.
-
-    CLOSED   — normal operation, payouts allowed.
-    OPEN     — breaker tripped (≥5 consecutive failures). Payouts blocked
-               for CB_COOLDOWN_SECONDS to let the external system recover.
-    HALF-OPEN — one test payout allowed after the cooldown expires. If it
-               succeeds, the breaker resets to CLOSED. If it fails, the
-               cooldown restarts.
-    """
+    """Simple CLOSED/OPEN/HALF_OPEN breaker for payout execution."""
 
     def __init__(self) -> None:
-        self._failures: int = 0
+        self._failures = 0
         self._opened_at: float | None = None
-        self._state: str = "CLOSED"   # "CLOSED" | "OPEN" | "HALF_OPEN"
+        self._state = "CLOSED"
 
     @property
     def state(self) -> str:
-        if self._state == "OPEN":
-            if self._opened_at and time.monotonic() - self._opened_at >= CB_COOLDOWN_SECONDS:
+        if self._state == "OPEN" and self._opened_at:
+            if time.monotonic() - self._opened_at >= CB_COOLDOWN_SECONDS:
                 self._state = "HALF_OPEN"
         return self._state
+
+    @property
+    def failures(self) -> int:
+        return self._failures
 
     def is_open(self) -> bool:
         return self.state == "OPEN"
 
     def allow(self) -> bool:
-        """Returns True if a payout attempt should be allowed."""
-        return self.state in ("CLOSED", "HALF_OPEN")
+        return self.state in {"CLOSED", "HALF_OPEN"}
 
     def record_success(self) -> None:
         self._failures = 0
         self._opened_at = None
         self._state = "CLOSED"
-        log.info("[CircuitBreaker] CLOSED — reset after success")
+        log.info("[CircuitBreaker] CLOSED - reset after success")
 
     def record_failure(self) -> None:
         self._failures += 1
@@ -92,16 +79,11 @@ class PayoutCircuitBreaker:
             self._state = "OPEN"
             self._opened_at = time.monotonic()
             log.error(
-                "[CircuitBreaker] OPEN — %d consecutive failures. "
-                "Payouts suspended for %d min.",
+                "[CircuitBreaker] OPEN - %d consecutive failures. Payouts suspended for %d min.",
                 self._failures,
                 CB_COOLDOWN_SECONDS // 60,
             )
 
-
-# ---------------------------------------------------------------------------
-# Rate limiter (sliding-window counter)
-# ---------------------------------------------------------------------------
 
 class _RateLimiter:
     def __init__(self, max_calls: int, window_seconds: int) -> None:
@@ -109,25 +91,27 @@ class _RateLimiter:
         self._window = window_seconds
         self._calls: deque[float] = deque()
 
-    def allow(self) -> bool:
+    def _trim(self) -> None:
         now = time.monotonic()
-        # Drop entries older than the window
         while self._calls and now - self._calls[0] > self._window:
             self._calls.popleft()
+
+    def allow(self) -> bool:
+        self._trim()
         if len(self._calls) >= self._max:
             return False
-        self._calls.append(now)
+        self._calls.append(time.monotonic())
         return True
 
+    @property
+    def current_count(self) -> int:
+        self._trim()
+        return len(self._calls)
 
-# Module-level singletons
+
 _circuit_breaker = PayoutCircuitBreaker()
-_rate_limiter    = _RateLimiter(RATE_LIMIT_MAX, RATE_LIMIT_WINDOW)
+_rate_limiter = _RateLimiter(RATE_LIMIT_MAX, RATE_LIMIT_WINDOW)
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 async def _ensure_db() -> None:
     if not db.initialized:
@@ -137,98 +121,209 @@ async def _ensure_db() -> None:
 
 
 async def _check_balance_alert() -> float | None:
-    """Check wallet balance and alert operator if it is low. Returns balance or None."""
     info = prizm_api.get_balance()
     balance = info.get("balance")
     if balance is None:
         return None
-
     if balance < LOW_BALANCE_THRESHOLD and telegram_v3.enabled:
-        msg = (
-            f"<b>Low balance alert</b>\n"
-            f"Wallet: <code>{prizm_api.WALLET}</code>\n"
-            f"Balance: <b>{balance:.2f} PRIZM</b>\n"
-            f"Threshold: {LOW_BALANCE_THRESHOLD:.0f} PRIZM"
+        await telegram_v3.send_message_many(
+            (
+                f"<b>Low balance alert</b>\n"
+                f"Wallet: <code>{prizm_api.WALLET}</code>\n"
+                f"Balance: <b>{balance:.2f} PRIZM</b>\n"
+                f"Threshold: {LOW_BALANCE_THRESHOLD:.0f} PRIZM"
+            ),
+            parse_mode="HTML",
         )
-        await telegram_v3.send_message_many(msg, parse_mode="HTML")
-
-    return balance
+    return float(balance)
 
 
 async def _process_payout(bet: dict[str, Any]) -> bool:
-    """Attempt to pay out a single won bet. Returns True on success."""
     tx_id = str(bet.get("tx_id") or "")
     sender_wallet = str(bet.get("sender_wallet") or "").strip()
     payout_amount = float(bet.get("payout_amount") or 0)
+    event_group_id = str(uuid4())
 
     if not sender_wallet or payout_amount <= 0:
-        log.warning("[SKIP] Invalid payout data tx=%s wallet=%s amount=%.2f",
-                    tx_id[:18], sender_wallet, payout_amount)
+        log.warning(
+            "[SKIP] Invalid payout data tx=%s wallet=%s amount=%.2f",
+            tx_id[:18],
+            sender_wallet,
+            payout_amount,
+        )
+        return False
+
+    if await db.is_emergency_stop_enabled():
+        log.error("[EMERGENCY_STOP] Auto-payout blocked for tx=%s", tx_id[:18])
+        return False
+
+    current = await db.get_bet_by_tx_id(tx_id)
+    if not current:
+        log.warning("[SKIP] Bet disappeared before payout tx=%s", tx_id[:18])
+        return False
+
+    current_status = str(current.get("status") or "").strip().lower()
+    if current_status != "won" or current.get("payout_tx_id"):
+        log.warning(
+            "[SKIP] Bet state changed before payout tx=%s status=%s payout_tx_id=%s",
+            tx_id[:18],
+            current_status,
+            current.get("payout_tx_id"),
+        )
         return False
 
     if payout_amount > AUTO_PAYOUT_MAX:
-        log.info("[MANUAL] Payout %.2f exceeds auto limit %.0f — skipping tx=%s",
-                 payout_amount, AUTO_PAYOUT_MAX, tx_id[:18])
+        log.info(
+            "[MANUAL] Payout %.2f exceeds auto limit %.0f - skipping tx=%s",
+            payout_amount,
+            AUTO_PAYOUT_MAX,
+            tx_id[:18],
+        )
         return False
 
-    # Circuit breaker gate
     if not _circuit_breaker.allow():
         log.warning("[CIRCUIT_OPEN] Payouts suspended. tx=%s skipped.", tx_id[:18])
         return False
 
-    # Rate limiter gate
     if not _rate_limiter.allow():
-        log.warning("[RATE_LIMIT] Max %d payouts/hour reached — deferring tx=%s",
-                    RATE_LIMIT_MAX, tx_id[:18])
+        log.warning(
+            "[RATE_LIMIT] Max %d payouts/hour reached - deferring tx=%s",
+            RATE_LIMIT_MAX,
+            tx_id[:18],
+        )
         return False
 
-    # Check balance before sending.
     balance = await _check_balance_alert()
     if balance is not None and balance < payout_amount:
-        log.warning("[INSUFFICIENT] Balance %.2f < payout %.2f — skipping tx=%s",
-                    balance, payout_amount, tx_id[:18])
+        log.warning(
+            "[INSUFFICIENT] Balance %.2f < payout %.2f - skipping tx=%s",
+            balance,
+            payout_amount,
+            tx_id[:18],
+        )
         return False
 
-    # Early passphrase check — config errors must NOT trip the circuit breaker
     passphrase = await prizm_api.get_hot_passphrase()
     if not passphrase:
-        log.error("[SKIP] Hot-wallet passphrase not configured — skipping tx=%s", tx_id[:18])
+        log.error("[SKIP] Hot-wallet passphrase not configured - skipping tx=%s", tx_id[:18])
         return False
+
+    reservation = await db.reserve_payout(
+        tx_id,
+        sender_wallet,
+        payout_amount,
+        reason="auto payout in progress",
+        created_by="auto_payout",
+    )
+    if not reservation:
+        log.error("[RESERVE_FAIL] Could not reserve payout for tx=%s", tx_id[:18])
+        return False
+
+    await db.insert_financial_event(
+        {
+            "event_group_id": event_group_id,
+            "event_type": "payout",
+            "direction": "outbound",
+            "status": "pending",
+            "wallet_from": prizm_api.WALLET,
+            "wallet_to": sender_wallet,
+            "amount_prizm": payout_amount,
+            "bet_tx_id": tx_id,
+            "initiated_by": "auto_payout",
+            "details": {
+                "reservation_id": reservation.get("id"),
+                "breaker_state": _circuit_breaker.state,
+                "rate_window_count": _rate_limiter.current_count,
+            },
+        }
+    )
 
     message = f"PrizmBet payout | bet {tx_id[:18]}"
     result = await prizm_api.send_money(sender_wallet, payout_amount, message)
     if not result:
         _circuit_breaker.record_failure()
-        log.error("[FAIL] sendMoney failed for tx=%s amount=%.2f to %s",
-                  tx_id[:18], payout_amount, sender_wallet)
+        await db.release_payout_reservation(tx_id, reason="sendMoney failed")
+        await db.insert_financial_event(
+            {
+                "event_group_id": event_group_id,
+                "event_type": "payout",
+                "direction": "outbound",
+                "status": "failed",
+                "wallet_from": prizm_api.WALLET,
+                "wallet_to": sender_wallet,
+                "amount_prizm": payout_amount,
+                "bet_tx_id": tx_id,
+                "initiated_by": "auto_payout",
+                "error_message": "sendMoney returned empty result",
+                "details": {"reservation_id": reservation.get("id")},
+            }
+        )
+        log.error(
+            "[FAIL] sendMoney failed for tx=%s amount=%.2f to %s",
+            tx_id[:18],
+            payout_amount,
+            sender_wallet,
+        )
         return False
 
     _circuit_breaker.record_success()
 
     payout_tx_id = str(result.get("transaction") or "")
-    log.info("[PAID] tx=%s payout_tx=%s amount=%.2f to %s",
-             tx_id[:18], payout_tx_id, payout_amount, sender_wallet)
+    log.info(
+        "[PAID] tx=%s payout_tx=%s amount=%.2f to %s",
+        tx_id[:18],
+        payout_tx_id,
+        payout_amount,
+        sender_wallet,
+    )
 
     rows = await db.mark_bet_paid(tx_id, payout_tx_id=payout_tx_id, payout_amount=payout_amount)
     if not rows:
-        # DB guard fired — bet was already paid or status changed. Not a failure.
-        log.warning("[IDEMPOTENCY] mark_bet_paid returned no rows for tx=%s "
-                    "(already paid or status changed). payout_tx=%s sent.",
-                    tx_id[:18], payout_tx_id)
+        log.warning(
+            "[IDEMPOTENCY] mark_bet_paid returned no rows for tx=%s (already paid or status changed). payout_tx=%s sent.",
+            tx_id[:18],
+            payout_tx_id,
+        )
 
-    # Write ledger entry for the payout
+    await db.consume_payout_reservation(
+        tx_id,
+        reason=f"completed via payout tx {payout_tx_id}" if payout_tx_id else "completed",
+    )
+
     try:
-        await db.insert_ledger_entry({
-            "tx_type": "payout",
-            "bet_tx_id": tx_id,
-            "prizm_tx_id": payout_tx_id,
-            "wallet": sender_wallet,
-            "amount_prizm": payout_amount,
-            "fee_prizm": 0.05,
-            "note": f"auto payout bet {tx_id[:18]}",
-        })
+        await db.insert_ledger_entry(
+            {
+                "tx_type": "payout",
+                "bet_tx_id": tx_id,
+                "prizm_tx_id": payout_tx_id,
+                "wallet": sender_wallet,
+                "amount_prizm": payout_amount,
+                "fee_prizm": 0.05,
+                "note": f"auto payout bet {tx_id[:18]}",
+            }
+        )
     except Exception as exc:
         log.warning("Ledger write failed for tx=%s: %s", tx_id[:18], exc)
+
+    await db.insert_financial_event(
+        {
+            "event_group_id": event_group_id,
+            "event_type": "payout",
+            "direction": "outbound",
+            "status": "completed" if rows else "manual_review",
+            "wallet_from": prizm_api.WALLET,
+            "wallet_to": sender_wallet,
+            "amount_prizm": payout_amount,
+            "bet_tx_id": tx_id,
+            "prizm_tx_id": payout_tx_id,
+            "initiated_by": "auto_payout",
+            "details": {
+                "reservation_id": reservation.get("id"),
+                "db_guard_updated": bool(rows),
+            },
+            "error_message": None if rows else "mark_bet_paid returned no rows after blockchain send",
+        }
+    )
 
     await log_operator_event(
         "auto_payout",
@@ -241,20 +336,18 @@ async def _process_payout(bet: dict[str, Any]) -> bool:
             {**bet, "status": "paid", "payout_tx_id": payout_tx_id, "payout_amount": payout_amount},
         )
     )
-
     return True
 
 
-# ---------------------------------------------------------------------------
-# Main loop
-# ---------------------------------------------------------------------------
-
 async def run_once() -> int:
-    """Process all won bets that have not been paid yet. Returns count of payouts sent."""
     await _ensure_db()
 
+    if await db.is_emergency_stop_enabled():
+        log.error("[EMERGENCY_STOP] Skipping auto-payout cycle")
+        return 0
+
     if _circuit_breaker.is_open():
-        log.warning("[CircuitBreaker] OPEN — skipping payout cycle")
+        log.warning("[CircuitBreaker] OPEN - skipping payout cycle")
         return 0
 
     bets = await db.get_bets_by_status(["won"], limit=FETCH_LIMIT)
@@ -267,10 +360,8 @@ async def run_once() -> int:
             if await _process_payout(bet):
                 paid += 1
         except Exception as exc:
-            log.error("[ERROR] Payout failed for tx=%s: %s",
-                      str(bet.get("tx_id") or "")[:18], exc)
+            log.error("[ERROR] Payout failed for tx=%s: %s", str(bet.get("tx_id") or "")[:18], exc)
             _circuit_breaker.record_failure()
-
     return paid
 
 
@@ -284,6 +375,22 @@ async def main() -> None:
         except Exception as exc:
             log.error("Auto-payout loop error: %s", exc)
         await asyncio.sleep(POLL_INTERVAL_SECONDS)
+
+
+def get_runtime_status() -> dict[str, Any]:
+    return {
+        "circuit_breaker_state": _circuit_breaker.state,
+        "consecutive_failures": _circuit_breaker.failures,
+        "rate_limit_count": _rate_limiter.current_count,
+        "rate_limit_max": RATE_LIMIT_MAX,
+        "auto_payout_max": AUTO_PAYOUT_MAX,
+        "poll_interval_seconds": POLL_INTERVAL_SECONDS,
+        "low_balance_threshold": LOW_BALANCE_THRESHOLD,
+    }
+
+
+def reset_runtime_guards() -> None:
+    _circuit_breaker.record_success()
 
 
 if __name__ == "__main__":

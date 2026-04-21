@@ -66,6 +66,17 @@ class LeonbetsParser(BaseParser):
 
                 print(f"[Leonbets] {len(candidates)} events with supported sports & markets")
 
+                # Prematch must be prioritized before truncation.
+                # The Leon API returns a mixed feed where in-play events often occupy the
+                # first slots; taking the first 200 blindly can produce an all-live snapshot.
+                candidates.sort(key=lambda event: (
+                    1 if (
+                        event.get("betline") == "inplay"
+                        or event.get("matchPhase") == "IN_PLAY"
+                    ) else 0,
+                    event.get("kickoff") or 0,
+                ))
+
                 # Fetch markets for top events (limit to avoid rate limiting)
                 MAX_FETCH = 200
                 candidates = candidates[:MAX_FETCH]

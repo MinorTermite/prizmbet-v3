@@ -1,0 +1,19 @@
+<svg width="420" height="86" viewBox="0 0 420 86" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="wordmark" x1="74" y1="18" x2="320" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4F0FF"/>
+      <stop offset="0.58" stop-color="#D8CCFF"/>
+      <stop offset="1" stop-color="#B776FF"/>
+    </linearGradient>
+    <filter id="softGlow" x="0" y="0" width="420" height="86" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.388 0 0 0 0 0.4 0 0 0 0 0.945 0 0 0 0.16 0"/>
+      <feBlend in="SourceGraphic" mode="normal"/>
+    </filter>
+  </defs>
+  <g filter="url(#softGlow)">
+    <image href="prizm-icon.svg" x="0" y="11" width="64" height="64" preserveAspectRatio="xMidYMid meet"/>
+    <text x="78" y="35" fill="url(#wordmark)" font-family="Orbitron, Outfit, Arial, sans-serif" font-size="24" font-weight="800" letter-spacing="4.8">PRIZMBET</text>
+    <text x="80" y="58" fill="#8F97B7" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600" letter-spacing="2.8">PREDICTIONS ON PRIZM</text>
+  </g>
+</svg>

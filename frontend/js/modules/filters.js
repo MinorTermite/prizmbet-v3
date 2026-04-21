@@ -4,7 +4,7 @@
 import { parseMatchDateTime, getMoscowDayIndex } from './utils.js';
 import { getFavorites } from './storage.js';
 
-export let currentSportFilter = 'football';
+export let currentSportFilter = 'all';
 export let currentGameFilter = 'all';
 export let currentSort = 'none';
 export let currentDateFilter = 'all'; // 'all' | 'today' | 'tomorrow' | 'later'

@@ -971,6 +971,43 @@ async def mark_bet_paid(request: web.Request) -> web.Response:
     return _json_response({"ok": True, "item": view})
 
 
+async def _wallet_status_payload() -> dict[str, Any]:
+    from backend.bot import auto_payout, prizm_api, wallet_sweep
+    from backend.config import config as _cfg
+
+    balance_info = prizm_api.get_balance()
+    passphrase_configured = False
+    try:
+        enc = await db.get_app_config("hot_wallet_passphrase_enc")
+        passphrase_configured = bool(enc)
+    except Exception:
+        if prizm_api.PASSPHRASE:
+            passphrase_configured = True
+
+    return {
+        "emergency_stop": await db.is_emergency_stop_enabled(),
+        "hot_wallet": {
+            "address": prizm_api.HOT_WALLET,
+            "balance": balance_info.get("balance"),
+            "unconfirmed_balance": balance_info.get("unconfirmed"),
+            "node": balance_info.get("node"),
+            "passphrase_configured": passphrase_configured,
+        },
+        "admin_wallet": {
+            "address": _cfg.PRIZM_ADMIN_WALLET or "",
+        },
+        "cold_wallet": {
+            "address": wallet_sweep.get_runtime_status().get("cold_wallet") or "",
+        },
+        "payout_runtime": auto_payout.get_runtime_status(),
+        "sweep_runtime": wallet_sweep.get_runtime_status(),
+        "pending_payout_total": await db.get_pending_payout_total(),
+        "reserved_payout_total": await db.get_reserved_payout_total(),
+        "recent_financial_events": await db.get_financial_events(limit=20),
+        "master_key_configured": bool(_cfg.PRIZM_MASTER_KEY),
+    }
+
+
 async def admin_wallet_info(request: web.Request) -> web.Response:
     """GET /api/admin/wallet — wallet addresses and hot-wallet balance.
 
@@ -980,6 +1017,8 @@ async def admin_wallet_info(request: web.Request) -> web.Response:
     context, error = await _require_admin(request)
     if error:
         return error
+
+    status_payload = await _wallet_status_payload()
 
     from backend.bot import prizm_api
     from backend.config import config as _cfg
@@ -1023,6 +1062,9 @@ async def admin_wallet_info(request: web.Request) -> web.Response:
         },
         "usdt_wallet": usdt_info,
         "master_key_configured": bool(_cfg.PRIZM_MASTER_KEY),
+        "emergency_stop": status_payload.get("emergency_stop"),
+        "pending_payout_total": status_payload.get("pending_payout_total"),
+        "reserved_payout_total": status_payload.get("reserved_payout_total"),
     })
 
 
@@ -1074,6 +1116,55 @@ async def admin_wallet_set_passphrase(request: web.Request) -> web.Response:
         actor=context["actor"],
     )
     return _json_response({"ok": True, "message": "Hot wallet passphrase encrypted and saved."})
+
+
+async def admin_wallet_status(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request)
+    if error:
+        return error
+
+    payload = await _wallet_status_payload()
+    payload["current_user"] = serialize_admin_user(context["user"])
+    return _json_response(payload)
+
+
+async def admin_wallet_emergency_stop(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request, {"super_admin"})
+    if error:
+        return error
+
+    ok = await db.set_emergency_stop_enabled(True)
+    if not ok:
+        return _json_response({"error": "Failed to enable finance emergency stop"}, status=500)
+
+    await _log_admin_access_event(
+        "wallet_emergency_stop_enabled",
+        actor=context["actor"],
+        extra={"reason": "manual emergency stop"},
+    )
+    payload = await _wallet_status_payload()
+    return _json_response({"ok": True, "message": "Finance emergency stop enabled", "status": payload})
+
+
+async def admin_wallet_resume(request: web.Request) -> web.Response:
+    context, error = await _require_admin(request, {"super_admin"})
+    if error:
+        return error
+
+    ok = await db.set_emergency_stop_enabled(False)
+    if not ok:
+        return _json_response({"error": "Failed to disable finance emergency stop"}, status=500)
+
+    from backend.bot import auto_payout
+
+    auto_payout.reset_runtime_guards()
+    await _log_admin_access_event(
+        "wallet_emergency_stop_disabled",
+        actor=context["actor"],
+        extra={"reason": "manual resume"},
+    )
+    payload = await _wallet_status_payload()
+    return _json_response({"ok": True, "message": "Finance operations resumed", "status": payload})
 
 
 def prizm_api_wallet() -> str:
@@ -1252,15 +1343,18 @@ def create_app() -> web.Application:
     app.router.add_get("/api/admin/audit-log", operator_audit_log)
     app.router.add_post("/api/admin/bets/{tx_id}/mark-paid", mark_bet_paid)
     app.router.add_get("/api/admin/wallet", admin_wallet_info)
+    app.router.add_get("/api/admin/wallet/status", admin_wallet_status)
+    app.router.add_post("/api/admin/wallet/emergency-stop", admin_wallet_emergency_stop)
+    app.router.add_post("/api/admin/wallet/resume", admin_wallet_resume)
     app.router.add_post("/api/admin/wallet/passphrase", admin_wallet_set_passphrase)
     app.router.add_get("/api/admin/export-csv", export_bets_csv)
 
     # Serve frontend static files
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
     if frontend_dir.is_dir():
-        async def _root_redirect(_req):
-            raise web.HTTPFound("/index.html")
-        app.router.add_get("/", _root_redirect)
+        async def _root_index(_req):
+            return web.FileResponse(frontend_dir / "index.html")
+        app.router.add_get("/", _root_index)
         app.router.add_static("/", frontend_dir, show_index=False)
 
     return app

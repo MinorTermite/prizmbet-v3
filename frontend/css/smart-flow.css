@@ -1886,6 +1886,57 @@ button.market-chip:hover {
 .header .tagline {
     margin: 0;
 }
+
+/* ===== header brand lockup ===== */
+.header .logo-wrapper {
+    width: 60px;
+    height: 60px;
+}
+.header .logo-ring {
+    opacity: 0.78;
+    background: conic-gradient(from 0deg,
+        rgba(99, 102, 241, 0.98) 0%,
+        rgba(124, 58, 237, 0.84) 48%,
+        rgba(59, 130, 246, 0.58) 76%,
+        rgba(99, 102, 241, 0.98) 100%);
+}
+.header .logo-mark {
+    width: 82%;
+    height: 82%;
+    filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.26));
+    animation: logoPulse 3s ease-in-out infinite;
+}
+.brand-name {
+    font-family: 'Orbitron', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: clamp(1.48rem, 1.9vw, 1.82rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0;
+    background: linear-gradient(135deg, #f8f7ff 0%, #d8d0ff 62%, #b892ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 10px rgba(99, 102, 241, 0.16);
+}
+.header .tagline {
+    font-size: 0.82rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+}
+@media (max-width: 767px) {
+    .header .logo-wrapper {
+        width: 50px;
+        height: 50px;
+    }
+    .brand-name {
+        font-size: 1.16rem;
+        letter-spacing: 0.12em;
+    }
+}
 @media (max-width: 979px) {
     .top-stage {
         grid-template-columns: 1fr;
@@ -2120,5 +2171,190 @@ button.market-chip:hover {
 @media (max-width: 640px) {
     .wallet-rail-switch {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ===== audit-1 overrides ===== */
+:root {
+    --text-tertiary: rgba(241, 240, 245, 0.55);
+}
+
+.header .logo-wrapper {
+    width: 56px;
+    height: 56px;
+}
+
+.header .logo-container {
+    padding: 7px;
+}
+
+.header .logo-mark--icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 0;
+    filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.24));
+    transform: none;
+    animation: logoPulse 3s ease-in-out infinite;
+}
+
+.header .logo-ring,
+.header .header-brand-copy {
+    display: none;
+}
+
+.header .logo-wrapper,
+.header .logo-container {
+    width: auto;
+    height: auto;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.header .logo-mark.header-brand-lockup {
+    width: clamp(196px, 25vw, 284px);
+    height: auto;
+    max-width: 100%;
+    filter: drop-shadow(0 10px 22px rgba(99, 102, 241, 0.16));
+    animation: none;
+}
+
+.hero-action-btn--primary {
+    justify-content: center;
+}
+
+.load-more-control {
+    display: grid;
+    gap: 10px;
+    margin: 6px 0 18px;
+}
+
+.load-more-btn {
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(129, 140, 248, 0.22);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(12, 18, 32, 0.88));
+    color: #f5efff;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.load-more-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(167, 139, 250, 0.42);
+    box-shadow: 0 12px 28px rgba(99, 102, 241, 0.14);
+}
+
+.load-more-sentinel {
+    width: 100%;
+    height: 1px;
+    pointer-events: none;
+}
+
+.site-footer {
+    margin-top: 18px;
+    padding: 20px 18px 30px;
+    border-radius: 26px;
+    border: 1px solid rgba(129, 140, 248, 0.16);
+    background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.1), transparent 28%),
+        linear-gradient(180deg, rgba(9, 13, 28, 0.92), rgba(8, 11, 22, 0.82));
+    box-shadow: 0 18px 48px rgba(6, 8, 18, 0.32);
+}
+
+.site-footer__top {
+    display: grid;
+    gap: 18px;
+}
+
+.site-footer__brand-lockup {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.site-footer__mark {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 18px rgba(144, 62, 188, 0.4));
+}
+
+.site-footer__brand-copy {
+    display: grid;
+    gap: 8px;
+}
+
+.site-footer__copy {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    line-height: 1.6;
+    max-width: 62ch;
+}
+
+.site-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.site-footer__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(129, 140, 248, 0.18);
+    background: rgba(255, 255, 255, 0.03);
+    color: #f3e8ff;
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.site-footer__link:hover {
+    transform: translateY(-1px);
+    border-color: rgba(167, 139, 250, 0.42);
+    background: rgba(129, 140, 248, 0.08);
+}
+
+.site-footer__note {
+    margin-top: 16px;
+    color: var(--text-tertiary);
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 560px) {
+    .site-footer {
+        padding: 18px 16px 24px;
+    }
+
+    .site-footer__brand-lockup {
+        gap: 12px;
+    }
+
+    .site-footer__links {
+        gap: 8px;
+    }
+
+    .site-footer__link {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .header .logo-mark.header-brand-lockup {
+        width: 182px;
     }
 }

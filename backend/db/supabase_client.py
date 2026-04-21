@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 from supabase import create_client
 
@@ -559,6 +560,39 @@ class Database:
             print(f"Error inserting ledger entry: {exc}")
             return None
 
+    async def insert_financial_event(self, event: dict) -> list | None:
+        """Append a row to the immutable financial_events ledger."""
+        if not self.initialized:
+            return None
+        payload = dict(event or {})
+        payload.setdefault("event_group_id", str(uuid4()))
+        payload.setdefault("event_type", "unknown")
+        payload.setdefault("direction", "internal")
+        payload.setdefault("status", "pending")
+        payload.setdefault("amount_prizm", 0)
+        payload.setdefault("fee_prizm", 0)
+        payload.setdefault("initiated_by", "system")
+        payload.setdefault("details", {})
+        payload.setdefault("created_at", datetime.now(timezone.utc).isoformat())
+        try:
+            return self.client.table("financial_events").insert(payload).execute().data
+        except Exception as exc:
+            print(f"Error inserting financial event: {exc}")
+            return None
+
+    async def get_financial_events(self, limit: int = 100, event_type: str | None = None) -> list[dict]:
+        if not self.initialized:
+            return []
+        try:
+            query = self.client.table("financial_events").select("*").order("created_at", desc=True)
+            if event_type:
+                query = query.eq("event_type", event_type)
+            response = query.limit(limit).execute()
+            return response.data or []
+        except Exception as exc:
+            print(f"Error fetching financial events: {exc}")
+            return []
+
     async def get_ledger_entries(self, limit: int = 100, tx_type: str | None = None) -> list[dict]:
         """Read prizm_ledger, optionally filtered by tx_type."""
         if not self.initialized:
@@ -610,6 +644,128 @@ class Database:
             print(f"Error marking bet refunded: {exc}")
             return None
 
+    async def get_pending_payout_total(self) -> float:
+        """Total current payout obligation for won but unpaid bets."""
+        if not self.initialized:
+            return 0.0
+        try:
+            response = (
+                self.client
+                .table("bets")
+                .select("tx_id,payout_amount,amount_prizm,odds_fixed")
+                .eq("status", "won")
+                .is_("payout_tx_id", "null")
+                .execute()
+            )
+            total = 0.0
+            for row in response.data or []:
+                payout_amount = row.get("payout_amount")
+                if payout_amount not in (None, ""):
+                    total += float(payout_amount or 0)
+                    continue
+                total += round(float(row.get("amount_prizm") or 0) * float(row.get("odds_fixed") or 0), 2)
+            return round(total, 2)
+        except Exception as exc:
+            print(f"Error fetching pending payout total: {exc}")
+            return 0.0
+
+    async def get_payout_reservation(self, bet_tx_id: str) -> dict | None:
+        if not self.initialized:
+            return None
+        try:
+            response = (
+                self.client
+                .table("payout_reservations")
+                .select("*")
+                .eq("bet_tx_id", bet_tx_id)
+                .limit(1)
+                .execute()
+            )
+            return response.data[0] if response.data else None
+        except Exception as exc:
+            print(f"Error fetching payout reservation: {exc}")
+            return None
+
+    async def reserve_payout(self, bet_tx_id: str, sender_wallet: str, amount_prizm: float, *, reason: str = "", created_by: str = "system") -> dict | None:
+        """Create or reactivate a payout reservation for a bet."""
+        if not self.initialized:
+            return None
+        now_iso = datetime.now(timezone.utc).isoformat()
+        payload = {
+            "bet_tx_id": bet_tx_id,
+            "sender_wallet": sender_wallet,
+            "amount_prizm": round(float(amount_prizm or 0), 2),
+            "status": "active",
+            "reason": reason or None,
+            "created_by": created_by,
+            "updated_at": now_iso,
+            "released_at": None,
+        }
+        try:
+            current = await self.get_payout_reservation(bet_tx_id)
+            if current:
+                response = (
+                    self.client
+                    .table("payout_reservations")
+                    .update(payload)
+                    .eq("bet_tx_id", bet_tx_id)
+                    .execute()
+                )
+                return response.data[0] if response.data else None
+            payload["created_at"] = now_iso
+            response = self.client.table("payout_reservations").insert(payload).execute()
+            return response.data[0] if response.data else None
+        except Exception as exc:
+            print(f"Error reserving payout for bet={bet_tx_id}: {exc}")
+            return None
+
+    async def set_payout_reservation_status(self, bet_tx_id: str, status: str, *, reason: str = "") -> dict | None:
+        if not self.initialized:
+            return None
+        payload = {
+            "status": status,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if status in {"released", "consumed", "cancelled"}:
+            payload["released_at"] = payload["updated_at"]
+        if reason:
+            payload["reason"] = reason
+        try:
+            response = (
+                self.client
+                .table("payout_reservations")
+                .update(payload)
+                .eq("bet_tx_id", bet_tx_id)
+                .execute()
+            )
+            return response.data[0] if response.data else None
+        except Exception as exc:
+            print(f"Error updating payout reservation status for bet={bet_tx_id}: {exc}")
+            return None
+
+    async def release_payout_reservation(self, bet_tx_id: str, *, reason: str = "") -> dict | None:
+        return await self.set_payout_reservation_status(bet_tx_id, "released", reason=reason)
+
+    async def consume_payout_reservation(self, bet_tx_id: str, *, reason: str = "") -> dict | None:
+        return await self.set_payout_reservation_status(bet_tx_id, "consumed", reason=reason)
+
+    async def get_reserved_payout_total(self) -> float:
+        if not self.initialized:
+            return 0.0
+        try:
+            response = (
+                self.client
+                .table("payout_reservations")
+                .select("amount_prizm")
+                .eq("status", "active")
+                .execute()
+            )
+            total = sum(float(row.get("amount_prizm") or 0) for row in (response.data or []))
+            return round(total, 2)
+        except Exception as exc:
+            print(f"Error fetching reserved payout total: {exc}")
+            return 0.0
+
 
     async def get_app_config(self, key: str) -> str | None:
         """Fetch a single value from app_config by key. Returns None if not found."""
@@ -637,6 +793,23 @@ class Database:
         except Exception as exc:
             print(f"Error setting app_config key={key}: {exc}")
             return False
+
+    async def get_app_config_bool(self, key: str, default: bool = False) -> bool:
+        value = await self.get_app_config(key)
+        if value is None:
+            return default
+        normalized = str(value).strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+        return default
+
+    async def is_emergency_stop_enabled(self) -> bool:
+        return await self.get_app_config_bool("finance_emergency_stop", default=False)
+
+    async def set_emergency_stop_enabled(self, enabled: bool) -> bool:
+        return await self.set_app_config("finance_emergency_stop", "true" if enabled else "false")
 
 
 db = Database()

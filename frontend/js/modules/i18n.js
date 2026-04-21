@@ -17,7 +17,7 @@ const DICTIONARY = {
         'header.liveLine': 'Линия событий',
         'hero.eyebrow': 'Prizmbet',
         'hero.title': 'Линия, купон и статус в одном приложении',
-        'hero.subtitle': 'Выберите матч, откройте купон и отслеживайте расчёт в кабинете кошелька.',
+        'hero.subtitle': 'Откройте линию, выпустите код и отправьте PRIZM за пару нажатий. Принятие и расчёт видны в кабинете кошелька.',
         'hero.trustOddsTitle': 'Потенциальная выплата',
         'hero.trustOddsCopy': 'Сумма × коэффициент = ожидаемая выплата по купону.',
         'hero.trustWindowTitle': 'Ограниченное окно',
@@ -29,6 +29,8 @@ const DICTIONARY = {
         'hero.events': 'Событий в линии',
         'hero.leagues': 'Доступных лиг',
         'hero.avgOdds': 'Средний коэффициент',
+        'hero.ctaPrimary': 'Сделать ставку за 30 сек',
+        'hero.ctaSecondary': 'Открыть кабинет',
         'hero.cabinet': 'Открыть кабинет',
         'hero.telegram': 'Telegram',
         'quick.eyebrow': 'Как это работает',
@@ -83,6 +85,12 @@ const DICTIONARY = {
         'rules.max': 'Макс: 30 000 PRIZM',
         'rules.payout': 'Выплаты до 24 часов',
         'footer.copy': 'Информационный сервис по спортивным событиям. Сайт отображает линию, статусы и данные по прогнозам внутри экосистемы проекта.',
+        'footer.how': 'Как это работает',
+        'footer.rules': 'Правила',
+        'footer.faq': 'FAQ',
+        'footer.contact': 'Контакты',
+        'footer.apk': 'APK',
+        'footer.support': 'Поддержка и ответы на частые вопросы доступны в Telegram проекта.',
         'toast.brand': 'Prizmbet',
         'coupon.title': 'Умный купон',
         'coupon.wallet': 'Кошелёк игрока',
@@ -157,7 +165,8 @@ const DICTIONARY = {
         'common.archivedTime': 'Последнее обновление: {time}.',
         'common.archivedFallback': 'Время обновления взято из локального кэша устройства.',
         'common.archivedEmpty': 'В текущем окне нет свежих матчей. Попробуйте позже или откройте полный фид.',
-        'common.matchFinishedTitle': 'Матч завершён'
+        'common.matchFinishedTitle': 'Матч завершён',
+        'common.showAllLeagues': 'Показать все лиги ({count})'
     },
     en: {
         'app.tagline': 'Predictions on PRIZM',
@@ -174,7 +183,7 @@ const DICTIONARY = {
         'header.liveLine': 'Events line',
         'hero.eyebrow': 'Prizmbet',
         'hero.title': 'Line, coupon and status in one app',
-        'hero.subtitle': 'Pick a match, open the coupon and track settlement in the wallet cabinet.',
+        'hero.subtitle': 'Open the line, issue the code and send PRIZM in a few taps. Acceptance and settlement stay visible in the wallet cabinet.',
         'hero.trustOddsTitle': 'Potential payout',
         'hero.trustOddsCopy': 'Amount × odds = the expected payout locked in the coupon.',
         'hero.trustWindowTitle': 'Limited window',
@@ -186,6 +195,8 @@ const DICTIONARY = {
         'hero.events': 'Events in line',
         'hero.leagues': 'Leagues available',
         'hero.avgOdds': 'Average odds',
+        'hero.ctaPrimary': 'Place a bet in 30 sec',
+        'hero.ctaSecondary': 'Open cabinet',
         'hero.cabinet': 'Open cabinet',
         'hero.telegram': 'Telegram',
         'quick.eyebrow': 'How it works',
@@ -240,6 +251,12 @@ const DICTIONARY = {
         'rules.max': 'Max: 30,000 PRIZM',
         'rules.payout': 'Payouts within 24h',
         'footer.copy': 'An information and analytics portal for sports events. The service shows the line, statuses and prediction data inside the project ecosystem.',
+        'footer.how': 'How it works',
+        'footer.rules': 'Rules',
+        'footer.faq': 'FAQ',
+        'footer.contact': 'Contact',
+        'footer.apk': 'APK',
+        'footer.support': 'Support and common answers are available in the project Telegram.',
         'toast.brand': 'Prizmbet',
         'coupon.title': 'Smart coupon',
         'coupon.wallet': 'Player wallet',
@@ -314,7 +331,8 @@ const DICTIONARY = {
         'common.archivedTime': 'Last update: {time}.',
         'common.archivedFallback': 'The last update time was kept in local cache.',
         'common.archivedEmpty': 'There are no fresh matches in the current window. Check back later or open the full feed.',
-        'common.matchFinishedTitle': 'Match finished'
+        'common.matchFinishedTitle': 'Match finished',
+        'common.showAllLeagues': 'Show all leagues ({count})'
     }
 };
 
