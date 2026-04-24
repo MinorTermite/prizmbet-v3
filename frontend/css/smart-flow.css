@@ -2219,6 +2219,27 @@ button.market-chip:hover {
     max-width: 100%;
     filter: drop-shadow(0 10px 22px rgba(99, 102, 241, 0.16));
     animation: none;
+    display: block;
+}
+
+.header .header-brand-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    outline: none;
+    border-radius: 12px;
+    transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.header .header-brand-link:hover,
+.header .header-brand-link:focus-visible {
+    transform: translateY(-1px);
+    filter: drop-shadow(0 12px 26px rgba(167, 139, 250, 0.28));
+}
+
+.header .header-brand-link:focus-visible {
+    outline: 2px solid rgba(167, 139, 250, 0.6);
+    outline-offset: 4px;
 }
 
 .hero-action-btn--primary {
