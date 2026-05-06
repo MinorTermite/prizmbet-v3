@@ -55,6 +55,7 @@ const S = {
     answerAll:   () => isEn() ? 'Answer all questions first.' : 'Сначала ответьте на все вопросы.',
     raffleOk:    () => isEn() ? 'Raffle entry accepted.'      : 'Участие в розыгрыше принято.',
     raffleErr:   () => isEn() ? 'Raffle entry failed.'        : 'Не удалось войти в розыгрыш.',
+    locked:      () => isEn() ? 'Locked until wallet verification is enabled.' : 'Требуется подтверждение кошелька. Рулетка и розыгрыш временно отключены.',
     prize:       () => isEn() ? 'Prize'              : 'Приз',
     nothing:     () => isEn() ? 'No prize — try again!' : 'Пусто — попробуй ещё!',
     questDone:   () => isEn() ? '✓ Completed'        : '✓ Выполнено',
@@ -167,6 +168,7 @@ function _setRootHtml(html) {
 
 function _renderAll() {
     if (!_profile) return;
+    if (!_isTabAvailable(_activeTab)) _activeTab = 'stats';
 
     const profile    = _profile.profile || {};
     const progress   = profile.level_progress || {};
@@ -248,7 +250,7 @@ function _renderTabHeaders() {
         { id: 'bonuses',  label: S.tabs.bonuses()  },
         { id: 'roulette', label: S.tabs.roulette() },
         { id: 'raffle',   label: S.tabs.raffle()   },
-    ];
+    ].filter(tab => _isTabAvailable(tab.id));
     return tabs.map(tab => `
         <button
             class="cv2-tab-btn ${_activeTab === tab.id ? 'is-active' : ''}"
@@ -259,6 +261,7 @@ function _renderTabHeaders() {
 }
 
 function _renderActiveTab() {
+    if (!_isTabAvailable(_activeTab)) return _renderStatsTab();
     switch (_activeTab) {
         case 'stats':    return _renderStatsTab();
         case 'quests':   return _renderQuestsTab();
@@ -274,6 +277,7 @@ function _bindTabEvents() {
     if (!tabs) return;
     tabs.querySelectorAll('.cv2-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            if (!_isTabAvailable(btn.dataset.tab)) return;
             _activeTab = btn.dataset.tab;
             // Re-render tabs header (active state) + content
             const header = document.getElementById('cv2Tabs');
@@ -451,6 +455,9 @@ function _formatBonusPercent(value) {
 
 function _renderRouletteTab() {
     _hideLegacy();
+    if (!_gamificationMutationsEnabled()) {
+        return _lockedMutationHtml(S.tabs.roulette());
+    }
     const spins = Number(_profile?.profile?.roulette_spins || 0);
 
     return `
@@ -496,6 +503,10 @@ function _bindRouletteEvents() {
 }
 
 async function _handleSpin() {
+    if (!_gamificationMutationsEnabled()) {
+        showToast(S.locked());
+        return;
+    }
     if (_spinning) return;
 
     const wallet = getWalletAddress();
@@ -581,6 +592,9 @@ async function _handleSpin() {
 
 function _renderRaffleTab() {
     _hideLegacy();
+    if (!_gamificationMutationsEnabled()) {
+        return _lockedMutationHtml(S.tabs.raffle());
+    }
     const raffle = _activeRaffle;
     const tokens = Number(_profile?.profile?.raffle_tokens || 0);
     if (!raffle) {
@@ -652,6 +666,10 @@ function _bindRaffleEvents() {
 
 async function _handleRaffleSubmit(event) {
     event.preventDefault();
+    if (!_gamificationMutationsEnabled()) {
+        showToast(S.locked());
+        return;
+    }
     if (_enteringRaffle) return;
     const raffle = _activeRaffle;
     const wallet = getWalletAddress();
@@ -748,6 +766,21 @@ function _escapeAttr(value) {
 
 function _escapeSelectorAttr(value) {
     return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function _gamificationMutationsEnabled() {
+    return Boolean(_profile?.features?.gamification_public_mutations);
+}
+
+function _isTabAvailable(tabId) {
+    if (tabId === 'roulette' || tabId === 'raffle') {
+        return _gamificationMutationsEnabled();
+    }
+    return true;
+}
+
+function _lockedMutationHtml(title) {
+    return `<div class="cv2-empty"><strong>${escapeHtml(title)}</strong><br>${escapeHtml(S.locked())}</div>`;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────

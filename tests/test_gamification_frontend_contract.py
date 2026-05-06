@@ -50,6 +50,20 @@ def test_cabinet_v2_calls_registered_player_api_routes():
         assert "raffle:   () => isEn() ? 'Raffle'    : 'Розыгрыш'" in module_source
 
 
+def test_cabinet_v2_hides_public_mutations_without_wallet_verification():
+    source = CABINET.read_text(encoding="utf-8")
+    android_source = ANDROID_CABINET.read_text(encoding="utf-8")
+
+    for module_source in (source, android_source):
+        assert "function _gamificationMutationsEnabled()" in module_source
+        assert "features?.gamification_public_mutations" in module_source
+        assert "function _isTabAvailable(tabId)" in module_source
+        assert "tabId === 'roulette' || tabId === 'raffle'" in module_source
+        assert "].filter(tab => _isTabAvailable(tab.id));" in module_source
+        assert "return _lockedMutationHtml(S.tabs.roulette());" in module_source
+        assert "return _lockedMutationHtml(S.tabs.raffle());" in module_source
+
+
 def test_android_shell_caches_cabinet_v2_module():
     sw = ANDROID_SW.read_text(encoding="utf-8")
 

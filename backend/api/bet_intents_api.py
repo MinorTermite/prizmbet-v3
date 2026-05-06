@@ -1582,6 +1582,15 @@ def _level_progress(profile: dict) -> dict:
 
 # ── GET /api/player/{wallet} ───────────────────────────────────────────────────
 
+def _gamification_features() -> dict:
+    public_mutations = bool(config.GAMIFICATION_PUBLIC_MUTATIONS_ENABLED)
+    return {
+        "gamification_public_mutations": public_mutations,
+        "roulette_enabled": public_mutations,
+        "raffle_entry_enabled": public_mutations,
+    }
+
+
 async def player_profile(request: web.Request) -> web.Response:
     """Full player profile: level, bonuses, active quests, roulette spins."""
     if not await _ensure_db_ready():
@@ -1634,6 +1643,7 @@ async def player_profile(request: web.Request) -> web.Response:
             },
             "bonuses": bonuses,
             "quests": _enrich_quests(quests),
+            "features": _gamification_features(),
         })
 
     except Exception as exc:
@@ -1992,6 +2002,7 @@ async def raffles_active(request: web.Request) -> web.Response:
         return _json_response({
             "ok": True,
             "raffle": raffle,
+            "features": _gamification_features(),
         })
 
     except Exception as exc:

@@ -128,6 +128,16 @@ def test_player_api_exposes_quest_catalog_metadata():
     assert '"rewards": catalog.get("rewards", [])' in enrich_source
 
 
+def test_player_api_exposes_gamification_feature_flags():
+    source = API.read_text(encoding="utf-8")
+
+    assert "def _gamification_features" in source
+    assert '"gamification_public_mutations": public_mutations' in source
+    assert '"roulette_enabled": public_mutations' in source
+    assert '"raffle_entry_enabled": public_mutations' in source
+    assert '"features": _gamification_features()' in source
+
+
 def test_settlement_applies_active_gamification_bonuses_before_payout():
     engine_source = ENGINE.read_text(encoding="utf-8")
     settler_source = SETTLER.read_text(encoding="utf-8")
