@@ -1,28 +1,28 @@
-# 1xBet Proxy Setup Guide
+﻿# 1xBet Proxy Setup Guide
 
 ## Current Status (March 2026)
 
-### Your Proxy (PROXY6.net)
+### Configured Proxy (PROXY6.net)
 ```
-IP: 45.81.77.14:8000
-Login: LNbHRm
-Password: tHCxnE
+IP: <set in .env PROXY_URL>
+Login: <set in .env PROXY_URL>
+Password: <set in .env PROXY_URL>
 Type: SOCKS5
 Location: Moscow, Russia (JSC Selectel)
-Expires: 04.04.26 (29 days)
+Expires: <provider account>
 ```
 
 ### Test Results
-- ✅ Proxy works: `test_user_proxy.py` - SUCCESS
-- ✅ Location: Russia (Moscow)
-- ❌ 1xBet access: FAILED (blocked by 1xBet anti-proxy protection)
+- вњ… Proxy works: `test_user_proxy.py` - SUCCESS
+- вњ… Location: Russia (Moscow)
+- вќЊ 1xBet access: FAILED (blocked by 1xBet anti-proxy protection)
 
 ---
 
 ## Problem
 
 **1xBet has additional protection against datacenter proxies:**
-- IP `45.81.77.14` belongs to JSC Selectel (datacenter/hosting provider)
+- IP `<proxy-ip>` belongs to JSC Selectel (datacenter/hosting provider)
 - 1xBet blocks datacenter IPs even if they're from Russia
 - 1xBet requires **residential** Russian IPs (home internet, mobile operators)
 
@@ -37,7 +37,7 @@ Expires: 04.04.26 (29 days)
 - https://proxy-seller.ru/ (Russia, residential)
 - https://webshare.io/ (filter by Russia, residential only)
 
-**Expected cost:** 150-300₽/month (residential proxies are more expensive)
+**Expected cost:** 150-300в‚Ѕ/month (residential proxies are more expensive)
 
 ### Option 2: Use Mobile Proxy (Best for 1xBet)
 
@@ -45,7 +45,7 @@ Expires: 04.04.26 (29 days)
 - https://mobileproxy.pro/ (Russia, MTS/Beeline/Megafon)
 - https://proxy6.net/ (select "Mobile" type)
 
-**Expected cost:** 200-500₽/month
+**Expected cost:** 200-500в‚Ѕ/month
 
 ### Option 3: Keep Current Setup (No 1xBet)
 
@@ -86,7 +86,7 @@ python check_proxy_location.py
 
 1. **Add to GitHub Secrets:**
    ```
-   Settings → Secrets and variables → Actions → New repository secret
+   Settings в†’ Secrets and variables в†’ Actions в†’ New repository secret
    
    Name: PROXY_URL
    Value: socks5://login:password@ip:port
@@ -111,12 +111,12 @@ python check_proxy_location.py
 
 | Parser | Matches | Status |
 |--------|---------|--------|
-| Leonbets | ~2540 | ✅ Working |
-| 1xBet | 0 | ❌ Proxy blocked |
-| ApiFootball | ~12 | ⚠️ Rate limited |
-| OddsAPI.io | 0 | ⚠️ Rate limited |
-| the-odds-api.com | 0 | ⚠️ No API key |
-| Pinnacle | 0 | ❌ API gone (410) |
+| Leonbets | ~2540 | вњ… Working |
+| 1xBet | 0 | вќЊ Proxy blocked |
+| ApiFootball | ~12 | вљ пёЏ Rate limited |
+| OddsAPI.io | 0 | вљ пёЏ Rate limited |
+| the-odds-api.com | 0 | вљ пёЏ No API key |
+| Pinnacle | 0 | вќЊ API gone (410) |
 
 **Total: ~2550 matches** (sufficient for most users)
 
@@ -135,7 +135,7 @@ Your proxy works great for general internet, and Leonbets provides excellent cov
 
 **When to upgrade:**
 - If users specifically request 1xBet odds
-- If you need Russian Premier League (РПЛ) coverage (already included via Leonbets)
+- If you need Russian Premier League (Р РџР›) coverage (already included via Leonbets)
 - If you want to offer the best possible odds comparison
 
 ---

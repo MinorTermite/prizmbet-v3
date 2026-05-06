@@ -1,7 +1,7 @@
 /**
- * PrizmBet v3 - UI Module
+ * 1PrizmBet - UI Module
  */
-import { escapeHtml, formatMatchDate, formatMatchTime, getCountdownText, isMatchImminent, isMatchLive } from './utils.js';
+import { escapeAttr, escapeHtml, formatMatchDate, formatMatchTime, getCountdownText, isMatchImminent, isMatchLive } from './utils.js';
 import { getFavorites } from './storage.js';
 import { getMatchGame, getMatchSport } from './filters.js';
 import { formatDateTime, formatNumber, formatOutcomeLabel, getLanguage, t } from './i18n.js';
@@ -40,6 +40,19 @@ export function updateStats(matches, context = {}) {
 
     heroStats?.classList.add('stats-bar--ready');
     heroStats?.classList.toggle('stats-bar--stale', Boolean(context.meta?.isStale));
+}
+
+export function updateLineCounter(displayMatches = [], sourceMatches = []) {
+    const counter = document.getElementById('lineCountInfo');
+    if (!counter) return;
+
+    const total = Array.isArray(sourceMatches) ? sourceMatches.length : 0;
+    const shown = Array.isArray(displayMatches) ? displayMatches.length : 0;
+
+    counter.textContent = total
+        ? t('filters.matchCounter', { total: formatNumber(total), shown: formatNumber(shown) })
+        : t('filters.matchCounterEmpty');
+    counter.classList.toggle('line-count-info--empty', !total);
 }
 
 export function buildGameFilter(matches) {
@@ -95,13 +108,10 @@ function buildOddButton(label, value, match, teams, dateTimeText) {
     const visibleValue = escapeHtml(unavailable ? '?' : raw);
     const visibleLabel = escapeHtml(formatOutcomeLabel(label));
     if (unavailable) {
-        return `<div class="odd-item odd-item--na" data-bet="${label}"><div class="odd-label">${visibleLabel}</div><div class="odd-value">${visibleValue}</div></div>`;
+        return `<div class="odd-item odd-item--na" data-bet="${escapeAttr(label)}"><div class="odd-label">${visibleLabel}</div><div class="odd-value">${visibleValue}</div></div>`;
     }
 
-    const league = escapeHtml(match.league || '');
-    const teamsJs = teams.replace(/'/g, "\\'");
-    const leagueJs = league.replace(/'/g, "\\'");
-    return `<div class="odd-item" data-bet="${label}" onclick="if(navigator.vibrate)navigator.vibrate(20);window.openBetSlip('${match.id}','${teamsJs}','${label}','${visibleValue}','${dateTimeText}','${leagueJs}')"><div class="odd-label">${visibleLabel}</div><div class="odd-value">${visibleValue}</div></div>`;
+    return `<div class="odd-item" role="button" tabindex="0" data-bet="${escapeAttr(label)}" data-action="open-bet-slip" data-match-id="${escapeAttr(match.id || '')}" data-teams="${escapeAttr(teams)}" data-outcome="${escapeAttr(label)}" data-odds="${escapeAttr(unavailable ? '?' : raw)}" data-date-time="${escapeAttr(dateTimeText)}" data-league="${escapeAttr(match.league || '')}"><div class="odd-label">${visibleLabel}</div><div class="odd-value">${visibleValue}</div></div>`;
 }
 
 function buildMatchMarketStrip(match, options) {
@@ -114,7 +124,7 @@ function buildMatchMarketStrip(match, options) {
 
     if (totalMarket) {
         const totalValue = escapeHtml(String(match.total_value));
-        parts.push(`<button class="market-chip market-chip--total" type="button" onclick="if(navigator.vibrate)navigator.vibrate(20);window.openBetSlip('${match.id}','${teams.replace(/'/g, "\\'")}','?? ${match.total_value}','${escapeHtml(match.total_over)}','${dateTimeText}','${escapeHtml(match.league || '').replace(/'/g, "\\'")}')">${escapeHtml(t('common.total'))} ${totalValue}</button>`);
+        parts.push(`<button class="market-chip market-chip--total" type="button" data-action="open-bet-slip" data-match-id="${escapeAttr(match.id || '')}" data-teams="${escapeAttr(teams)}" data-outcome="${escapeAttr(`ТБ ${match.total_value}`)}" data-odds="${escapeAttr(match.total_over)}" data-date-time="${escapeAttr(dateTimeText)}" data-league="${escapeAttr(match.league || '')}">${escapeHtml(t('common.total'))} ${totalValue}</button>`);
     }
 
     if (doubleChance) {
@@ -128,6 +138,45 @@ function buildMatchMarketStrip(match, options) {
 
     if (!parts.length) return '';
     return `<div class="match-market-strip">${parts.join('')}</div>`;
+}
+
+function openBetSlipFromDataset(target) {
+    const data = target?.dataset || {};
+    if (!data.matchId || typeof window.openBetSlip !== 'function') return;
+    if (navigator.vibrate) navigator.vibrate(20);
+    window.openBetSlip(
+        data.matchId,
+        data.teams || '',
+        data.outcome || '',
+        data.odds || '',
+        data.dateTime || '',
+        data.league || '',
+    );
+}
+
+function bindMatchCardActions(card) {
+    card.querySelectorAll('[data-action="open-bet-slip"]').forEach((node) => {
+        const handler = () => openBetSlipFromDataset(node);
+        node.addEventListener('click', handler);
+        node.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            handler();
+        });
+    });
+
+    card.querySelectorAll('[data-action="share-match"]').forEach((node) => {
+        node.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (typeof window.shareMatch === 'function') window.shareMatch(node.dataset.matchId || '');
+        });
+    });
+
+    card.querySelectorAll('[data-action="toggle-favorite"]').forEach((node) => {
+        node.addEventListener('click', () => {
+            if (typeof window.toggleFavorite === 'function') window.toggleFavorite(node.dataset.matchId || '');
+        });
+    });
 }
 
 function buildResultCard(match, isFavorite) {
@@ -177,7 +226,8 @@ function buildResultCard(match, isFavorite) {
 }
 
 export function createMatchCard(match, favorites) {
-    const matchId = match.id || '';
+    const matchId = String(match.id || '').replace(/[^A-Za-z0-9:_-]/g, '').slice(0, 96);
+    const safeMatchId = escapeAttr(matchId);
     const isFavorite = favorites.includes(match.id);
 
     if (match.score) {
@@ -206,10 +256,10 @@ export function createMatchCard(match, favorites) {
     card.className = `match-card${isFavorite ? ' favorited' : ''}${imminent ? ' match-card--imminent' : ''}${isLive ? ' match-card--live' : ''}`;
     card.innerHTML = `
         <div class="match-header">
-            <a class="match-id" href="#match-${matchId}" onclick="window.shareMatch('${matchId}');return false;" title="ID: ${matchId}">#${shortId}</a>
+            <a class="match-id" href="#match-${safeMatchId}" data-action="share-match" data-match-id="${safeMatchId}" title="ID: ${safeMatchId}">#${escapeHtml(shortId)}</a>
             <div class="match-actions">
-                <button class="share-btn" onclick="window.shareMatch('${matchId}')" title="Share">🔗</button>
-                <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="window.toggleFavorite('${matchId}')" title="${isFavorite ? 'Unfavorite' : 'Favorite'}">★</button>
+                <button class="share-btn" type="button" data-action="share-match" data-match-id="${safeMatchId}" title="Share">🔗</button>
+                <button class="favorite-btn ${isFavorite ? 'active' : ''}" type="button" data-action="toggle-favorite" data-match-id="${safeMatchId}" title="${isFavorite ? 'Unfavorite' : 'Favorite'}">★</button>
             </div>
         </div>
         <div class="match-time">
@@ -228,6 +278,20 @@ export function createMatchCard(match, favorites) {
             ${totalMarket ? `<div class="odds-section-title odds-section-title--accent">${escapeHtml(t('common.total'))} (${escapeHtml(String(match.total_value))})</div>${buildOddButton(`ТБ ${match.total_value}`, match.total_over, match, teams, dateTimeText)}${buildOddButton(`ТМ ${match.total_value}`, match.total_under, match, teams, dateTimeText)}<div></div>` : ''}
         </div>
     `;
+    card.querySelectorAll('[onclick]').forEach((node) => node.removeAttribute('onclick'));
+    const shareButton = card.querySelector('.share-btn');
+    if (shareButton) {
+        shareButton.type = 'button';
+        shareButton.dataset.action = 'share-match';
+        shareButton.dataset.matchId = matchId;
+    }
+    const favoriteButton = card.querySelector('.favorite-btn');
+    if (favoriteButton) {
+        favoriteButton.type = 'button';
+        favoriteButton.dataset.action = 'toggle-favorite';
+        favoriteButton.dataset.matchId = matchId;
+    }
+    bindMatchCardActions(card);
 
     return card;
 }
@@ -313,18 +377,22 @@ function buildStaleSnapshotNotice(meta, matches) {
     `;
 }
 
-const LEAGUES_PER_PAGE = 6;
+const LEAGUES_PER_PAGE = 15;
 let observer = null;
 
-function renderLeagueChunk(container, pendingLeagues, matchesMap, favorites) {
-    const chunk = pendingLeagues.splice(0, LEAGUES_PER_PAGE);
-    chunk.forEach((league) => {
+function appendLeagueSections(container, leagues, matchesMap, favorites) {
+    leagues.forEach((league) => {
         const section = document.createElement('div');
         section.className = 'section';
         section.innerHTML = `<h2 class="section-title">${escapeHtml(league)}</h2>`;
         (matchesMap[league] || []).forEach((match) => section.appendChild(createMatchCard(match, favorites)));
         container.appendChild(section);
     });
+}
+
+function renderLeagueChunk(container, pendingLeagues, matchesMap, favorites) {
+    const chunk = pendingLeagues.splice(0, LEAGUES_PER_PAGE);
+    appendLeagueSections(container, chunk, matchesMap, favorites);
 
     if (pendingLeagues.length > 0) {
         attachSentinel(container, pendingLeagues, matchesMap);
@@ -337,16 +405,35 @@ function attachSentinel(container, pendingLeagues, matchesMap) {
         observer = null;
     }
 
+    const control = document.createElement('div');
+    control.className = 'load-more-control';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'load-more-btn';
+    button.textContent = t('common.showAllLeagues', { count: pendingLeagues.length });
+    button.addEventListener('click', () => {
+        observer?.disconnect();
+        observer = null;
+        control.remove();
+        appendLeagueSections(container, pendingLeagues.splice(0, pendingLeagues.length), matchesMap, getFavorites());
+    });
+
     const sentinel = document.createElement('div');
     sentinel.id = 'load-more-sentinel';
-    sentinel.style.cssText = 'height:1px;width:100%;pointer-events:none;';
-    container.appendChild(sentinel);
+    sentinel.className = 'load-more-sentinel';
+
+    control.appendChild(button);
+    control.appendChild(sentinel);
+    container.appendChild(control);
+
+    if (typeof IntersectionObserver !== 'function') return;
 
     observer = new IntersectionObserver((entries) => {
         if (!entries[0].isIntersecting) return;
         observer.disconnect();
         observer = null;
-        sentinel.remove();
+        control.remove();
         renderLeagueChunk(container, pendingLeagues, matchesMap, getFavorites());
     }, { rootMargin: '400px' });
 
@@ -379,7 +466,7 @@ export function renderMatches(matches, options = {}) {
             container.innerHTML = `${buildStaleSnapshotNotice(meta, options.sourceMatches)}<div class="section"><p style="text-align:center; color:var(--text-tertiary);">${escapeHtml(t('common.archivedEmpty'))}</p></div>`;
             return;
         }
-        container.innerHTML = `<div class="section"><p style="text-align:center; color:var(--text-tertiary);">${escapeHtml(t('common.matchesNotFound'))}</p></div>`;
+        container.innerHTML = `<div class="section"><p style="text-align:center; color:var(--text-tertiary);">${escapeHtml(options.emptyMessage || t('common.matchesNotFound'))}</p></div>`;
         return;
     }
 

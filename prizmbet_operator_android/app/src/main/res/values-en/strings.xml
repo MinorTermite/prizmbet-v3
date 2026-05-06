@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">1PrizmBet Operator</string>
+    <string name="error_no_connection">No internet connection.\nCheck your network and try again.</string>
+    <string name="retry">Retry</string>
+</resources>
+
+

@@ -1,9 +1,9 @@
 (function () {
-  const KEY = 'prizmbet_lang_v1';
+  const KEY = 'one_prizmbet_lang_v1';
 
   const STATIC = {
     ru: {
-      'page.title': 'PRIZMBET - Кабинет оператора',
+      'page.title': '1PrizmBet - Кабинет оператора',
       'hero.eyebrow': 'Кабинет оператора',
       'hero.title': 'Прогнозы, пользователи и аудит',
       'hero.copy': 'Компактная рабочая панель для ставок, выплат и аудита.',
@@ -65,7 +65,7 @@
       'audit.copy': 'Здесь фиксируются принятые, отклонённые, рассчитанные и выплаченные прогнозы. При включённом webhook те же события могут зеркалироваться в Google Sheets.'
     },
     en: {
-      'page.title': 'PRIZMBET - Operator Console',
+      'page.title': '1PrizmBet - Operator Console',
       'hero.eyebrow': 'Operator Console',
       'hero.title': 'Predictions, users and audit',
       'hero.copy': 'Compact workspace for predictions, payouts and audit.',

@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Unified PrizmBet v3 service runner.
+"""Unified 1PrizmBet v3 service runner.
 
 Starts all backend services concurrently:
   1. Bet Intents API      (aiohttp on port 8081)
@@ -30,9 +30,9 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-log = logging.getLogger("prizmbet.main")
+log = logging.getLogger("1PrizmBet.main")
 
-API_HOST = os.getenv("API_HOST", "0.0.0.0")
+API_HOST = os.getenv("API_HOST", "127.0.0.1")
 API_PORT = int(os.getenv("API_PORT", "8081"))
 
 
@@ -125,7 +125,7 @@ async def _validate_startup() -> None:
 
 async def main() -> None:
     log.info("=" * 50)
-    log.info("PrizmBet v3 — Unified Service Runner")
+    log.info("1PrizmBet v3 — Unified Service Runner")
     log.info("=" * 50)
 
     db.init()

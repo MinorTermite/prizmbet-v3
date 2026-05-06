@@ -41,7 +41,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * PrizmBet Android wrapper.
+ * 1PrizmBet Android wrapper.
  *
  * Features implemented:
  *  - SwipeRefreshLayout: свайп вниз → обновляет данные матчей
@@ -55,13 +55,15 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String SITE_URL     = "https://prizmbet.net/";
     private static final String VERSION_URL  = "https://prizmbet.net/app-version.json";
-    private static final String APP_KEY      = "prizmbet";
+    private static final String APP_KEY      = "one_prizmbet";
     private static final int    CURRENT_VERSION_CODE = 3;
     public  static final String EXTRA_SHORTCUT = "shortcut_action";
 
     private static final String[] ALLOWED_HOSTS = {
             "prizmbet.net",
             "www.prizmbet.net",
+            "1prizmbet.net",
+            "www.1prizmbet.net",
             "minortermite.github.io",
             "fonts.googleapis.com",
             "fonts.gstatic.com",
@@ -73,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private View                errorView;
     private SwipeRefreshLayout  swipeRefresh;
 
-    private static final String TAG = "PrizmBet";
+    private static final String TAG = "1PrizmBet";
     private static final int MAX_AUTO_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 2000;
 

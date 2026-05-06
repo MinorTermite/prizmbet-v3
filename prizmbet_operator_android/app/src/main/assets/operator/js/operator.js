@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = 'prizmbet_operator_console_v3';
+const STORAGE_KEY = 'one_prizmbet_operator_console_v3';
 const AUTO_REFRESH_MS = 20000;
 
 const state = {
@@ -240,6 +240,7 @@ function detectApiBase() {
   if (host === '127.0.0.1' || host === 'localhost') {
     return 'http://127.0.0.1:8081';
   }
+  // When served by the backend itself, use the same origin
   if (origin && origin !== 'null' && !origin.startsWith('file:')) {
     return origin;
   }
@@ -267,7 +268,7 @@ function availableTabs() {
 
 function getOperatorLang() {
   try {
-    return (localStorage.getItem('prizmbet_lang_v1') || 'ru').toLowerCase() === 'en' ? 'en' : 'ru';
+    return (localStorage.getItem('one_prizmbet_lang_v1') || 'ru').toLowerCase() === 'en' ? 'en' : 'ru';
   } catch {
     return 'ru';
   }
@@ -278,7 +279,7 @@ function labelTab(tab) {
     ru: {
       control: 'Управление',
       users: 'Пользователи',
-      feed: 'Ставки',
+      feed: 'Прогнозы',
       audit: 'Аудит',
     },
     en: {
@@ -1390,9 +1391,3 @@ function escapeAttr(value) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
-
-
-
-
-

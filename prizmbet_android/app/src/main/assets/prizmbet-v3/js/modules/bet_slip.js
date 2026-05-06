@@ -1,10 +1,10 @@
 /**
- * PrizmBet v3 - Smart Coupon Module
+ * 1PrizmBet - Smart Coupon Module
  */
 import { showToast } from './notifications.js';
 import { escapeHtml } from './utils.js';
 import { formatDateTime as formatDateTimeI18n, formatNumber as formatNumberI18n, formatOutcomeLabel, t } from './i18n.js';
-import { getActiveRail, getCopyDoneMessage, getCopyMissingMessage, getCouponRailHint, getRailAddress, getTransferChipText, getTransferInstruction, initPaymentRails, renderPaymentRailUI } from './payment_rails.js';
+import { getActiveRail, getActiveRailCurrency, getActiveRailLimits, getCopyDoneMessage, getCopyMissingMessage, getCouponRailHint, getRailAddress, getTransferChipText, getTransferInstruction, initPaymentRails, renderPaymentRailUI } from './payment_rails.js';
 import {
     getWalletAddress,
     saveWalletAddress,
@@ -12,9 +12,19 @@ import {
     upsertIntentRecord,
 } from './storage.js';
 
-const MIN_BET = 1500;
-const MAX_BET = 30000;
+const PRIZM_MIN_BET = 1500;
+const PRIZM_MAX_BET = 30000;
+
+function getBetLimits() {
+    const limits = getActiveRailLimits();
+    return {
+        minBet: limits.minBet || PRIZM_MIN_BET,
+        maxBet: limits.maxBet || PRIZM_MAX_BET,
+    };
+}
 const INTENT_TTL_MS = 15 * 60 * 1000;
+const EXPRESS_MAX_LEGS = 12;
+const EXPRESS_ODDS_CAP = 100;
 const REJECT_LABELS = {
     LATE_BET: { ru: 'Перевод пришёл после безопасного окна', en: 'The transfer arrived after the safe prematch window' },
     LIVE_DISABLED: { ru: 'Live-прогнозы отключены в публичной версии', en: 'Live predictions are disabled in the public version' },
@@ -23,6 +33,7 @@ const REJECT_LABELS = {
     INVALID_INTENT: { ru: 'Код прогноза не распознан', en: 'The prediction code was not recognized' },
     WALLET_ACTIVE_INTENT_EXISTS: { ru: 'На этот кошелёк уже выпущен активный купон. Используйте его или дождитесь окончания окна.', en: 'This wallet already has an active coupon. Use it or wait until it expires.' },
     WALLET_HAS_MULTIPLE_ACTIVE_INTENTS: { ru: 'На этом кошельке несколько активных купонов. Дождитесь окончания лишних купонов.', en: 'This wallet has multiple active coupons. Wait until the extra coupons expire.' },
+    DUPLICATE_MATCH_IN_EXPRESS: { ru: 'В экспрессе уже есть исход этого матча.', en: 'This match is already in the express.' },
     AMBIGUOUS_WALLET_INTENT: { ru: 'По кошельку найдено несколько активных купонов. Нужен только один активный купон на кошелёк.', en: 'Multiple active coupons were found for this wallet. Keep only one active coupon per wallet.' },
     INTENT_EXPIRED: { ru: 'Срок действия кода истёк', en: 'The code expired' },
 };
@@ -77,6 +88,8 @@ function getRejectLabel(code) {
 
 export let currentBet = null;
 
+/** Returns the resolved API base URL (empty string if not yet detected). */
+export function getApiBase() { return apiBase; }
 
 let activeIntent = null;
 let apiBase = '';
@@ -85,6 +98,7 @@ let apiCheckPromise = null;
 let domBound = false;
 let countdownStarted = false;
 let statusPollTimer = null;
+let expressLegs = [];
 const STATUS_POLL_INTERVAL_MS = 15_000;
 const STATUS_POLL_TERMINAL = new Set(['won', 'lost', 'paid', 'expired', 'rejected']);
 
@@ -113,10 +127,10 @@ export function initSmartBetting() {
         }, 1000);
     }
 
-    window.removeEventListener('prizmbet:wallet-changed', onExternalWalletChange);
-    window.addEventListener('prizmbet:wallet-changed', onExternalWalletChange);
-    window.removeEventListener('prizmbet:payment-rail-changed', renderCoupon);
-    window.addEventListener('prizmbet:payment-rail-changed', renderCoupon);
+    window.removeEventListener('one-prizmbet:wallet-changed', onExternalWalletChange);
+    window.addEventListener('one-prizmbet:wallet-changed', onExternalWalletChange);
+    window.removeEventListener('one-prizmbet:payment-rail-changed', renderCoupon);
+    window.addEventListener('one-prizmbet:payment-rail-changed', renderCoupon);
 
     // Resume polling if there is an active non-terminal intent from a previous session.
     if (activeIntent?.intent_hash && activeIntent.mode === 'live' && !STATUS_POLL_TERMINAL.has(activeIntent.status)) {
@@ -150,13 +164,18 @@ function bindDom() {
         lockedAmount: document.getElementById('bsLockedAmount'),
         lockedPayout: document.getElementById('bsLockedPayout'),
         lockedExpiry: document.getElementById('bsLockedExpiry'),
+        expressBuilder: document.getElementById('bsExpressBuilder'),
+        expressSummary: document.getElementById('bsExpressSummary'),
+        expressList: document.getElementById('bsExpressList'),
+        addExpressBtn: document.getElementById('bsAddExpressBtn'),
+        clearExpressBtn: document.getElementById('bsClearExpressBtn'),
     });
 
     dom.walletInput?.addEventListener('input', () => {
         const wallet = normalizeWallet(dom.walletInput.value);
         dom.walletInput.value = wallet;
         saveWalletAddress(wallet);
-        window.dispatchEvent(new CustomEvent('prizmbet:wallet-changed', {
+        window.dispatchEvent(new CustomEvent('one-prizmbet:wallet-changed', {
             detail: { wallet, source: 'coupon' },
         }));
         if (currentBet) {
@@ -168,6 +187,14 @@ function bindDom() {
     dom.amountInput?.addEventListener('input', () => {
         calcPayout();
         renderCoupon();
+    });
+
+    dom.addExpressBtn?.addEventListener('click', addCurrentSelectionToExpress);
+    dom.clearExpressBtn?.addEventListener('click', clearExpress);
+    dom.expressList?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-express-remove]');
+        if (!button) return;
+        removeExpressLeg(button.getAttribute('data-express-remove'));
     });
 
     domBound = true;
@@ -190,6 +217,8 @@ export function closeBetSlip() {
 
 export function openBetSlip(betData, betType, coef) {
     initSmartBetting();
+    document.getElementById('historyModal')?.classList.remove('show');
+
     currentBet = {
         ...betData,
         betType,
@@ -212,10 +241,9 @@ export function openBetSlip(betData, betType, coef) {
 }
 
 export function calcPayout() {
-    const amount = Number(dom.amountInput?.value || 0);
-    const coef = Number(dom.coef?.textContent || 0);
+    const form = getFormState();
     if (dom.payout) {
-        dom.payout.textContent = getPayoutFormulaText(amount, coef);
+        dom.payout.textContent = getPayoutFormulaText(form.amount, form.coef);
     }
 }
 
@@ -224,24 +252,38 @@ export async function copyBetSlipData() {
     if (!currentBet) return;
 
     const form = getFormState();
-    const currentMatch = getCurrentMatchRecord();
-    if (currentMatch && isPublicBetUnavailable(currentMatch)) {
-        showToast(getPublicBetUnavailableMessage(currentMatch));
-        return;
+    if (form.betType === 'express') {
+        if (form.legs.length < 2) {
+            showToast(isEnglish() ? 'Add at least two outcomes to the express.' : 'Добавьте минимум два исхода в экспресс.');
+            return;
+        }
+        const unavailableLeg = getUnavailableExpressLeg(form.legs);
+        if (unavailableLeg) {
+            showToast(getPublicBetUnavailableMessage(unavailableLeg.match));
+            return;
+        }
+    } else {
+        const currentMatch = getCurrentMatchRecord();
+        if (currentMatch && isPublicBetUnavailable(currentMatch)) {
+            showToast(getPublicBetUnavailableMessage(currentMatch));
+            return;
+        }
     }
     if (!form.wallet) {
         dom.walletInput?.focus();
         showToast('Введите кошелёк игрока, чтобы выпустить код прогноза.');
         return;
     }
-    if (form.amount < MIN_BET) {
+    const { minBet, maxBet } = getBetLimits();
+    const currency = getActiveRailCurrency();
+    if (form.amount < minBet) {
         dom.amountInput?.focus();
-        showToast(`Минимальная сумма — ${formatNumber(MIN_BET)} PRIZM.`);
+        showToast(`Минимальная сумма — ${formatNumber(minBet)} ${currency}.`);
         return;
     }
-    if (form.amount > MAX_BET) {
+    if (form.amount > maxBet) {
         dom.amountInput?.focus();
-        showToast(`Максимальная сумма — ${formatNumber(MAX_BET)} PRIZM.`);
+        showToast(`Максимальная сумма — ${formatNumber(maxBet)} ${currency}.`);
         return;
     }
     if (!form.coef || form.coef < 1.01) {
@@ -421,22 +463,33 @@ async function issueIntent(form) {
     await ensureApiStatus();
 
     const intent = buildLocalIntent(form);
+    const payload = form.betType === 'express'
+        ? {
+            bet_type: 'express',
+            legs: form.legs,
+            sender_wallet: form.wallet,
+            payment_currency: getActiveRailCurrency(),
+        }
+        : {
+            bet_type: 'single',
+            match_id: String(currentBet.id || ''),
+            outcome: form.apiOutcome,
+            sender_wallet: form.wallet,
+            payment_currency: getActiveRailCurrency(),
+        };
     if (apiLive && apiBase) {
         try {
             const response = await fetch(`${apiBase}/api/intents`, {
                 method: 'POST',
                 mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    match_id: String(currentBet.id || ''),
-                    outcome: form.apiOutcome,
-                    sender_wallet: form.wallet,
-                }),
+                body: JSON.stringify(payload),
             });
             if (!response.ok) {
                 let errorCode = `HTTP_${response.status}`;
+                let errorPayload = null;
                 try {
-                    const errorPayload = await response.json();
+                    errorPayload = await response.json();
                     errorCode = String(errorPayload.error || errorCode);
                 } catch (_) {
                     // Ignore payload parsing errors for validation messages.
@@ -466,6 +519,12 @@ async function issueIntent(form) {
             intent.intent_hash = payload.intent_hash || intent.intent_hash;
             intent.odds_fixed = Number(payload.odds_fixed || intent.odds_fixed);
             intent.expires_at = payload.expires_at || intent.expires_at;
+            intent.bet_type = payload.bet_type || intent.bet_type;
+            intent.legs = Array.isArray(payload.legs) ? payload.legs : intent.legs;
+            intent.match_id = payload.match_id || intent.match_id;
+            intent.outcome = payload.outcome || intent.outcome;
+            intent.api_outcome = payload.api_outcome || intent.api_outcome;
+            intent.match_label = payload.match_label || intent.match_label;
             intent.mode = 'live';
             pushTimeline(intent, 'Код сохранён в системе', 'Код сохранён в системе и будет проверен при поступлении перевода.');
         } catch (error) {
@@ -488,17 +547,22 @@ async function issueIntent(form) {
 }
 
 function buildLocalIntent(form) {
+    const isExpress = form.betType === 'express';
+    const firstLeg = isExpress ? form.legs[0] : null;
     return {
         intent_hash: randomHash(),
         sender_wallet: form.wallet,
         amount_prizm: form.amount,
+        payment_currency: getActiveRailCurrency(),
         odds_fixed: form.coef,
-        outcome: currentBet.betType,
+        bet_type: form.betType,
+        legs: isExpress ? form.legs : [],
+        outcome: isExpress ? 'EXPRESS' : currentBet.betType,
         api_outcome: form.apiOutcome,
-        match_id: String(currentBet.id || ''),
-        match_label: currentBet.teams || form.matchLabel,
-        league: currentBet.league || '',
-        match_time: currentBet.datetime || '',
+        match_id: isExpress ? String(firstLeg?.match_id || '') : String(currentBet.id || ''),
+        match_label: form.matchLabel,
+        league: isExpress ? '' : (currentBet.league || ''),
+        match_time: isExpress ? '' : (currentBet.datetime || ''),
         created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + INTENT_TTL_MS).toISOString(),
         status: 'awaiting_payment',
@@ -519,17 +583,24 @@ function renderCoupon() {
 
     activeIntent = normalizeIntentRecord(activeIntent);
     const form = getFormState();
-    const currentMatch = getCurrentMatchRecord();
-    if (currentMatch && isPublicBetUnavailable(currentMatch)) {
-        showToast(getPublicBetUnavailableMessage(currentMatch));
-        return;
+    renderExpressBuilder();
+    if (form.betType === 'single') {
+        const currentMatch = getCurrentMatchRecord();
+        if (currentMatch && isPublicBetUnavailable(currentMatch)) {
+            showToast(getPublicBetUnavailableMessage(currentMatch));
+            return;
+        }
     }
     const statusMeta = getStatusMeta(activeIntent?.status || 'draft');
 
-    if (dom.match) dom.match.textContent = currentBet.teams || form.matchLabel;
-    if (dom.meta) dom.meta.textContent = `${currentBet.league || 'Без лиги'} • #${currentBet.id || '—'}`;
-    if (dom.outcome) dom.outcome.textContent = currentBet.betType || '—';
-    if (dom.coef) dom.coef.textContent = formatOdd(currentBet.coef);
+    if (dom.match) dom.match.textContent = form.matchLabel || currentBet.teams || '—';
+    if (dom.meta) {
+        dom.meta.textContent = form.betType === 'express'
+            ? `${expressLegs.length} событий • cap ${EXPRESS_ODDS_CAP}`
+            : `${currentBet.league || 'Без лиги'} • #${currentBet.id || '—'}`;
+    }
+    if (dom.outcome) dom.outcome.textContent = form.betType === 'express' ? 'EXPRESS' : (currentBet.betType || '—');
+    if (dom.coef) dom.coef.textContent = formatOdd(form.coef);
     if (dom.walletInput && document.activeElement !== dom.walletInput && !dom.walletInput.value) {
         dom.walletInput.value = getWalletAddress();
     }
@@ -583,7 +654,12 @@ function renderCoupon() {
 function renderLockedSummary(form) {
     if (!activeIntent) return;
     if (dom.lockedMatch) dom.lockedMatch.textContent = activeIntent.match_label || currentBet?.teams || form.matchLabel || '—';
-    if (dom.lockedOutcome) dom.lockedOutcome.textContent = activeIntent.outcome || currentBet?.betType || '—';
+    if (dom.lockedOutcome) {
+        const legCount = Array.isArray(activeIntent.legs) ? activeIntent.legs.length : form.legs?.length || 0;
+        dom.lockedOutcome.textContent = activeIntent.bet_type === 'express' || form.betType === 'express'
+            ? `EXPRESS (${legCount})`
+            : (activeIntent.outcome || currentBet?.betType || '—');
+    }
     if (dom.lockedOdds) dom.lockedOdds.textContent = formatOdd(activeIntent.odds_fixed || form.coef);
     if (dom.lockedAmount) dom.lockedAmount.textContent = `${formatNumber(activeIntent.amount_prizm || form.amount)} PRIZM`;
     if (dom.lockedPayout) dom.lockedPayout.textContent = `${formatNumber((Number(activeIntent.amount_prizm || form.amount) || 0) * (Number(activeIntent.odds_fixed || form.coef) || 0))} PRIZM`;
@@ -624,30 +700,152 @@ function syncIntentFromApi(payload) {
 
 
 function dispatchIntentUpdate() {
-    window.dispatchEvent(new CustomEvent('prizmbet:intent-updated', {
+    window.dispatchEvent(new CustomEvent('one-prizmbet:intent-updated', {
         detail: { intent: activeIntent },
     }));
 }
 
+function getCurrentExpressLeg() {
+    if (!currentBet) return null;
+    const matchId = String(currentBet.id || '');
+    const outcome = mapOutcomeToApiOutcome(currentBet.betType);
+    const odds = toNumber(currentBet.coef);
+    if (!matchId || !outcome || !odds) return null;
+    return {
+        match_id: matchId,
+        outcome,
+        label: currentBet.betType || outcome,
+        odds,
+        teams: currentBet.teams || '',
+        league: currentBet.league || '',
+        match_time: currentBet.datetime || '',
+    };
+}
+
+function addCurrentSelectionToExpress() {
+    const leg = getCurrentExpressLeg();
+    if (!leg) return;
+    if (expressLegs.some((item) => String(item.match_id) === String(leg.match_id))) {
+        showToast(getRejectLabel('DUPLICATE_MATCH_IN_EXPRESS'));
+        return;
+    }
+    if (expressLegs.length >= EXPRESS_MAX_LEGS) {
+        showToast(isEnglish() ? `Express is limited to ${EXPRESS_MAX_LEGS} events.` : `Экспресс ограничен ${EXPRESS_MAX_LEGS} событиями.`);
+        return;
+    }
+    expressLegs = [...expressLegs, leg];
+    activeIntent = findRelatedIntent(currentBet, normalizeWallet(dom.walletInput?.value || getWalletAddress()));
+    calcPayout();
+    renderCoupon();
+}
+
+function removeExpressLeg(matchId) {
+    expressLegs = expressLegs.filter((leg) => String(leg.match_id) !== String(matchId));
+    activeIntent = findRelatedIntent(currentBet, normalizeWallet(dom.walletInput?.value || getWalletAddress()));
+    calcPayout();
+    renderCoupon();
+}
+
+function clearExpress() {
+    expressLegs = [];
+    activeIntent = findRelatedIntent(currentBet, normalizeWallet(dom.walletInput?.value || getWalletAddress()));
+    calcPayout();
+    renderCoupon();
+}
+
+function isExpressReady() {
+    return expressLegs.length >= 2;
+}
+
+function getExpressOdds(legs = expressLegs) {
+    const product = legs.reduce((total, leg) => total * Math.max(toNumber(leg.odds), 1), 1);
+    return Math.min(product, EXPRESS_ODDS_CAP);
+}
+
+function getExpressLabel() {
+    return isEnglish()
+        ? `Express: ${expressLegs.length} events`
+        : `Экспресс: ${expressLegs.length} события`;
+}
+
+function getExpressLegsForApi() {
+    return expressLegs.map((leg) => ({
+        match_id: String(leg.match_id || ''),
+        outcome: String(leg.outcome || ''),
+    }));
+}
+
+function getUnavailableExpressLeg(legs) {
+    const allMatches = Array.isArray(window.__ALL_MATCHES__) ? window.__ALL_MATCHES__ : [];
+    for (const leg of legs) {
+        const match = allMatches.find((item) => String(item.id || '') === String(leg.match_id || ''));
+        if (match && isPublicBetUnavailable(match)) return { leg, match };
+    }
+    return null;
+}
+
+function renderExpressBuilder() {
+    if (!dom.expressBuilder) return;
+    const nextLeg = getCurrentExpressLeg();
+    const hasDuplicate = nextLeg && expressLegs.some((leg) => String(leg.match_id) === String(nextLeg.match_id));
+    if (dom.expressSummary) {
+        dom.expressSummary.textContent = expressLegs.length
+            ? `${expressLegs.length}/${EXPRESS_MAX_LEGS} • ${formatOdd(getExpressOdds())}`
+            : (isEnglish() ? 'Add 2+ outcomes' : 'Добавьте 2+ исхода');
+    }
+    if (dom.addExpressBtn) {
+        dom.addExpressBtn.disabled = !nextLeg || Boolean(hasDuplicate) || expressLegs.length >= EXPRESS_MAX_LEGS;
+    }
+    if (dom.clearExpressBtn) {
+        dom.clearExpressBtn.disabled = expressLegs.length === 0;
+    }
+    if (dom.expressList) {
+        dom.expressList.innerHTML = expressLegs.length
+            ? expressLegs.map((leg) => `
+                <div class="express-leg">
+                    <div class="express-leg-title">${escapeHtml(leg.teams || `#${leg.match_id}`)}</div>
+                    <div class="express-leg-meta">${escapeHtml(leg.label || leg.outcome)} • ${formatOdd(leg.odds)}</div>
+                    <button class="express-leg-remove" type="button" data-express-remove="${escapeHtml(leg.match_id)}" aria-label="Remove">×</button>
+                </div>
+            `).join('')
+            : `<div class="express-leg-meta">${isEnglish() ? 'Single bet is active until the express has two outcomes.' : 'Одиночная ставка активна, пока в экспрессе меньше двух исходов.'}</div>`;
+    }
+}
+
+function sameExpressLegs(left, right) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((leg, index) => (
+        String(leg.match_id || '') === String(right[index]?.match_id || '')
+        && String(leg.outcome || '') === String(right[index]?.outcome || '')
+    ));
+}
+
 function getFormState() {
     const amount = Number(dom.amountInput?.value || 0);
+    const expressReady = isExpressReady();
     return {
         wallet: normalizeWallet(dom.walletInput?.value || getWalletAddress()),
         amount,
-        coef: toNumber(currentBet?.coef || 0),
-        apiOutcome: mapOutcomeToApiOutcome(currentBet?.betType),
-        matchLabel: currentBet?.teams || '',
+        betType: expressReady ? 'express' : 'single',
+        coef: expressReady ? getExpressOdds() : toNumber(currentBet?.coef || 0),
+        apiOutcome: expressReady ? 'EXPRESS' : mapOutcomeToApiOutcome(currentBet?.betType),
+        matchLabel: expressReady ? getExpressLabel() : (currentBet?.teams || ''),
+        legs: expressReady ? getExpressLegsForApi() : [],
     };
 }
 
 function findRelatedIntent(bet, wallet) {
     if (!bet) return null;
     const targetWallet = normalizeWallet(wallet);
-    const targetOutcome = mapOutcomeToApiOutcome(bet.betType);
+    const form = getFormState();
+    const targetOutcome = form.betType === 'express' ? 'EXPRESS' : mapOutcomeToApiOutcome(bet.betType);
     const records = getIntentRecords()
         .map((item) => normalizeIntentRecord(item))
         .filter((item) => {
-            if (String(item.match_id) !== String(bet.id || '')) return false;
+            if (form.betType === 'express') {
+                if (String(item.bet_type || 'single') !== 'express') return false;
+                if (!sameExpressLegs(item.legs || [], form.legs)) return false;
+            } else if (String(item.match_id) !== String(bet.id || '')) return false;
             if (String(item.api_outcome || '') !== String(targetOutcome)) return false;
             if (targetWallet && normalizeWallet(item.sender_wallet) !== targetWallet) return false;
             return true;
@@ -658,9 +856,12 @@ function findRelatedIntent(bet, wallet) {
 
 function isIntentInSync(intent, form) {
     if (!intent) return false;
+    const sameBet = form.betType === 'express'
+        ? String(intent.bet_type || 'single') === 'express' && sameExpressLegs(intent.legs || [], form.legs)
+        : String(intent.match_id || '') === String(currentBet?.id || '');
     return normalizeWallet(intent.sender_wallet) === form.wallet
         && Number(intent.amount_prizm || 0) === Number(form.amount || 0)
-        && String(intent.match_id || '') === String(currentBet?.id || '')
+        && sameBet
         && String(intent.api_outcome || '') === String(form.apiOutcome || '');
 }
 
@@ -704,7 +905,7 @@ async function ensureApiStatus(force = false) {
 }
 
 function detectApiBase() {
-    const explicit = String(window.PRIZMBET_INTENT_API_BASE || '').trim();
+    const explicit = String(window.ONE_PRIZMBET_INTENT_API_BASE || '').trim();
     if (explicit) return explicit.replace(/\/$/, '');
     const host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
@@ -714,7 +915,7 @@ function detectApiBase() {
     if (origin && origin !== 'null' && !origin.startsWith('file:')) {
         return origin;
     }
-    return 'https://prizmbet.net';
+    return 'http://213.165.38.210';
 }
 
 function mapOutcomeToApiOutcome(outcome) {
@@ -799,12 +1000,12 @@ function buildTransferInstructions(intent) {
     const rail = getActiveRail();
     const base = getTransferInstruction({ amountPrizm: intent.amount_prizm, code: intent.intent_hash });
     const tail = apiLive
-        ? (isEnglish() ? 'After the transfer open the cabinet to see the status.' : '????? ???????? ???????? ???????, ????? ??????? ??????.')
-        : (isEnglish() ? 'The code and history are already saved on this device.' : '??? ? ??????? ??? ????????? ?? ???? ??????????.');
+        ? (isEnglish() ? 'After the transfer open the cabinet to see the status.' : 'После перевода откройте кабинет, чтобы увидеть статус.')
+        : (isEnglish() ? 'The code and history are already saved on this device.' : 'Код и история уже сохранены на этом устройстве.');
     const formula = getPayoutFormulaText(intent.amount_prizm, intent.odds_fixed);
     const railLead = rail.mode === 'auto'
-        ? (isEnglish() ? `Settlement rail: ${rail.code} / ${rail.chain}.` : `????????? ?????: ${rail.code} / ${rail.chain}.`)
-        : (isEnglish() ? `Selected rail: ${rail.code} / ${rail.chain}.` : `????????? ?????: ${rail.code} / ${rail.chain}.`);
+        ? (isEnglish() ? `Settlement rail: ${rail.code} / ${rail.chain}.` : `Расчётный рельс: ${rail.code} / ${rail.chain}.`)
+        : (isEnglish() ? `Selected rail: ${rail.code} / ${rail.chain}.` : `Выбранный рельс: ${rail.code} / ${rail.chain}.`);
     return `${formula}. ${railLead} ${base} ${tail}`;
 }
 
@@ -885,7 +1086,7 @@ function mapDashboardToCabinet(wallet, payload) {
 
 function deriveRank(turnover, acceptedCount) {
     const tiers = [
-        { name: 'Начинающий игрок', threshold: 0 },
+        { name: 'Наблюдатель', threshold: 0 },
         { name: 'Игрок', threshold: 1500 },
         { name: 'Постоянный игрок', threshold: 5000 },
         { name: 'Профи', threshold: 15000 },

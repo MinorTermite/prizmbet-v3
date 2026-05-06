@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-"""Dedicated Telegram notifier for PRIZMBET v3 operator events."""
+﻿# -*- coding: utf-8 -*-
+"""Dedicated Telegram notifier for 1PrizmBet v3 operator events."""
 from __future__ import annotations
 
 import aiohttp

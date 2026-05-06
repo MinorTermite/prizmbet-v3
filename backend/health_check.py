@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import asyncio
 import sys
 import os
@@ -39,7 +39,7 @@ async def check_supabase():
     return False
 
 async def main():
-    print("--- PrizmBet v2 Health Check ---")
+    print("--- 1PrizmBet v3 Health Check ---")
     r_ok = await check_redis()
     s_ok = await check_supabase()
     

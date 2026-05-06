@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS app_config (
 ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
 
 -- No public access at all — backend uses service-role key which bypasses RLS.
+DROP POLICY IF EXISTS "no_public_access" ON app_config;
 CREATE POLICY "no_public_access" ON app_config
     USING (false)
     WITH CHECK (false);

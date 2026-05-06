@@ -16,8 +16,8 @@ import os
 from backend.config import config as _cfg
 
 # HOT wallet — used for all automatic operations (receiving bets, sending payouts).
-# Address comes from PRIZM_HOT_WALLET env var; falls back to legacy PRIZM-4N7T address.
-HOT_WALLET = _cfg.PRIZM_HOT_WALLET or "PRIZM-4N7T-L2A7-RQZA-5BETW"
+# Address comes from PRIZM_HOT_WALLET env var; fallback matches the current hot wallet.
+HOT_WALLET = _cfg.PRIZM_HOT_WALLET or "PRIZM-FSLA-9FZS-A6SX-3GXNV"
 
 # Legacy alias so existing code that imports `WALLET` keeps working unchanged.
 WALLET = HOT_WALLET

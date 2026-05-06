@@ -8,30 +8,33 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <link href="manifest.json" rel="manifest"/>
-<link href="icon-192x192.png" rel="icon" sizes="192x192" type="image/png"/>
-<link href="icon-192x192.png" rel="apple-touch-icon" sizes="192x192"/>
-<meta content="Prizmbet - sports line on PRIZM. Matches, coupon flow and wallet cabinet." name="description"/>
-<title>Prizmbet</title>
+<link href="one-prizmbet-logo.png" rel="icon" sizes="192x192" type="image/png"/>
+<link href="one-prizmbet-logo.png" rel="apple-touch-icon" sizes="192x192"/>
+<meta content="1PrizmBet — спортивная линия на PRIZM: матчи, купон, статусы ставок, кабинет кошелька и геймификация." name="description"/>
+<title>1PrizmBet — ставки на спорт в PRIZM</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;family=Share+Tech+Mono&amp;family=Inter:wght@400;500;600;700;800&amp;family=Outfit:wght@600;900&amp;display=swap" rel="stylesheet"/>
-<meta content="Prizmbet - sports line on PRIZM" property="og:title"/>
-<meta content="Prizmbet - sports line on PRIZM. Matches, coupon flow and wallet cabinet." property="og:description"/>
-<meta content="https://prizmbet.com/prizmbet-info-1.webp" property="og:image"/>
-<meta content="https://prizmbet.com/" property="og:url"/>
+<meta content="1PrizmBet — ставки на спорт в PRIZM" property="og:title"/>
+<meta content="Спортивная линия на PRIZM: матчи, купон, статусы ставок, кабинет кошелька и геймификация." property="og:description"/>
+<meta content="https://prizmbet.net/one-prizmbet-logo.png" property="og:image"/>
+<meta content="https://prizmbet.net/" property="og:url"/>
 <meta content="website" property="og:type"/>
 <meta content="summary_large_image" name="twitter:card"/>
-<link href="https://prizmbet.com/" rel="canonical"/>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Prizmbet","url":"https://prizmbet.com/","description":"Prizmbet - sports line on PRIZM. Matches, coupon flow and wallet cabinet."}</script>
+<link href="https://prizmbet.net/" rel="canonical"/>
+<meta content="1PrizmBet — ставки на спорт в PRIZM" name="twitter:title"/>
+<meta content="Спортивная линия на PRIZM: матчи, купон, статусы ставок, кабинет кошелька и геймификация." name="twitter:description"/>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"1PrizmBet","url":"https://prizmbet.net/","description":"Спортивная линия на PRIZM: матчи, купон, статусы ставок, кабинет кошелька и геймификация.","inLanguage":"ru-RU","potentialAction":{"@type":"SearchAction","target":"https://prizmbet.net/?q={search_term_string}","query-input":"required name=search_term_string"}}</script>
 <link as="style" href="css/base.min.css" rel="preload"/>
 <link href="/apk/prizmbet.apk" rel="prefetch" as="fetch" type="application/vnd.android.package-archive"/>
 <link href="css/base.min.css?v=2" rel="stylesheet"/>
-<link href="css/smart-flow.css?v=20260313-shell-fix" rel="stylesheet"/>
+<link href="css/smart-flow.css?v=20260427-brand-19" rel="stylesheet"/>
 </head>
 <body>
 <div class="scroll-progress" id="scrollProgress"></div>
 <div class="bg-canvas">
 <div class="glow-orb orb-1"></div>
+<div class="bg-grid"></div>
 <div class="glow-orb orb-2"></div>
 <div class="glow-orb orb-3"></div>
 <div class="glow-orb orb-4"></div>
@@ -39,16 +42,9 @@
 <div class="container">
 <header class="header">
 <div class="header-brand">
-<div class="logo-wrapper">
-<div class="logo-ring"></div>
-<div class="logo-container">
-<img alt="PRIZM mark" class="logo-mark logo-fallback" decoding="async" fetchpriority="high" src="prizm-icon.svg"/>
-</div>
-</div>
-<div class="header-brand-copy">
-<div class="brand-name">Prizmbet</div>
-<p class="tagline" data-i18n="app.tagline">Прогнозы на PRIZM</p>
-</div>
+<a class="header-brand-link" href="/" aria-label="1PrizmBet home">
+<span class="header-v2-logo-shell header-v2-logo-shell--source" aria-hidden="true"><img class="header-v2-logo" decoding="async" fetchpriority="high" src="one-prizmbet-logo-wide.png?v=2026-04-27-1758-2" alt="1PrizmBet" width="1916" height="821"/></span>
+</a>
 </div>
 <div class="header-utility">
 <div class="header-time-chip">
@@ -61,7 +57,6 @@
 </div>
 <div class="header-actions header-actions--desktop">
 <button aria-label="Уведомления" class="btn-icon" data-i18n-aria="header.notifications" data-i18n-title="header.notifications" id="notifBtn" onclick="requestNotificationPermission()" title="Уведомления"><span aria-hidden="true" class="btn-icon-glyph" data-notif-glyph="true">&#128276;</span></button>
-<a class="btn-icon" data-i18n-title="header.telegram" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank" title="Telegram-бот"><span aria-hidden="true" class="btn-icon-glyph">&#129302;</span></a>
 <button aria-label="Кабинет" class="btn-icon" data-i18n-aria="header.cabinet" data-i18n-title="header.cabinet" onclick="openHistory()" title="Кабинет"><span aria-hidden="true" class="btn-icon-glyph">&#128203;</span></button>
 <a class="btn-icon" data-i18n-title="header.download" href="/apk/prizmbet.apk" title="Скачать APK"><span aria-hidden="true" class="btn-icon-glyph">&#128242;</span></a>
 <button aria-label="Обновить линию" class="btn-icon" data-i18n-aria="header.refresh" data-i18n-title="header.refresh" onclick="refreshData()" title="Обновить линию"><span aria-hidden="true" class="btn-icon-glyph">&#8635;</span></button>
@@ -81,17 +76,17 @@
 </div>
 <div class="mobile-menu-grid">
 <button class="mobile-menu-action" id="mobileNotifBtn" type="button"><span aria-hidden="true" class="mobile-menu-action__icon" data-notif-glyph="true">&#128276;</span><span data-i18n="header.notifications">Уведомления</span></button>
-<a class="mobile-menu-action" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank"><span aria-hidden="true" class="mobile-menu-action__icon">&#129302;</span><span data-i18n="header.telegram">Telegram-бот</span></a>
+<a class="mobile-menu-action" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank"><span aria-hidden="true" class="mobile-menu-action__icon">&#129302;</span><span data-i18n="header.telegram">Telegram</span></a>
 <a class="mobile-menu-action" href="/apk/prizmbet.apk"><span aria-hidden="true" class="mobile-menu-action__icon">&#128242;</span><span data-i18n="header.download">Скачать APK</span></a>
 <button class="mobile-menu-action" id="mobileRefreshBtn" type="button"><span aria-hidden="true" class="mobile-menu-action__icon">&#8635;</span><span data-i18n="header.refresh">Обновить линию</span></button>
 </div>
 </aside>
-<section aria-label="Prizmbet home" class="top-stage">
+<section aria-label="1PrizmBet home" class="top-stage">
 <div class="hero-panel">
 <div class="hero-section">
-<div class="smart-banner-eyebrow" data-i18n="hero.eyebrow">Prizmbet</div>
+<div class="smart-banner-eyebrow" data-i18n="hero.eyebrow">1PrizmBet</div>
 <h1 class="hero-title" data-i18n="hero.title">Линия, купон и статус в одном приложении</h1>
-<p class="hero-subtitle" data-i18n="hero.subtitle">Выберите матч, откройте купон и отслеживайте расчёт в кабинете кошелька.</p>
+<p class="hero-subtitle" data-i18n="hero.subtitle">Откройте линию, выпустите код и отправьте PRIZM за пару нажатий. Принятие и расчёт видны в кабинете кошелька.</p>
 </div>
 <div class="hero-trust-grid">
 <article class="hero-trust-card"><strong data-i18n="hero.trustOddsTitle">Фиксированный коэффициент</strong><span data-i18n="hero.trustOddsCopy">Купон удерживает коэффициент, пока код остаётся активным.</span></article>
@@ -105,11 +100,12 @@
 <div class="stat-card stat-card--loading"><div class="stat-number" id="avgOdds">?</div><div class="stat-label" data-i18n="hero.avgOdds">Средний коэффициент</div></div>
 </div>
 <div class="hero-actions">
-<button class="coupon-secondary-btn hero-action-btn" data-i18n="hero.cabinet" onclick="openHistory()" type="button">Открыть кабинет</button>
-<a class="coupon-secondary-btn hero-action-btn hero-action-btn--accent" data-i18n="hero.telegram" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank">Telegram-бот</a>
+<a class="btn btn-primary hero-action-btn hero-action-btn--primary" data-i18n="hero.ctaPrimary" href="#content">Сделать ставку за 30 сек</a>
+<button class="coupon-secondary-btn hero-action-btn" data-i18n="hero.ctaSecondary" onclick="openHistory()" type="button">Открыть кабинет</button>
+<a class="coupon-secondary-btn hero-action-btn hero-action-btn--accent" data-i18n="hero.telegram" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank">Telegram</a>
 </div>
 </div>
-<section aria-label="How it works" class="section quick-start quick-start--aside">
+<section aria-label="How it works" class="section quick-start quick-start--aside" id="how-it-works">
 <div class="quick-start-card">
 <div class="quick-start-head">
 <div class="smart-banner-eyebrow" data-i18n="quick.eyebrow">Как это работает</div>
@@ -124,6 +120,12 @@
 <div class="quick-start-note" data-i18n="quick.note">Купон связывает событие, исход, коэффициент, сумму и кошелёк. Этот набор система проверяет при обработке прогноза.</div>
 </div>
 </section>
+</section>
+<section aria-label="Trust signals" class="trust-strip">
+<article class="trust-strip-card trust-strip-card--accent"><span data-i18n="trust.autoTitle">Авто-приём</span><strong data-i18n="trust.autoCopy">Код и перевод связываются автоматически</strong></article>
+<article class="trust-strip-card"><span data-i18n="trust.walletTitle">PRIZM wallet</span><strong data-i18n="trust.walletCopy">Один кошелёк для приёма и выплат</strong></article>
+<article class="trust-strip-card"><span data-i18n="trust.statusTitle">Статусы</span><strong data-i18n="trust.statusCopy">Ожидание, принятие и расчёт в кабинете</strong></article>
+<article class="trust-strip-card"><span data-i18n="trust.payoutTitle">До 24 часов</span><strong data-i18n="trust.payoutCopy">Выигрышные прогнозы проходят расчёт</strong></article>
 </section>
 <div class="search-container">
 <input class="search-premium" data-i18n-placeholder="search.placeholder" id="searchInput" oninput="onSearchInput()" placeholder="Поиск команды, лиги или ID матча..."/>
@@ -164,6 +166,7 @@
 </div>
 <div class="update-info" id="lastUpdate" style="margin:0;display:inline-block;"><span class="loading"></span> <span data-i18n="filters.loading">Загрузка...</span></div>
 </div>
+<div class="line-count-info line-count-info--empty" id="lineCountInfo">Total matches: —</div>
 </div>
 <div class="market-layout">
 <div class="market-feed" id="content">
@@ -175,12 +178,12 @@
 <img alt="QR code for project wallet" class="qr-code" decoding="async" height="300" loading="lazy" src="qr_wallet.webp" width="300"/>
 <div class="wallet-box">
 <div class="wallet-label" data-i18n="wallet.addressLabel">Кошелёк проекта</div>
-<div class="wallet-address" id="walletAddress">PRIZM-4N7T-L2A7-RQZA-5BETW</div>
+<div class="wallet-address" id="walletAddress">PRIZM-FSLA-9FZS-A6SX-3GXNV</div>
 </div>
 <button class="btn btn-primary" onclick="copyWallet(this)">📋 <span data-i18n="wallet.copy">Скопировать кошелёк</span></button>
 <p class="wallet-note wallet-note--lead" data-i18n="wallet.note">Сначала выпустите код в купоне. Затем отправьте перевод на кошелёк проекта и укажите этот код в сообщении.</p>
 </div>
-<section aria-label="Правила перевода Prizmbet" class="section rules-section">
+<section aria-label="Правила перевода 1PrizmBet" class="section rules-section" id="transfer-rules">
 <div class="rules-compact-card">
 <div class="smart-banner-eyebrow" data-i18n="rules.eyebrow">Перед переводом</div>
 <h2 class="smart-banner-title" data-i18n="rules.title">3 правила приёма перевода</h2>
@@ -199,20 +202,39 @@
 </section>
 </aside>
 </div>
-<footer style="padding:24px 16px; text-align:center;">
-<div class="footer-brand" style="font-size:1rem; margin-bottom:10px;">2026 © PrizmBet</div>
-<p data-i18n="footer.copy" style="color:var(--text-tertiary); font-size:0.75rem; line-height:1.4; max-width:600px; margin:0 auto;">Информационный сервис по спортивным событиям. Сайт отображает линию, статусы и данные по прогнозам внутри экосистемы проекта.</p>
+<footer class="site-footer">
+<div class="site-footer__top">
+<div class="site-footer__brand-lockup">
+<img alt="1PrizmBet icon" class="site-footer__mark" decoding="async" loading="lazy" src="prizm-icon.svg"/>
+<div class="site-footer__brand-copy">
+<div class="footer-brand">2026 © 1PrizmBet</div>
+<p class="site-footer__copy" data-i18n="footer.copy">Информационный сервис по спортивным событиям. Сайт отображает линию, статусы и данные по прогнозам внутри экосистемы проекта.</p>
+</div>
+</div>
+<div class="site-footer__links">
+<a class="site-footer__link" data-i18n="footer.how" href="#how-it-works">Как это работает</a>
+<a class="site-footer__link" data-i18n="footer.rules" href="./rules.html">Правила</a>
+<a class="site-footer__link" data-i18n="footer.faq" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank">FAQ</a>
+<a class="site-footer__link" data-i18n="footer.contact" href="https://t.me/prizmbet_v3_bot" rel="noopener" target="_blank">Контакты</a>
+<a class="site-footer__link" data-i18n="footer.apk" href="/apk/prizmbet.apk">APK</a>
+</div>
+</div>
+<p class="site-footer__note" data-i18n="footer.support">Поддержка и ответы на частые вопросы доступны в Telegram проекта.</p>
 </footer>
 </div>
 <div class="bet-toast" id="betToast">
-<div class="bet-toast-label" data-i18n="toast.brand">Prizmbet</div>
+<div class="bet-toast-label" data-i18n="toast.brand">1PrizmBet</div>
 <div class="bet-toast-message" id="betToastMessage"></div>
 </div>
 <div class="bet-slip" id="betSlip">
-<div class="bet-slip-header"><div class="bet-slip-title" data-i18n="coupon.title">Умный купон</div><button aria-label="???????" class="bet-slip-close" onclick="closeBetSlip()">×</button></div>
+<div class="bet-slip-header"><div class="bet-slip-title" data-i18n="coupon.title">Умный купон</div><button aria-label="Закрыть" class="bet-slip-close" onclick="closeBetSlip()">×</button></div>
 <div class="bet-slip-match" id="bsMatch">Матч будет выбран из линии</div>
 <div class="coupon-meta" id="bsMeta">Лига и номер события</div>
 <div class="bet-slip-selection"><div class="bet-slip-outcome" id="bsOutcome">П1</div><div class="bet-slip-coef" id="bsCoef">2.45</div></div>
+<div class="express-builder" id="bsExpressBuilder">
+<div class="express-builder-head"><div><span class="coupon-field-label">Экспресс</span><strong id="bsExpressSummary">Добавьте 2+ исхода</strong></div><div class="express-builder-actions"><button class="coupon-secondary-btn" id="bsAddExpressBtn" type="button">Добавить в экспресс</button><button class="coupon-secondary-btn" id="bsClearExpressBtn" type="button">Очистить</button></div></div>
+<div class="express-leg-list" id="bsExpressList"></div>
+</div>
 <div class="coupon-grid">
 <label class="coupon-field"><span class="coupon-field-label" data-i18n="coupon.wallet">Кошелёк игрока</span><input class="coupon-input" id="bsWalletInput" placeholder="PRIZM-XXXX-XXXX-XXXX-XXXXX" type="text"/></label>
 <div class="coupon-field"><span class="coupon-field-label" data-i18n="coupon.amount">Сумма</span><div class="bet-input-wrap"><input class="bet-input" id="bsInput" max="30000" min="1500" oninput="calcPayout()" placeholder="1500" type="number"/><span class="bet-currency">PZM</span></div></div>
@@ -239,14 +261,14 @@
 <div class="coupon-lock-item"><span class="coupon-lock-label" data-i18n="coupon.expires">Код действует до</span><strong class="coupon-lock-value" id="bsLockedExpiry">?</strong></div>
 </div>
 </div>
-<div class="coupon-transfer-card"><div class="coupon-field-label" data-i18n="coupon.nextStep">Следующий шаг</div><p class="coupon-transfer-copy" id="bsTransferInstructions"></p><div class="coupon-wallet-chip">Кошелёк проекта: <strong>PRIZM-4N7T-L2A7-RQZA-5BETW</strong></div></div>
+<div class="coupon-transfer-card"><div class="coupon-field-label" data-i18n="coupon.nextStep">Следующий шаг</div><p class="coupon-transfer-copy" id="bsTransferInstructions"></p><div class="coupon-wallet-chip">Кошелёк проекта: <strong>PRIZM-FSLA-9FZS-A6SX-3GXNV</strong></div></div>
 <div class="coupon-actions"><button class="coupon-secondary-btn" data-i18n="coupon.refreshStatus" onclick="refreshSlipStatus()" type="button">Обновить статус</button><button class="coupon-secondary-btn" data-i18n="coupon.openCabinet" onclick="openHistory()" type="button">Открыть кабинет</button></div>
 <div><div class="coupon-field-label" data-i18n="coupon.timeline" style="margin-bottom:8px;">Лента статуса</div><div class="coupon-timeline" id="bsTimeline"></div></div>
 </div>
 <button class="btn btn-primary bet-action-btn" data-i18n="coupon.issue" id="bsPrimaryAction" onclick="copyBetSlipData()">Выпустить код прогноза</button>
 </div>
 <div class="bet-slip cabinet-sheet" id="historyModal">
-<div class="bet-slip-header"><div class="bet-slip-title" data-i18n="cabinet.title">Кабинет кошелька</div><button aria-label="???????" class="bet-slip-close" onclick="closeHistory()">×</button></div>
+<div class="bet-slip-header"><div class="bet-slip-title" data-i18n="cabinet.title">Кабинет кошелька</div><button aria-label="Закрыть" class="bet-slip-close" onclick="closeHistory()">×</button></div>
 <div class="cabinet-toolbar">
 <label class="coupon-field"><span class="coupon-field-label" data-i18n="cabinet.wallet">Кошелёк игрока</span><input class="coupon-input" id="cabinetWalletInput" placeholder="PRIZM-XXXX-XXXX-XXXX-XXXXX" type="text"/></label>
 <div class="coupon-actions"><button class="btn btn-primary" data-i18n="cabinet.refresh" onclick="openHistory()" type="button">Обновить кабинет</button><button class="btn btn-outline" data-i18n="cabinet.clear" onclick="clearHistory()" type="button">Очистить историю устройства</button></div>
@@ -270,4 +292,3 @@
     </script>
 </body>
 </html>
-

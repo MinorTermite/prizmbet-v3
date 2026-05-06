@@ -1,12 +1,12 @@
-﻿/**
- * PrizmBet v3 - Storage Module
+/**
+ * 1PrizmBet - Storage Module
  */
 
-const FAVORITES_KEY = 'prizmbet_favorites';
-const DETAILS_KEY = 'prizmbet_fav_details';
-const HISTORY_KEY = 'prizmbet_history';
-const INTENTS_KEY = 'prizmbet_intent_records_v1';
-const WALLET_KEY = 'prizmbet_wallet_v1';
+const FAVORITES_KEY = 'one_prizmbet_favorites';
+const DETAILS_KEY = 'one_prizmbet_fav_details';
+const HISTORY_KEY = 'one_prizmbet_history';
+const INTENTS_KEY = 'one_prizmbet_intent_records_v1';
+const WALLET_KEY = 'one_prizmbet_wallet_v1';
 
 function readJson(key, fallback) {
     try {

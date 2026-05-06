@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-"""Supabase database client for PrizmBet v3."""
+﻿# -*- coding: utf-8 -*-
+"""Supabase database client for 1PrizmBet v3."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -121,7 +121,7 @@ class Database:
             print(f"Error logging parser run: {exc}")
             return None
 
-    async def create_bet_intent(self, intent_hash: str, match_id: str, sender_wallet: str, outcome: str, odds_fixed: float, expires_at: str | None = None, payment_currency: str = "PRIZM"):
+    async def create_bet_intent(self, intent_hash: str, match_id: str, sender_wallet: str, outcome: str, odds_fixed: float, expires_at: str | None = None, payment_currency: str = "PRIZM", bet_type: str = "single", express_legs: list | None = None):
         if not self.initialized:
             return None
         payload = {
@@ -131,7 +131,10 @@ class Database:
             "outcome": outcome,
             "odds_fixed": round(float(odds_fixed), 2),
             "payment_currency": payment_currency,
+            "bet_type": bet_type if bet_type in ("single", "express") else "single",
         }
+        if express_legs is not None:
+            payload["express_legs"] = express_legs
         if expires_at:
             payload["expires_at"] = expires_at
         return self.client.table("bet_intents").insert(payload).execute().data

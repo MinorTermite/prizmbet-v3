@@ -1,4 +1,4 @@
-const LANG_KEY = 'prizmbet_lang_v1';
+const LANG_KEY = 'one_prizmbet_lang_v1';
 const DEFAULT_LANG = 'ru';
 
 const DICTIONARY = {
@@ -7,7 +7,7 @@ const DICTIONARY = {
         'header.timeLabel': 'Московское время',
         'header.timeShort': 'MSK',
         'header.notifications': 'Уведомления',
-        'header.telegram': 'Telegram-бот',
+        'header.telegram': 'Telegram',
         'header.cabinet': 'Кабинет',
         'header.refresh': 'Обновить линию',
         'header.download': 'Скачать APK',
@@ -15,9 +15,9 @@ const DICTIONARY = {
         'header.lang': 'Язык',
         'header.menuTitle': 'Быстрые действия',
         'header.liveLine': 'Линия событий',
-        'hero.eyebrow': 'Prizmbet',
+        'hero.eyebrow': '1PrizmBet',
         'hero.title': 'Линия, купон и статус в одном приложении',
-        'hero.subtitle': 'Выберите матч, откройте купон и отслеживайте расчёт в кабинете кошелька.',
+        'hero.subtitle': 'Откройте линию, выпустите код и отправьте PRIZM за пару нажатий. Принятие и расчёт видны в кабинете кошелька.',
         'hero.trustOddsTitle': 'Потенциальная выплата',
         'hero.trustOddsCopy': 'Сумма × коэффициент = ожидаемая выплата по купону.',
         'hero.trustWindowTitle': 'Ограниченное окно',
@@ -29,8 +29,18 @@ const DICTIONARY = {
         'hero.events': 'Событий в линии',
         'hero.leagues': 'Доступных лиг',
         'hero.avgOdds': 'Средний коэффициент',
+        'hero.ctaPrimary': 'Перейти к линии',
+        'hero.ctaSecondary': 'Открыть кабинет',
         'hero.cabinet': 'Открыть кабинет',
-        'hero.telegram': 'Telegram-бот',
+        'hero.telegram': 'Telegram',
+        'trust.autoTitle': 'Авто-приём',
+        'trust.autoCopy': 'Код и перевод связываются автоматически',
+        'trust.walletTitle': 'PRIZM wallet',
+        'trust.walletCopy': 'Один кошелёк для приёма и выплат',
+        'trust.statusTitle': 'Статусы',
+        'trust.statusCopy': 'Ожидание, принятие и расчёт в кабинете',
+        'trust.payoutTitle': 'До 24 часов',
+        'trust.payoutCopy': 'Выигрышные прогнозы проходят расчёт',
         'quick.eyebrow': 'Как это работает',
         'quick.title': '3 шага от матча до статуса',
         'quick.copy': 'Главный экран ведёт к действию, а правила перевода собраны в отдельном компактном блоке.',
@@ -66,6 +76,8 @@ const DICTIONARY = {
         'filters.byOdds': 'По коэф.',
         'filters.byLeague': 'По лигам',
         'filters.loading': 'Загрузка...',
+        'filters.matchCounter': 'Всего {total} матчей · показано {shown}',
+        'filters.matchCounterEmpty': 'Всего матчей: —',
         'wallet.title': 'Шаг 2. Перевод по коду',
         'wallet.addressLabel': 'Кошелёк проекта',
         'wallet.copy': 'Скопировать кошелёк',
@@ -83,7 +95,13 @@ const DICTIONARY = {
         'rules.max': 'Макс: 30 000 PRIZM',
         'rules.payout': 'Выплаты до 24 часов',
         'footer.copy': 'Информационный сервис по спортивным событиям. Сайт отображает линию, статусы и данные по прогнозам внутри экосистемы проекта.',
-        'toast.brand': 'Prizmbet',
+        'footer.how': 'Как это работает',
+        'footer.rules': 'Правила',
+        'footer.faq': 'FAQ',
+        'footer.contact': 'Контакты',
+        'footer.apk': 'APK',
+        'footer.support': 'Поддержка и ответы на частые вопросы доступны в Telegram проекта.',
+        'toast.brand': '1PrizmBet',
         'coupon.title': 'Умный купон',
         'coupon.wallet': 'Кошелёк игрока',
         'coupon.amount': 'Сумма',
@@ -120,7 +138,7 @@ const DICTIONARY = {
         'status.finished': 'Завершён',
         'status.live': 'LIVE',
         'status.imminent': 'Старт < 15 мин',
-        'rank.start': 'Начинающий игрок',
+        'rank.start': 'Наблюдатель',
         'rank.player': 'Игрок',
         'rank.tactic': 'Постоянный игрок',
         'rank.pro': 'Профи',
@@ -157,14 +175,15 @@ const DICTIONARY = {
         'common.archivedTime': 'Последнее обновление: {time}.',
         'common.archivedFallback': 'Время обновления взято из локального кэша устройства.',
         'common.archivedEmpty': 'В текущем окне нет свежих матчей. Попробуйте позже или откройте полный фид.',
-        'common.matchFinishedTitle': 'Матч завершён'
+        'common.matchFinishedTitle': 'Матч завершён',
+        'common.showAllLeagues': 'Показать все лиги ({count})'
     },
     en: {
         'app.tagline': 'Predictions on PRIZM',
         'header.timeLabel': 'Moscow time',
         'header.timeShort': 'MSK',
         'header.notifications': 'Notifications',
-        'header.telegram': 'Telegram bot',
+        'header.telegram': 'Telegram',
         'header.cabinet': 'Cabinet',
         'header.refresh': 'Refresh line',
         'header.download': 'Download APK',
@@ -172,9 +191,9 @@ const DICTIONARY = {
         'header.lang': 'Language',
         'header.menuTitle': 'Quick actions',
         'header.liveLine': 'Events line',
-        'hero.eyebrow': 'Prizmbet',
+        'hero.eyebrow': '1PrizmBet',
         'hero.title': 'Line, coupon and status in one app',
-        'hero.subtitle': 'Pick a match, open the coupon and track settlement in the wallet cabinet.',
+        'hero.subtitle': 'Open the line, issue the code and send PRIZM in a few taps. Acceptance and settlement stay visible in the wallet cabinet.',
         'hero.trustOddsTitle': 'Potential payout',
         'hero.trustOddsCopy': 'Amount × odds = the expected payout locked in the coupon.',
         'hero.trustWindowTitle': 'Limited window',
@@ -186,8 +205,18 @@ const DICTIONARY = {
         'hero.events': 'Events in line',
         'hero.leagues': 'Leagues available',
         'hero.avgOdds': 'Average odds',
+        'hero.ctaPrimary': 'Open the line',
+        'hero.ctaSecondary': 'Open cabinet',
         'hero.cabinet': 'Open cabinet',
-        'hero.telegram': 'Telegram bot',
+        'hero.telegram': 'Telegram',
+        'trust.autoTitle': 'Auto intake',
+        'trust.autoCopy': 'Code and transfer are matched automatically',
+        'trust.walletTitle': 'PRIZM wallet',
+        'trust.walletCopy': 'One wallet for intake and payouts',
+        'trust.statusTitle': 'Statuses',
+        'trust.statusCopy': 'Pending, accepted and settled in cabinet',
+        'trust.payoutTitle': 'Up to 24 hours',
+        'trust.payoutCopy': 'Winning forecasts go through settlement',
         'quick.eyebrow': 'How it works',
         'quick.title': '3 steps from match to status',
         'quick.copy': 'The home screen drives action, while transfer rules stay in a compact block below.',
@@ -223,6 +252,8 @@ const DICTIONARY = {
         'filters.byOdds': 'By odds',
         'filters.byLeague': 'By league',
         'filters.loading': 'Loading...',
+        'filters.matchCounter': 'Total {total} matches · shown {shown}',
+        'filters.matchCounterEmpty': 'Total matches: —',
         'wallet.title': 'Step 2. Transfer by code',
         'wallet.addressLabel': 'Project wallet',
         'wallet.copy': 'Copy wallet',
@@ -240,7 +271,13 @@ const DICTIONARY = {
         'rules.max': 'Max: 30,000 PRIZM',
         'rules.payout': 'Payouts within 24h',
         'footer.copy': 'An information and analytics portal for sports events. The service shows the line, statuses and prediction data inside the project ecosystem.',
-        'toast.brand': 'Prizmbet',
+        'footer.how': 'How it works',
+        'footer.rules': 'Rules',
+        'footer.faq': 'FAQ',
+        'footer.contact': 'Contact',
+        'footer.apk': 'APK',
+        'footer.support': 'Support and common answers are available in the project Telegram.',
+        'toast.brand': '1PrizmBet',
         'coupon.title': 'Smart coupon',
         'coupon.wallet': 'Player wallet',
         'coupon.amount': 'Amount',
@@ -277,7 +314,7 @@ const DICTIONARY = {
         'status.finished': 'Finished',
         'status.live': 'LIVE',
         'status.imminent': 'Starts < 15 min',
-        'rank.start': 'Beginner',
+        'rank.start': 'Observer',
         'rank.player': 'Player',
         'rank.tactic': 'Regular',
         'rank.pro': 'Pro',
@@ -314,7 +351,8 @@ const DICTIONARY = {
         'common.archivedTime': 'Last update: {time}.',
         'common.archivedFallback': 'The last update time was kept in local cache.',
         'common.archivedEmpty': 'There are no fresh matches in the current window. Check back later or open the full feed.',
-        'common.matchFinishedTitle': 'Match finished'
+        'common.matchFinishedTitle': 'Match finished',
+        'common.showAllLeagues': 'Show all leagues ({count})'
     }
 };
 
@@ -332,7 +370,7 @@ export function setLanguage(lang) {
     localStorage.setItem(LANG_KEY, next);
     document.documentElement.lang = next;
     applyTranslations();
-    window.dispatchEvent(new CustomEvent('prizmbet:language-changed', { detail: { lang: next } }));
+    window.dispatchEvent(new CustomEvent('one-prizmbet:language-changed', { detail: { lang: next } }));
     return next;
 }
 
@@ -386,6 +424,7 @@ export function formatTime(value, options = {}) {
         timeZone: getTimeZone(),
         hour: '2-digit',
         minute: '2-digit',
+        hour12: false,   // Always 24-hour format regardless of locale
         ...options,
     });
 }

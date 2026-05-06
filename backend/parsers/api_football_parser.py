@@ -26,9 +26,10 @@ LEAGUES: Dict[int, tuple] = {
     235: ("football", "Россия. Премьер-лига"),
 }
 
-# Fetch fixtures N days into the future
-# Optimized: 2 days instead of 3 to reduce API calls (free plan: 100/day)
-DAYS_AHEAD = 2
+# Free plan is request-limited. Keep date scan narrow and cap per-fixture odds.
+DAYS_BACK = int(os.getenv("API_FOOTBALL_DAYS_BACK", "0"))
+DAYS_AHEAD = int(os.getenv("API_FOOTBALL_DAYS_AHEAD", "2"))
+MAX_ODDS_REQUESTS_PER_RUN = int(os.getenv("API_FOOTBALL_MAX_ODDS_PER_RUN", "25"))
 
 
 class ApiFootballParser(BaseParser):
@@ -65,7 +66,7 @@ class ApiFootballParser(BaseParser):
         all_fixtures: List[dict] = []
         league_ids = set(LEAGUES.keys())
 
-        for offset in range(-2, DAYS_AHEAD + 1):
+        for offset in range(-DAYS_BACK, DAYS_AHEAD + 1):
             date_str = (today + timedelta(days=offset)).strftime("%Y-%m-%d")
             data = await self._get("/fixtures", {"date": date_str})
             for fix in (data or {}).get("response", []):
@@ -166,6 +167,9 @@ class ApiFootballParser(BaseParser):
         all_matches: List[Dict] = []
         seen_ids: set = set()
 
+        odds_requests = 0
+        skipped_odds = 0
+
         for fixture in fixtures:
             f          = fixture.get("fixture", {})
             teams      = fixture.get("teams", {})
@@ -222,12 +226,19 @@ class ApiFootballParser(BaseParser):
                 "handicap_2":        0.0,
             }
 
-            odds_resp = await self._fetch_odds(fixture_id)
-            if odds_resp:
-                self._parse_odds(odds_resp, match_data)
+            if odds_requests < MAX_ODDS_REQUESTS_PER_RUN:
+                odds_resp = await self._fetch_odds(fixture_id)
+                odds_requests += 1
+                if odds_resp:
+                    self._parse_odds(odds_resp, match_data)
+            else:
+                skipped_odds += 1
 
             all_matches.append(match_data)
 
-        print(f"[ApiFootball] {len(all_matches)} matches processed")
+        print(
+            f"[ApiFootball] {len(all_matches)} matches processed, "
+            f"odds_requests={odds_requests}, skipped_odds={skipped_odds}"
+        )
         return all_matches
 

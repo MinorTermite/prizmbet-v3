@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-PRIZMBET Telegram Bot
+1PrizmBet Telegram Bot
 Приём ставок через PRIZM кошелёк + уведомления
 
 Установка:
@@ -44,7 +44,7 @@ if load_dotenv is not None:
 
 BOT_TOKEN    = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("BOT_TOKEN", "")
 ADMIN_ID     = 984705599
-WALLET       = "PRIZM-4N7T-L2A7-RQZA-5BETW"
+WALLET       = os.getenv("PRIZM_HOT_WALLET") or getattr(prizm_api, "HOT_WALLET", "PRIZM-FSLA-9FZS-A6SX-3GXNV")
 BETS_FILE    = REPO_ROOT / "frontend" / "bets.json"
 MATCHES_FILE = REPO_ROOT / "frontend" / "matches.json"
 CONFIG_FILE  = Path(__file__).parent / "bot_config.json"
@@ -147,7 +147,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     text = (
         f"👋 Привет, {user.first_name}!\n\n"
-        "🎰 *PRIZMBET — Криптобукмекер*\n\n"
+        "🎰 *1PrizmBet — Криптобукмекер*\n\n"
         "Как сделать ставку:\n"
         "1️⃣ Открой сайт: [minortermite.github.io/betprizm](https://minortermite.github.io/betprizm)\n"
         "2️⃣ Выбери матч\n"
@@ -167,7 +167,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = (
-        "📖 *Справка PRIZMBET*\n\n"
+        "📖 *Справка 1PrizmBet*\n\n"
         "*Формат комментария* к транзакции:\n"
         "`ID_МАТЧА ТИП СУММА`\n\n"
         "🎯 *Обозначения ставок:*\n"
@@ -186,7 +186,7 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_rules(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = (
-        "📋 *ПРАВИЛА PRIZMBET*\n\n"
+        "📋 *ПРАВИЛА 1PrizmBet*\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "💎 *Ставки принимаются только в монетах PRIZM*\n\n"
         "📊 *Лимиты:*\n"
@@ -202,7 +202,7 @@ async def cmd_rules(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "• `12` — победа любой команды (ничьи нет)\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "💡 *Как сделать ставку:*\n"
-        "1️⃣ Выбери матч на сайте: [prizmbet](https://minortermite.github.io/betprizm/)\n"
+        "1️⃣ Выбери матч на сайте: [1PrizmBet](https://prizmbet.net/)\n"
         "2️⃣ Нажми на коэффициент — появится купон\n"
         "3️⃣ Скопируй сообщение для перевода\n"
         "4️⃣ Отправь PRIZM на кошелёк:\n"
@@ -217,7 +217,7 @@ async def cmd_rules(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "• При выигрыше — выплата по коэффициенту\n"
         "• Выплаты в течение 24 часов\n"
         "• Количество ставок ограничено\n"
-        "• PRIZMBET вправе отказать в принятии ставки\n"
+        "• 1PrizmBet вправе отказать в принятии ставки\n"
         "  и вернуть средства до начала события"
     )
     await update.message.reply_text(text, parse_mode="Markdown")
@@ -225,7 +225,7 @@ async def cmd_rules(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_advantages(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = (
-        "⭐ *ПРЕИМУЩЕСТВА PRIZMBET*\n\n"
+        "⭐ *ПРЕИМУЩЕСТВА 1PrizmBet*\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
         "✅  *Не требуется верификация*\n"
         "    Никаких документов и паспортов\n\n"
@@ -288,7 +288,7 @@ async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     payouts = sum(b.get("payout", 0) for b in bets if b.get("status") == "win")
     profit  = income - payouts
     text = (
-        f"📊 *Статистика PRIZMBET*\n\n"
+        f"📊 *Статистика 1PrizmBet*\n\n"
         f"Всего ставок: `{total}`\n"
         f"⏳ Ожидают: `{pending}`\n"
         f"✅ Выиграли: `{wins}`\n"
@@ -367,7 +367,7 @@ async def cmd_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await msg.edit_text("❌ Не удалось получить баланс — все ноды недоступны.")
             return
         text = (
-            f"💰 *Баланс кошелька PRIZMBET*\n\n"
+            f"💰 *Баланс кошелька 1PrizmBet*\n\n"
             f"Кошелёк: `{info['wallet']}`\n"
             f"Баланс: `{info['balance']:.2f} PRIZM`\n"
             f"Неподтверждённый: `{info['unconfirmed']:.2f} PRIZM`\n"
@@ -412,7 +412,7 @@ async def cmd_setgroup(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             try:
                 await ctx.bot.send_message(
                     chat_id=chat_id,
-                    text="✅ *PRIZMBET* — уведомления подключены!\n\nСюда будут приходить уведомления о ставках и выплатах.",
+                    text="✅ *1PrizmBet* — уведомления подключены!\n\nСюда будут приходить уведомления о ставках и выплатах.",
                     parse_mode="Markdown"
                 )
             except Exception as e:
@@ -676,7 +676,7 @@ def main():
         print("Example: set TELEGRAM_BOT_TOKEN=your_token_here (Windows) or export TELEGRAM_BOT_TOKEN=your_token_here (Linux/Mac)")
         sys.exit(1)
 
-    log.info("Starting PRIZMBET Bot...")
+    log.info("Starting 1PrizmBet Bot...")
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start",      cmd_start))

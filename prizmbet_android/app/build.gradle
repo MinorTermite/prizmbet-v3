@@ -10,8 +10,8 @@ android {
         applicationId "com.prizmbet.app"
         minSdk 24
         targetSdk 35
-        versionCode 3
-        versionName "1.2"
+        versionCode 4
+        versionName "1.3"
     }
 
     signingConfigs {
@@ -42,7 +42,7 @@ android {
     // versionNameSuffix уже добавляет "-debug" к variant.versionName, дублировать не нужно
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            outputFileName = "Prizmbet_${variant.versionName}.apk"
+            outputFileName = "OnePrizmBet_${variant.versionName}.apk"
         }
     }
 

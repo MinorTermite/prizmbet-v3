@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Prizmbet</string>
+    <string name="app_name">1PrizmBet</string>
     <string name="error_icon">⚠</string>
     <string name="error_no_connection">No internet connection.&#10;Check your network and try again.</string>
     <string name="retry">Retry</string>
@@ -10,7 +10,7 @@
     <string name="shortcut_esports_long">Esports line</string>
     <string name="shortcut_refresh_short">Refresh</string>
     <string name="shortcut_refresh_long">Refresh line</string>
-    <string name="splash_badge">Prizmbet</string>
+    <string name="splash_badge">1PrizmBet</string>
     <string name="splash_entry_title">Predictions on PRIZM blockchain</string>
     <string name="splash_entry_subtitle">Events line, smart coupon and crypto wallet — all in one app.</string>
     <string name="splash_enter_button">Enter</string>

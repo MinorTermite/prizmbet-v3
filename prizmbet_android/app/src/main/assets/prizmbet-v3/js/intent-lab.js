@@ -1,3 +1,3 @@
-﻿// Archived prototype route for PRIZMBET v3.
+// Archived prototype route for 1PrizmBet.
 // The release flow now lives in index.html and operator.html.
-console.info('PRIZMBET intent-lab route is archived in release mode.');
+console.info('1PrizmBet intent-lab route is archived in release mode.');

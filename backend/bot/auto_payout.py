@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Automatic PRIZM payout worker for won bets.
 
@@ -238,7 +238,7 @@ async def _process_payout(bet: dict[str, Any]) -> bool:
         }
     )
 
-    message = f"PrizmBet payout | bet {tx_id[:18]}"
+    message = f"1PrizmBet payout | bet {tx_id[:18]}"
     result = await prizm_api.send_money(sender_wallet, payout_amount, message)
     if not result:
         _circuit_breaker.record_failure()

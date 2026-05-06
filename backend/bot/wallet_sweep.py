@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Cold-storage sweep for the hot PRIZM wallet.
 
@@ -120,7 +120,7 @@ async def sweep_once() -> dict[str, Any] | None:
     result = await prizm_api.send_money(
         recipient=COLD_WALLET,
         amount=sweep_amount,
-        message="PrizmBet cold-storage sweep",
+        message="1PrizmBet cold-storage sweep",
     )
 
     if not result or not result.get("transaction"):

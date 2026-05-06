@@ -7,6 +7,7 @@ import csv
 import io
 import json
 import os
+import re
 import secrets
 import string
 import time
@@ -22,11 +23,11 @@ from backend.utils.admin_auth import (
     client_ip,
     hash_password,
     issue_session_token,
+    is_owner_user,
     normalize_email,
     normalize_login,
     normalize_role,
     role_can_manage_users,
-    role_can_mark_paid,
     serialize_admin_user,
     session_expires_at,
     session_token_hash,
@@ -34,6 +35,13 @@ from backend.utils.admin_auth import (
     validate_login,
     validate_password,
     verify_password,
+)
+from backend.bot.gamification import (
+    LEVELS as _GAMIFICATION_LEVELS,
+    QUEST_BY_ID as _QUEST_BY_ID,
+    finalize_weekly_leaderboard as _gamification_finalize_weekly,
+    increment_quest_progress as _gamification_increment_quest,
+    spin_roulette as _gamification_spin_roulette,
 )
 from backend.utils.bet_views import ACCEPTED_STATUSES, build_bet_view, search_blob
 from backend.utils.operator_alerts import notify_payout_sent
@@ -58,15 +66,37 @@ CORS_HEADERS = {
 }
 
 MATCHES_CACHE_PATH = Path(__file__).resolve().parents[2] / "frontend" / "matches.json"
+INTENT_HASH_LENGTH = 12
+INTENT_HASH_RE = re.compile(r"^[A-Z0-9]{6,32}$")
+WALLET_RE = re.compile(r"^[A-Z0-9:_-]{3,96}$")
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Content-Security-Policy": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+}
 
 
 def _with_cors(response: web.StreamResponse) -> web.StreamResponse:
     response.headers.update(CORS_HEADERS)
+    response.headers.update(SECURITY_HEADERS)
     return response
 
 
 def _json_response(payload: dict[str, Any], status: int = 200) -> web.Response:
-    return _with_cors(web.json_response(payload, status=status))
+    return web.json_response(payload, status=status)
+
+
+def _normalize_intent_hash(value: Any) -> str:
+    intent_hash = str(value or "").strip().upper()
+    return intent_hash if INTENT_HASH_RE.fullmatch(intent_hash) else ""
+
+
+def _normalize_wallet(value: Any) -> str:
+    wallet = str(value or "").strip().upper()
+    return wallet if WALLET_RE.fullmatch(wallet) else ""
 
 
 def _load_matches_cache() -> dict[str, dict[str, Any]]:
@@ -84,7 +114,7 @@ def _extract_odds(match: dict[str, Any], outcome: str) -> float | None:
     if not key:
         return None
     value = match.get(key)
-    if not value or value in ("-", "—", "0", "0.00"):
+    if not value or value in ("-", "вЂ”", "0", "0.00"):
         return None
     try:
         return round(float(value), 2)
@@ -92,7 +122,7 @@ def _extract_odds(match: dict[str, Any], outcome: str) -> float | None:
         return None
 
 
-def _intent_hash(length: int = 6) -> str:
+def _intent_hash(length: int = INTENT_HASH_LENGTH) -> str:
     chars = string.ascii_uppercase + string.digits
     return "".join(secrets.choice(chars) for _ in range(length))
 
@@ -165,7 +195,6 @@ def _bootstrap_key_valid(request: web.Request, payload: dict[str, Any] | None = 
     payload = payload or {}
     provided = str(
         request.headers.get("X-Admin-Key")
-        or request.query.get("admin_key")
         or payload.get("bootstrap_key")
         or ""
     ).strip()
@@ -179,7 +208,7 @@ def _extract_session_token(request: web.Request) -> str:
     auth_header = str(request.headers.get("Authorization") or "").strip()
     if auth_header.lower().startswith("bearer "):
         return auth_header[7:].strip()
-    return str(request.query.get("session_token") or "").strip()
+    return ""
 
 
 def _mask_email(email: str) -> str:
@@ -314,6 +343,21 @@ async def _require_admin(request: web.Request, roles: set[str] | None = None) ->
     role = str(context["user"].get("role") or "").strip().lower()
     if roles and role not in roles:
         return None, _json_response({"error": "Insufficient permissions"}, status=403)
+    return context, None
+
+
+async def _require_owner(request: web.Request) -> tuple[dict[str, Any] | None, web.Response | None]:
+    """Require the configured owner identity, not just a privileged role.
+
+    Financial mutation endpoints must be controlled by the person defined in
+    SUPER_ADMIN_LOGIN / SUPER_ADMIN_EMAIL. A copied "finance" or "super_admin"
+    role is not sufficient for wallet/passphrase/payout-control changes.
+    """
+    context, error = await _require_admin(request)
+    if error:
+        return None, error
+    if not is_owner_user(context["user"]):
+        return None, _json_response({"error": "Owner identity required"}, status=403)
     return context, None
 
 
@@ -546,23 +590,131 @@ async def create_intent(request: web.Request) -> web.Response:
         return _json_response({"error": "Database not configured"}, status=500)
 
     payload = await request.json()
-    match_id = str(payload.get("match_id") or "").strip()
-    outcome = str(payload.get("outcome") or "").strip().upper()
-    sender_wallet = str(payload.get("sender_wallet") or "").strip().upper()
+    sender_wallet = _normalize_wallet(payload.get("sender_wallet"))
     payment_currency = str(payload.get("payment_currency") or "PRIZM").strip().upper()
     if payment_currency not in ("PRIZM", "USDT"):
         payment_currency = "PRIZM"
 
-    if not match_id or not outcome or not sender_wallet:
-        return _json_response({"error": "match_id, outcome, sender_wallet are required"}, status=400)
+    if not sender_wallet:
+        return _json_response({"error": "sender_wallet is required or invalid"}, status=400)
+
+    bet_type = str(payload.get("bet_type") or "single").strip().lower()
+    if bet_type not in ("single", "express"):
+        bet_type = "single"
 
     matches = _load_matches_cache()
+    now = datetime.now(timezone.utc)
+
+    # ---------- EXPRESS PATH ----------
+    if bet_type == "express":
+        legs_raw = payload.get("legs") or []
+        if not isinstance(legs_raw, list) or len(legs_raw) < 2:
+            return _json_response({"error": "express requires >= 2 legs"}, status=400)
+        if len(legs_raw) > 12:
+            return _json_response({"error": "express supports up to 12 legs"}, status=400)
+
+        seen_match_ids: set[str] = set()
+        normalized_legs: list[dict] = []
+        combined_odds = 1.0
+
+        for raw_leg in legs_raw:
+            if not isinstance(raw_leg, dict):
+                return _json_response({"error": "invalid leg structure"}, status=400)
+            leg_match_id = str(raw_leg.get("match_id") or "").strip()
+            leg_outcome = str(raw_leg.get("outcome") or "").strip().upper()
+            if not leg_match_id or not leg_outcome:
+                return _json_response({"error": "leg requires match_id and outcome"}, status=400)
+            if leg_match_id in seen_match_ids:
+                return _json_response({"error": "DUPLICATE_MATCH_IN_EXPRESS"}, status=400)
+            seen_match_ids.add(leg_match_id)
+
+            leg_match = matches.get(leg_match_id)
+            if not leg_match:
+                return _json_response({"error": f"match not found: {leg_match_id}"}, status=404)
+            if bool(leg_match.get("is_live")):
+                return _json_response({"error": "LIVE_DISABLED"}, status=400)
+            leg_match_time = _parse_dt(leg_match.get("match_time"))
+            if leg_match_time and leg_match_time.astimezone(timezone.utc) <= now:
+                return _json_response({"error": f"MATCH_ALREADY_STARTED: {leg_match_id}"}, status=400)
+
+            leg_odds = _extract_odds(leg_match, leg_outcome)
+            if not leg_odds:
+                return _json_response({"error": f"outcome/odds unavailable: {leg_match_id}/{leg_outcome}"}, status=400)
+
+            combined_odds *= float(leg_odds)
+            normalized_legs.append({
+                "match_id": leg_match_id,
+                "outcome": leg_outcome,
+                "odds": round(float(leg_odds), 4),
+                "team1": leg_match.get("team1"),
+                "team2": leg_match.get("team2"),
+                "league": leg_match.get("league"),
+                "sport": leg_match.get("sport"),
+                "match_time": leg_match.get("match_time"),
+            })
+
+        if combined_odds > 100.0:
+            combined_odds = 100.0
+        combined_odds = round(combined_odds, 4)
+
+        pending_mode, pending_intent = await _find_wallet_pending_intent(sender_wallet, now)
+        if pending_mode == 'single' and pending_intent:
+            return _json_response({
+                "error": "WALLET_ACTIVE_INTENT_EXISTS",
+                "existing_intent": pending_intent,
+            }, status=409)
+        if pending_mode == 'multiple':
+            return _json_response({"error": "WALLET_HAS_MULTIPLE_ACTIVE_INTENTS"}, status=409)
+
+        anchor_match_id = normalized_legs[0]["match_id"]
+        anchor_outcome = "EXPRESS"
+
+        intent = None
+        for _ in range(10):
+            intent_hash = _intent_hash()
+            expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
+            try:
+                await db.create_bet_intent(
+                    intent_hash=intent_hash,
+                    match_id=anchor_match_id,
+                    sender_wallet=sender_wallet,
+                    outcome=anchor_outcome,
+                    odds_fixed=combined_odds,
+                    expires_at=expires_at,
+                    payment_currency=payment_currency,
+                    bet_type="express",
+                    express_legs=normalized_legs,
+                )
+                intent = {
+                    "intent_hash": intent_hash,
+                    "odds_fixed": combined_odds,
+                    "expires_at": expires_at,
+                    "match_id": anchor_match_id,
+                    "sender_wallet": sender_wallet,
+                    "payment_currency": payment_currency,
+                    "bet_type": "express",
+                    "legs": normalized_legs,
+                }
+                break
+            except Exception:
+                continue
+
+        if not intent:
+            return _json_response({"error": "failed to create intent"}, status=500)
+        return _json_response(intent)
+
+    # ---------- SINGLE PATH ----------
+    match_id = str(payload.get("match_id") or "").strip()
+    outcome = str(payload.get("outcome") or "").strip().upper()
+
+    if not match_id or not outcome:
+        return _json_response({"error": "match_id, outcome, sender_wallet are required"}, status=400)
+
     match = matches.get(match_id)
     if not match:
         return _json_response({"error": "match not found in current cache"}, status=404)
 
     match_time = _parse_dt(match.get("match_time"))
-    now = datetime.now(timezone.utc)
     if bool(match.get("is_live")):
         return _json_response({"error": "LIVE_DISABLED"}, status=400)
     if match_time and match_time.astimezone(timezone.utc) <= now:
@@ -583,7 +735,7 @@ async def create_intent(request: web.Request) -> web.Response:
 
     intent = None
     for _ in range(10):
-        intent_hash = _intent_hash(6)
+        intent_hash = _intent_hash()
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
         try:
             await db.create_bet_intent(
@@ -594,6 +746,7 @@ async def create_intent(request: web.Request) -> web.Response:
                 odds_fixed=odds,
                 expires_at=expires_at,
                 payment_currency=payment_currency,
+                bet_type="single",
             )
             intent = {
                 "intent_hash": intent_hash,
@@ -602,6 +755,7 @@ async def create_intent(request: web.Request) -> web.Response:
                 "match_id": match_id,
                 "sender_wallet": sender_wallet,
                 "payment_currency": payment_currency,
+                "bet_type": "single",
             }
             break
         except Exception:
@@ -617,9 +771,9 @@ async def get_intent_status(request: web.Request) -> web.Response:
     if not await _ensure_db_ready():
         return _json_response({"error": "Database not configured"}, status=500)
 
-    intent_hash = str(request.match_info.get("intent_hash") or "").strip().upper()
+    intent_hash = _normalize_intent_hash(request.match_info.get("intent_hash"))
     if not intent_hash:
-        return _json_response({"error": "intent_hash is required"}, status=400)
+        return _json_response({"error": "intent_hash is required or invalid"}, status=400)
 
     intent = await db.get_bet_intent(intent_hash)
     if not intent:
@@ -627,7 +781,7 @@ async def get_intent_status(request: web.Request) -> web.Response:
 
     bet_rows = (
         db.client.table("bets")
-        .select("*")
+        .select("tx_id,status,amount_prizm,odds_fixed,payout_amount,payout_tx_id,reject_reason,created_at")
         .eq("intent_hash", intent_hash)
         .order("created_at", desc=True)
         .limit(1)
@@ -645,7 +799,16 @@ async def get_intent_status(request: web.Request) -> web.Response:
     else:
         status = "awaiting_payment"
 
-    return _json_response({"status": status, "intent": intent, "bet": bet})
+    safe_intent = {
+        "intent_hash": intent.get("intent_hash"),
+        "match_id": intent.get("match_id"),
+        "outcome": intent.get("outcome"),
+        "odds_fixed": intent.get("odds_fixed"),
+        "expires_at": intent.get("expires_at"),
+        "payment_currency": intent.get("payment_currency"),
+        "bet_type": intent.get("bet_type"),
+    }
+    return _json_response({"status": status, "intent": safe_intent, "bet": bet})
 
 
 async def bet_status(request: web.Request) -> web.Response:
@@ -653,9 +816,9 @@ async def bet_status(request: web.Request) -> web.Response:
     if not await _ensure_db_ready():
         return _json_response({"error": "Database not configured"}, status=500)
 
-    intent_hash = str(request.match_info.get("intent_hash") or "").strip().upper()
+    intent_hash = _normalize_intent_hash(request.match_info.get("intent_hash"))
     if not intent_hash:
-        return _json_response({"error": "intent_hash is required"}, status=400)
+        return _json_response({"error": "intent_hash is required or invalid"}, status=400)
 
     intent = await db.get_bet_intent(intent_hash)
     if not intent:
@@ -694,7 +857,7 @@ async def bet_status(request: web.Request) -> web.Response:
         "status": status,
         "intent_hash": intent_hash,
         "match_id": match_id,
-        "match_label": f"{match.get('team1', '?')} — {match.get('team2', '?')}" if match else None,
+        "match_label": f"{match.get('team1', '?')} вЂ” {match.get('team2', '?')}" if match else None,
         "outcome": intent.get("outcome"),
         "odds_fixed": intent.get("odds_fixed"),
         "amount_prizm": float(bet.get("amount_prizm") or 0) if bet else None,
@@ -710,13 +873,13 @@ async def wallet_dashboard(request: web.Request) -> web.Response:
     if not await _ensure_db_ready():
         return _json_response({"error": "Database not configured"}, status=500)
 
-    wallet = str(request.match_info.get("wallet") or "").strip().upper()
+    wallet = _normalize_wallet(request.match_info.get("wallet"))
     if not wallet:
-        return _json_response({"error": "wallet is required"}, status=400)
+        return _json_response({"error": "wallet is required or invalid"}, status=400)
 
     intents = (
         db.client.table("bet_intents")
-        .select("*")
+        .select("intent_hash,match_id,outcome,odds_fixed,created_at,expires_at,payment_currency,bet_type")
         .eq("sender_wallet", wallet)
         .order("created_at", desc=True)
         .limit(10)
@@ -725,7 +888,7 @@ async def wallet_dashboard(request: web.Request) -> web.Response:
     )
     bets = (
         db.client.table("bets")
-        .select("*")
+        .select("intent_hash,match_id,outcome,bet_type,odds_fixed,amount_prizm,payout_amount,status,reject_reason,created_at")
         .eq("sender_wallet", wallet)
         .order("created_at", desc=True)
         .limit(25)
@@ -913,7 +1076,7 @@ async def operator_audit_log(request: web.Request) -> web.Response:
 
 
 async def mark_bet_paid(request: web.Request) -> web.Response:
-    context, error = await _require_admin(request, {"super_admin", "finance"})
+    context, error = await _require_owner(request)
     if error:
         return error
 
@@ -948,7 +1111,7 @@ async def mark_bet_paid(request: web.Request) -> web.Response:
             return _json_response({"error": "payout_amount must be numeric"}, status=400)
         if payout_amount <= 0:
             return _json_response({"error": "payout_amount must be positive"}, status=400)
-        # Prevent operator from setting arbitrary payout (allow ±10% of expected)
+        # Prevent operator from setting arbitrary payout (allow В±10% of expected)
         if expected_payout > 0 and abs(payout_amount - expected_payout) / expected_payout > 0.10:
             return _json_response({
                 "error": "payout_amount deviates too much from expected",
@@ -1009,10 +1172,10 @@ async def _wallet_status_payload() -> dict[str, Any]:
 
 
 async def admin_wallet_info(request: web.Request) -> web.Response:
-    """GET /api/admin/wallet — wallet addresses and hot-wallet balance.
+    """GET /api/admin/wallet вЂ” wallet addresses and hot-wallet balance.
 
     Accessible to: super_admin, finance, operator, viewer (all authenticated roles).
-    The passphrase is NEVER returned — only the wallet address and balance.
+    The passphrase is NEVER returned вЂ” only the wallet address and balance.
     """
     context, error = await _require_admin(request)
     if error:
@@ -1069,14 +1232,14 @@ async def admin_wallet_info(request: web.Request) -> web.Response:
 
 
 async def admin_wallet_set_passphrase(request: web.Request) -> web.Response:
-    """POST /api/admin/wallet/passphrase — encrypt and store the hot-wallet passphrase.
+    """POST /api/admin/wallet/passphrase вЂ” encrypt and store the hot-wallet passphrase.
 
-    Accessible to: super_admin only.
+    Accessible to: configured owner only.
     Body: { "passphrase": "<raw PRIZM passphrase>" }
     The raw passphrase is encrypted with PRIZM_MASTER_KEY (AES-256-GCM)
     and stored in app_config.  It is NEVER returned or logged.
     """
-    context, error = await _require_admin(request, {"super_admin"})
+    context, error = await _require_owner(request)
     if error:
         return error
 
@@ -1129,7 +1292,7 @@ async def admin_wallet_status(request: web.Request) -> web.Response:
 
 
 async def admin_wallet_emergency_stop(request: web.Request) -> web.Response:
-    context, error = await _require_admin(request, {"super_admin"})
+    context, error = await _require_owner(request)
     if error:
         return error
 
@@ -1147,7 +1310,7 @@ async def admin_wallet_emergency_stop(request: web.Request) -> web.Response:
 
 
 async def admin_wallet_resume(request: web.Request) -> web.Response:
-    context, error = await _require_admin(request, {"super_admin"})
+    context, error = await _require_owner(request)
     if error:
         return error
 
@@ -1184,21 +1347,39 @@ async def options_preflight(_: web.Request) -> web.Response:
 
 
 class _RateLimiter:
-    """Simple in-memory rate limiter per IP."""
+    """Bounded in-memory rate limiter per key."""
 
-    def __init__(self, max_requests: int = 10, window_seconds: int = 60):
-        self._max = max_requests
-        self._window = window_seconds
+    def __init__(self, max_requests: int = 10, window_seconds: int = 60, max_keys: int | None = None):
+        self._max = max(int(max_requests or 1), 1)
+        self._window = max(int(window_seconds or 1), 1)
+        self._max_keys = max(int(max_keys or config.RATE_LIMIT_MAX_KEYS or 10000), 100)
         self._hits: dict[str, collections.deque] = {}
+        self._last_seen: dict[str, float] = {}
+
+    def _prune(self, now: float) -> None:
+        stale = [key for key, seen in self._last_seen.items() if seen <= now - self._window]
+        for key in stale:
+            self._hits.pop(key, None)
+            self._last_seen.pop(key, None)
+        if len(self._hits) <= self._max_keys:
+            return
+        overflow = len(self._hits) - self._max_keys
+        for key, _ in sorted(self._last_seen.items(), key=lambda item: item[1])[:overflow]:
+            self._hits.pop(key, None)
+            self._last_seen.pop(key, None)
 
     def is_allowed(self, key: str) -> bool:
         now = time.monotonic()
+        key = str(key or "unknown")[:180]
         q = self._hits.get(key)
         if q is None:
+            if len(self._hits) >= self._max_keys:
+                self._prune(now)
             q = collections.deque()
             self._hits[key] = q
         while q and q[0] <= now - self._window:
             q.popleft()
+        self._last_seen[key] = now
         if len(q) >= self._max:
             return False
         q.append(now)
@@ -1208,15 +1389,19 @@ class _RateLimiter:
 _login_limiter = _RateLimiter(max_requests=5, window_seconds=60)
 _intent_limiter = _RateLimiter(max_requests=config.RATE_LIMIT_REQUESTS, window_seconds=config.RATE_LIMIT_WINDOW)
 _passphrase_limiter = _RateLimiter(max_requests=3, window_seconds=60)
+_api_limiter = _RateLimiter(max_requests=config.API_RATE_LIMIT_REQUESTS, window_seconds=config.API_RATE_LIMIT_WINDOW)
+_status_limiter = _RateLimiter(max_requests=config.STATUS_RATE_LIMIT_REQUESTS, window_seconds=config.STATUS_RATE_LIMIT_WINDOW)
+_admin_limiter = _RateLimiter(max_requests=config.ADMIN_RATE_LIMIT_REQUESTS, window_seconds=config.ADMIN_RATE_LIMIT_WINDOW)
+_gamification_limiter = _RateLimiter(max_requests=config.GAMIFICATION_RATE_LIMIT_REQUESTS, window_seconds=config.GAMIFICATION_RATE_LIMIT_WINDOW)
 
-RATE_LIMITED_PATHS = {
-    "/api/admin/login": _login_limiter,
-    "/api/admin/bootstrap": _login_limiter,
-    "/api/admin/wallet/passphrase": _passphrase_limiter,
-    "/api/intents": _intent_limiter,
+RATE_LIMITED_PATHS: dict[str, tuple[_RateLimiter, set[str]]] = {
+    "/api/admin/login": (_login_limiter, {"POST"}),
+    "/api/admin/bootstrap": (_login_limiter, {"POST"}),
+    "/api/admin/wallet/passphrase": (_passphrase_limiter, {"POST"}),
+    "/api/intents": (_intent_limiter, {"POST"}),
 }
 
-# Admin-path prefix — used to restrict CORS origin for sensitive endpoints.
+# Admin-path prefix вЂ” used to restrict CORS origin for sensitive endpoints.
 _ADMIN_PATH_PREFIX = "/api/admin/"
 _ALLOWED_ADMIN_ORIGIN = os.environ.get("ADMIN_CORS_ORIGIN", "").strip()
 
@@ -1227,42 +1412,70 @@ ADMIN_CORS_HEADERS_STRICT = {
 
 
 def _cors_headers_for(request: web.Request) -> dict[str, str]:
-    """Return CORS headers.  Admin endpoints get a restricted origin
-    (if ADMIN_CORS_ORIGIN is set) instead of the wildcard."""
-    if request.path.startswith(_ADMIN_PATH_PREFIX) and _ALLOWED_ADMIN_ORIGIN:
-        return {**ADMIN_CORS_HEADERS_STRICT, "Access-Control-Allow-Origin": _ALLOWED_ADMIN_ORIGIN}
+    """Return CORS headers. Admin endpoints fail closed unless explicitly allowed."""
+    if request.path.startswith(_ADMIN_PATH_PREFIX):
+        origin = str(request.headers.get("Origin") or "").strip()
+        if _ALLOWED_ADMIN_ORIGIN and origin == _ALLOWED_ADMIN_ORIGIN:
+            return {**ADMIN_CORS_HEADERS_STRICT, "Access-Control-Allow-Origin": _ALLOWED_ADMIN_ORIGIN}
+        return ADMIN_CORS_HEADERS_STRICT
     return CORS_HEADERS
+
+
+def _limiter_for(request: web.Request) -> _RateLimiter | None:
+    exact = RATE_LIMITED_PATHS.get(request.path)
+    if exact and request.method in exact[1]:
+        return exact[0]
+    if not request.path.startswith("/api/"):
+        return None
+    if request.path.startswith("/api/intents/") or request.path.startswith("/api/bet-status/"):
+        return _status_limiter
+    if request.path.startswith("/api/wallets/") and request.path.endswith("/dashboard"):
+        return _status_limiter
+    if request.path.startswith("/api/player/") or request.path.startswith("/api/raffles/"):
+        return _gamification_limiter
+    if request.path.startswith(_ADMIN_PATH_PREFIX):
+        return _admin_limiter
+    return _api_limiter
+
+
+def _finalize_response(request: web.Request, response: web.StreamResponse) -> web.StreamResponse:
+    response.headers.update(SECURITY_HEADERS)
+    response.headers.update(_cors_headers_for(request))
+    if request.path.startswith(_ADMIN_PATH_PREFIX):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @web.middleware
 async def cors_middleware(request: web.Request, handler):
+    if request.path.startswith(_ADMIN_PATH_PREFIX):
+        origin = str(request.headers.get("Origin") or "").strip()
+        if origin and (not _ALLOWED_ADMIN_ORIGIN or origin != _ALLOWED_ADMIN_ORIGIN):
+            return _finalize_response(request, _json_response({"error": "Admin origin is not allowed"}, status=403))
     if request.method == "OPTIONS":
+        if request.path.startswith(_ADMIN_PATH_PREFIX):
+            origin = str(request.headers.get("Origin") or "").strip()
+            if not _ALLOWED_ADMIN_ORIGIN or origin != _ALLOWED_ADMIN_ORIGIN:
+                return _finalize_response(request, _json_response({"error": "CORS origin is not allowed"}, status=403))
         resp = web.Response(status=204)
-        resp.headers.update(_cors_headers_for(request))
-        return resp
-    # Rate limiting for sensitive endpoints
-    limiter = RATE_LIMITED_PATHS.get(request.path)
-    if limiter and request.method == "POST":
+        return _finalize_response(request, resp)
+    limiter = _limiter_for(request)
+    if limiter:
         ip = client_ip(request)
         if not limiter.is_allowed(ip):
-            return _json_response({"error": "Too many requests, try again later"}, status=429)
+            return _finalize_response(request, _json_response({"error": "Too many requests, try again later"}, status=429))
     try:
         response = await handler(request)
     except web.HTTPException as ex:
         response = ex
-    response.headers.update(_cors_headers_for(request))
-    return response
+    return _finalize_response(request, response)
 
 
 async def export_bets_csv(request: web.Request) -> web.Response:
     """Export bets as CSV for accounting."""
-    context, error = await _require_admin(request)
+    context, error = await _require_owner(request)
     if error:
         return error
-
-    role = str(context["user"].get("role") or "")
-    if role not in ("super_admin", "finance"):
-        return _json_response({"error": "Forbidden"}, status=403)
 
     try:
         limit = int(request.query.get("limit", "500"))
@@ -1319,13 +1532,534 @@ async def export_bets_csv(request: web.Request) -> web.Response:
         content_type="text/csv",
         charset="utf-8",
     )
-    resp.headers["Content-Disposition"] = f'attachment; filename="prizmbet_bets_{now_str}.csv"'
-    resp.headers.update(CORS_HEADERS)
+    resp.headers["Content-Disposition"] = f'attachment; filename="one_prizmbet_bets_{now_str}.csv"'
     return resp
 
 
+# ── Gamification helpers ───────────────────────────────────────────────────────
+
+def _enrich_quests(rows: list[dict]) -> list[dict]:
+    """Attach display metadata from the active gamification catalog."""
+    enriched = []
+    for row in rows:
+        catalog = _QUEST_BY_ID.get(row.get("quest_id", ""), {})
+        enriched.append({
+            **row,
+            "title": catalog.get("title", ""),
+            "description": catalog.get("description", ""),
+            "quest_type": catalog.get("quest_type", ""),
+            "conditions": catalog.get("conditions", {}),
+            "rewards": catalog.get("rewards", []),
+        })
+    return enriched
+
+
+def _level_progress(profile: dict) -> dict:
+    """Build level progress block for the profile response."""
+    current_level = int(profile.get("level") or 1)
+    won_prizm = float(profile.get("total_won_prizm") or 0)
+    _LEVEL_MAP = {row["level"]: row for row in _GAMIFICATION_LEVELS}
+    current_info = _LEVEL_MAP.get(current_level, _GAMIFICATION_LEVELS[0])
+    next_info = _LEVEL_MAP.get(current_level + 1)
+    if next_info:
+        span = max(next_info["turnover"] - current_info["turnover"], 1)
+        progress_pct = int(min(100, max(0, (won_prizm - current_info["turnover"]) / span * 100)))
+        remaining = round(max(next_info["turnover"] - won_prizm, 0), 2)
+    else:
+        progress_pct = 100
+        remaining = 0.0
+    return {
+        "current_level": current_level,
+        "level_name": profile.get("level_name", current_info["name"]),
+        "total_won_prizm": round(won_prizm, 2),
+        "next_level": current_level + 1 if next_info else None,
+        "next_level_name": next_info["name"] if next_info else None,
+        "next_level_turnover": next_info["turnover"] if next_info else None,
+        "remaining_prizm": remaining,
+        "progress_percent": progress_pct,
+    }
+
+
+# ── GET /api/player/{wallet} ───────────────────────────────────────────────────
+
+async def player_profile(request: web.Request) -> web.Response:
+    """Full player profile: level, bonuses, active quests, roulette spins."""
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    wallet = _normalize_wallet(request.match_info.get("wallet"))
+    if not wallet:
+        return _json_response({"error": "wallet is required or invalid"}, status=400)
+
+    try:
+        # Profile (create on first visit)
+        from backend.bot.gamification import _get_or_create_profile
+        profile = await _get_or_create_profile(wallet)
+        if not profile:
+            return _json_response({"error": "Failed to load player profile"}, status=500)
+
+        # Active bonuses (not burned, not expired)
+        now_iso = datetime.now(timezone.utc).isoformat()
+        bonuses = (
+            db.client.table("player_bonuses")
+            .select("*")
+            .eq("wallet", wallet)
+            .is_("burned_at", "null")
+            .gt("expires_at", now_iso)
+            .order("created_at", desc=True)
+            .limit(50)
+            .execute()
+            .data
+        ) or []
+
+        # Quests: current level + next level only (Rule 5)
+        current_level = int(profile.get("level") or 1)
+        visible_levels = [current_level, current_level + 1]
+        quests = (
+            db.client.table("player_quests")
+            .select("*")
+            .eq("wallet", wallet)
+            .in_("level_unlocked", visible_levels)
+            .order("level_unlocked", desc=False)
+            .execute()
+            .data
+        ) or []
+
+        return _json_response({
+            "ok": True,
+            "wallet": wallet,
+            "profile": {
+                **profile,
+                "level_progress": _level_progress(profile),
+            },
+            "bonuses": bonuses,
+            "quests": _enrich_quests(quests),
+        })
+
+    except Exception as exc:
+        return _json_response({"error": str(exc)}, status=500)
+
+
+# ── GET /api/player/{wallet}/quests ───────────────────────────────────────────
+
+async def player_quests(request: web.Request) -> web.Response:
+    """All quest rows with progress for a wallet."""
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    wallet = _normalize_wallet(request.match_info.get("wallet"))
+    if not wallet:
+        return _json_response({"error": "wallet is required or invalid"}, status=400)
+
+    try:
+        level_filter = request.query.get("level")
+        query = (
+            db.client.table("player_quests")
+            .select("*")
+            .eq("wallet", wallet)
+            .order("level_unlocked", desc=False)
+        )
+        if level_filter:
+            try:
+                query = query.eq("level_unlocked", int(level_filter))
+            except ValueError:
+                pass
+        quests = query.limit(100).execute().data or []
+
+        return _json_response({
+            "ok": True,
+            "wallet": wallet,
+            "quests": _enrich_quests(quests),
+        })
+    except Exception as exc:
+        return _json_response({"error": str(exc)}, status=500)
+
+
+# ── POST /api/player/{wallet}/roulette ────────────────────────────────────────
+
+_roulette_limiter = _RateLimiter(max_requests=20, window_seconds=60)
+
+
+async def player_roulette(request: web.Request) -> web.Response:
+    """Spend roulette spins and receive prizes."""
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    wallet = _normalize_wallet(request.match_info.get("wallet"))
+    if not wallet:
+        return _json_response({"error": "wallet is required or invalid"}, status=400)
+    if not config.GAMIFICATION_PUBLIC_MUTATIONS_ENABLED:
+        return _json_response({"error": "Public gamification mutations require wallet ownership verification"}, status=403)
+
+    ip = client_ip(request)
+    if not _roulette_limiter.is_allowed(f"{ip}:{wallet}"):
+        return _json_response({"error": "Too many requests, try again later"}, status=429)
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    spins = max(1, min(int(body.get("spins") or 1), 5))  # cap blast radius until wallet proof exists
+
+    prizes = await _gamification_spin_roulette(wallet, spins)
+    if not prizes and spins > 0:
+        # Could mean not enough spins
+        profile_rows = (
+            db.client.table("player_profiles")
+            .select("roulette_spins")
+            .eq("wallet", wallet)
+            .limit(1)
+            .execute()
+            .data
+        )
+        available = int(profile_rows[0].get("roulette_spins") or 0) if profile_rows else 0
+        if available < spins:
+            return _json_response({
+                "error": "Not enough roulette spins",
+                "available": available,
+                "requested": spins,
+            }, status=400)
+
+    return _json_response({
+        "ok": True,
+        "wallet": wallet,
+        "spins_used": spins,
+        "prizes": prizes,
+    })
+
+
+# ── GET /api/leaderboard/weekly ───────────────────────────────────────────────
+
+async def weekly_leaderboard(request: web.Request) -> web.Response:
+    """Top-10 players by won_prizm for the current week."""
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    try:
+        now = datetime.now(timezone.utc)
+        # ISO week: Monday = start of week
+        week_start = (now - timedelta(days=now.weekday())).date()
+        week_end   = (week_start + timedelta(days=6))
+
+        # Try pre-computed leaderboard first
+        rows = (
+            db.client.table("weekly_leaderboard")
+            .select("wallet,rank,won_prizm,prize_distributed")
+            .eq("week_start", week_start.isoformat())
+            .order("rank", desc=False)
+            .limit(10)
+            .execute()
+            .data
+        ) or []
+
+        if not rows:
+            # Live computation from bets table for current week
+            week_start_iso = datetime.combine(week_start, datetime.min.time()).replace(tzinfo=timezone.utc).isoformat()
+            week_end_iso   = datetime.combine(week_end,   datetime.max.time()).replace(tzinfo=timezone.utc).isoformat()
+
+            paid_bets = (
+                db.client.table("bets")
+                .select("sender_wallet,payout_amount,amount_prizm,odds_fixed,reject_reason")
+                .in_("status", ["won", "paid"])
+                .gte("created_at", week_start_iso)
+                .lte("created_at", week_end_iso)
+                .limit(5000)
+                .execute()
+                .data
+            ) or []
+
+            totals: dict[str, float] = {}
+            for bet in paid_bets:
+                if str(bet.get("reject_reason") or "").strip().upper() == "CASHBACK_BONUS":
+                    continue
+                w = str(bet.get("sender_wallet") or "").strip().upper()
+                if not w:
+                    continue
+                payout = float(bet.get("payout_amount") or 0) or round(
+                    float(bet.get("amount_prizm") or 0) * float(bet.get("odds_fixed") or 0), 2
+                )
+                totals[w] = round(totals.get(w, 0.0) + payout, 2)
+
+            sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+            rows = [
+                {"wallet": w, "rank": i + 1, "won_prizm": v, "prize_distributed": False}
+                for i, (w, v) in enumerate(sorted_totals[:10])
+            ]
+
+        return _json_response({
+            "ok": True,
+            "week_start": week_start.isoformat(),
+            "week_end": week_end.isoformat(),
+            "leaderboard": rows,
+        })
+
+    except Exception as exc:
+        return _json_response({"error": str(exc)}, status=500)
+
+
+# ── POST /api/admin/leaderboard/weekly/finalize ───────────────────────────────
+
+async def admin_finalize_weekly_leaderboard(request: web.Request) -> web.Response:
+    """Persist weekly leaderboard and distribute top-3 prizes once."""
+    context, error = await _require_owner(request)
+    if error:
+        return error
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    week_start = str(body.get("week_start") or request.query.get("week_start") or "").strip() or None
+    result = await _gamification_finalize_weekly(week_start=week_start)
+    if not result.get("ok"):
+        return _json_response({"error": result.get("error") or "Failed to finalize leaderboard"}, status=500)
+
+    await _log_admin_access_event(
+        "weekly_leaderboard_finalized",
+        actor=context["actor"],
+        extra={
+            "week_start": result.get("week_start"),
+            "week_end": result.get("week_end"),
+            "rows": len(result.get("leaderboard") or []),
+        },
+    )
+    return _json_response(result)
+
+
+# ── POST /api/admin/player/{wallet}/game-session ──────────────────────────────
+
+async def admin_credit_game_session(request: web.Request) -> web.Response:
+    """Owner-only manual source for the ИГРОМАН quest until game tracking exists."""
+    context, error = await _require_owner(request)
+    if error:
+        return error
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    wallet = _normalize_wallet(request.match_info.get("wallet"))
+    if not wallet:
+        return _json_response({"error": "wallet is required or invalid"}, status=400)
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    try:
+        sessions = max(1, min(int(body.get("sessions") or 1), 24))
+    except Exception:
+        sessions = 1
+    note = str(body.get("note") or "").strip()[:200]
+
+    try:
+        await _gamification_increment_quest(wallet, "manual_gameplay", delta=float(sessions))
+        await _log_admin_access_event(
+            "game_session_credited",
+            actor=context["actor"],
+            extra={"wallet": wallet, "sessions": sessions, "note": note},
+        )
+        return _json_response({
+            "ok": True,
+            "wallet": wallet,
+            "sessions": sessions,
+        })
+    except Exception as exc:
+        return _json_response({"error": str(exc)}, status=500)
+
+
+# ── Admin raffles ─────────────────────────────────────────────────────────────
+
+def _validate_raffle_questions(questions: Any) -> tuple[list[dict[str, Any]], str | None]:
+    if not isinstance(questions, list):
+        return [], "questions must be a list"
+    if len(questions) != 11:
+        return [], "raffle requires exactly 11 questions"
+
+    normalized: list[dict[str, Any]] = []
+    for idx, item in enumerate(questions, start=1):
+        if not isinstance(item, dict):
+            return [], f"question {idx} must be an object"
+        text = str(item.get("text") or "").strip()
+        options = item.get("options") or []
+        correct = item.get("correct")
+        if not text:
+            return [], f"question {idx} text is required"
+        if not isinstance(options, list) or len(options) < 2:
+            return [], f"question {idx} requires at least 2 options"
+        normalized_options = [str(option or "").strip() for option in options]
+        if any(not option for option in normalized_options):
+            return [], f"question {idx} has empty option"
+        if correct is None:
+            return [], f"question {idx} correct answer is required"
+        normalized.append({
+            "id": str(item.get("id") or idx),
+            "text": text,
+            "options": normalized_options,
+            "correct": correct,
+        })
+    return normalized, None
+
+
+async def admin_raffles(request: web.Request) -> web.Response:
+    context, error = await _require_owner(request)
+    if error:
+        return error
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    if request.method == "GET":
+        rows = (
+            db.client.table("raffles")
+            .select("id,title,questions,starts_at,ends_at,status,created_at")
+            .order("created_at", desc=True)
+            .limit(50)
+            .execute()
+            .data
+        ) or []
+        return _json_response({"ok": True, "raffles": rows})
+
+    try:
+        body = await request.json()
+    except Exception:
+        return _json_response({"error": "Invalid JSON body"}, status=400)
+
+    title = str(body.get("title") or "").strip()
+    if not title:
+        return _json_response({"error": "title is required"}, status=400)
+
+    questions, questions_error = _validate_raffle_questions(body.get("questions"))
+    if questions_error:
+        return _json_response({"error": questions_error}, status=400)
+
+    status = str(body.get("status") or "draft").strip().lower()
+    if status not in {"draft", "active", "completed", "cancelled"}:
+        return _json_response({"error": "invalid raffle status"}, status=400)
+
+    payload = {
+        "title": title,
+        "questions": questions,
+        "starts_at": body.get("starts_at"),
+        "ends_at": body.get("ends_at"),
+        "status": status,
+    }
+    row = db.client.table("raffles").insert(payload).execute().data
+    await _log_admin_access_event(
+        "raffle_created",
+        actor=context["actor"],
+        extra={"title": title, "status": status, "questions": len(questions)},
+    )
+    return _json_response({"ok": True, "raffle": row[0] if row else None})
+
+
+# ── GET /api/raffles/active ───────────────────────────────────────────────────
+
+async def raffles_active(request: web.Request) -> web.Response:
+    """Return the currently active raffle (if any)."""
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        rows = (
+            db.client.table("raffles")
+            .select("id,title,questions,starts_at,ends_at,status")
+            .eq("status", "active")
+            .lte("starts_at", now_iso)
+            .gte("ends_at", now_iso)
+            .order("starts_at", desc=True)
+            .limit(1)
+            .execute()
+            .data
+        ) or []
+
+        raffle = rows[0] if rows else None
+
+        # Strip correct answers from questions before serving
+        if raffle and raffle.get("questions"):
+            safe_questions = []
+            for q in (raffle["questions"] or []):
+                safe_questions.append({
+                    "id":      q.get("id"),
+                    "text":    q.get("text"),
+                    "options": q.get("options", []),
+                })
+            raffle["questions"] = safe_questions
+
+        return _json_response({
+            "ok": True,
+            "raffle": raffle,
+        })
+
+    except Exception as exc:
+        return _json_response({"error": str(exc)}, status=500)
+
+
+# ── POST /api/raffles/{id}/enter ──────────────────────────────────────────────
+
+_raffle_limiter = _RateLimiter(max_requests=5, window_seconds=60)
+
+
+async def raffle_enter(request: web.Request) -> web.Response:
+    """Submit answers to a raffle. Requires a raffle_token."""
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    ip = client_ip(request)
+    if not _raffle_limiter.is_allowed(ip):
+        return _json_response({"error": "Too many requests, try again later"}, status=429)
+
+    raffle_id_str = str(request.match_info.get("raffle_id") or "").strip()
+    if not raffle_id_str.isdigit():
+        return _json_response({"error": "raffle_id must be an integer"}, status=400)
+    raffle_id = int(raffle_id_str)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return _json_response({"error": "Invalid JSON body"}, status=400)
+
+    wallet = _normalize_wallet(body.get("wallet"))
+    answers = body.get("answers") or []
+    if not wallet:
+        return _json_response({"error": "wallet is required or invalid"}, status=400)
+    if not config.GAMIFICATION_PUBLIC_MUTATIONS_ENABLED:
+        return _json_response({"error": "Public gamification mutations require wallet ownership verification"}, status=403)
+    if not isinstance(answers, list):
+        return _json_response({"error": "answers must be a list"}, status=400)
+
+    try:
+        result = db.client.rpc("enter_raffle_with_token", {
+            "p_raffle_id": raffle_id,
+            "p_wallet": wallet,
+            "p_answers": answers,
+        }).execute().data
+        if isinstance(result, list):
+            result = result[0] if result else {}
+        if not isinstance(result, dict):
+            result = {}
+
+        if not result.get("ok"):
+            status = int(result.get("status") or 500)
+            return _json_response({"error": result.get("error") or "Failed to enter raffle"}, status=status)
+
+        # Increment raffle quest progress
+        await _gamification_increment_quest(wallet, "raffle", delta=1.0)
+
+        return _json_response(result)
+
+    except Exception as exc:
+        return _json_response({"error": str(exc)}, status=500)
+
+
 def create_app() -> web.Application:
-    app = web.Application(middlewares=[cors_middleware])
+    app = web.Application(
+        middlewares=[cors_middleware],
+        client_max_size=max(int(config.API_MAX_REQUEST_BYTES or 0), 16_384),
+    )
     app.router.add_get("/health", health)
     app.router.add_get("/api/admin/bootstrap-state", bootstrap_state)
     app.router.add_post("/api/admin/bootstrap", bootstrap_admin)
@@ -1349,6 +2083,18 @@ def create_app() -> web.Application:
     app.router.add_post("/api/admin/wallet/passphrase", admin_wallet_set_passphrase)
     app.router.add_get("/api/admin/export-csv", export_bets_csv)
 
+    # ── Gamification ─────────────────────────────────────────────────────────
+    app.router.add_get("/api/player/{wallet}",          player_profile)
+    app.router.add_get("/api/player/{wallet}/quests",   player_quests)
+    app.router.add_post("/api/player/{wallet}/roulette", player_roulette)
+    app.router.add_get("/api/leaderboard/weekly",        weekly_leaderboard)
+    app.router.add_post("/api/admin/leaderboard/weekly/finalize", admin_finalize_weekly_leaderboard)
+    app.router.add_post("/api/admin/player/{wallet}/game-session", admin_credit_game_session)
+    app.router.add_get("/api/admin/raffles",             admin_raffles)
+    app.router.add_post("/api/admin/raffles",            admin_raffles)
+    app.router.add_get("/api/raffles/active",            raffles_active)
+    app.router.add_post("/api/raffles/{raffle_id}/enter", raffle_enter)
+
     # Serve frontend static files
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
     if frontend_dir.is_dir():
@@ -1362,4 +2108,8 @@ def create_app() -> web.Application:
 
 if __name__ == "__main__":
     db.init()
-    web.run_app(create_app(), host="0.0.0.0", port=8081)
+    web.run_app(
+        create_app(),
+        host=os.getenv("API_HOST", "127.0.0.1"),
+        port=int(os.getenv("API_PORT", "8081")),
+    )

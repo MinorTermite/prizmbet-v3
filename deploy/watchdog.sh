@@ -1,7 +1,15 @@
 #!/bin/bash
 # PrizmBet watchdog — checks service health, sends Telegram alert on failure
-BOT_TOKEN="8450166145:AAGtA0n--gPgK9mW24TQiKjZRjlHnx_Us9o"
-CHAT_ID="984705599"
+ENV_FILE="${ENV_FILE:-/opt/prizmbet/.env}"
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$ENV_FILE"
+    set +a
+fi
+
+BOT_TOKEN="${WATCHDOG_TELEGRAM_BOT_TOKEN:-${V3_TELEGRAM_BOT_TOKEN:-${TELEGRAM_BOT_TOKEN:-}}}"
+CHAT_ID="${WATCHDOG_TELEGRAM_CHAT_ID:-${V3_TELEGRAM_CHAT_ID:-${TELEGRAM_CHAT_ID:-}}}"
 LOCK_FILE="/tmp/prizmbet_watchdog.lock"
 
 # Prevent overlapping runs
@@ -12,6 +20,9 @@ touch "$LOCK_FILE"
 trap "rm -f $LOCK_FILE" EXIT
 
 send_alert() {
+    if [ -z "${BOT_TOKEN}" ] || [ -z "${CHAT_ID}" ]; then
+        return 0
+    fi
     local msg="$1"
     curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
         -d chat_id="${CHAT_ID}" \

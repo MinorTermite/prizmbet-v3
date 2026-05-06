@@ -1,5 +1,5 @@
-﻿/**
- * PrizmBet v3 - Notifications Module
+/**
+ * 1PrizmBet - Notifications Module
  */
 import { getFavDetails, saveFavDetails } from './storage.js';
 import { t } from './i18n.js';
@@ -30,7 +30,7 @@ export function playNotificationSound() {
 
 export function showNotification(title, body) {
     if (Notification.permission === 'granted') {
-        new Notification(title, { body, icon: '/prizmbet-logo.webp' });
+        new Notification(title, { body, icon: '/one-prizmbet-logo.png' });
         playNotificationSound();
     }
 }

@@ -1,31 +1,36 @@
 # -*- coding: utf-8 -*-
-"""Test proxy connection"""
+"""Test proxy connection using PROXY_URL from the local environment."""
 import asyncio
+import os
+
 import aiohttp
+from dotenv import load_dotenv
 
-PROXY_URLS = [
-    "http://LNbHRm:tHCxnE@45.81.77.14:8000",
-    "https://LNbHRm:tHCxnE@45.81.77.14:8000",
-    "45.81.77.14:8000:LNbHRm:tHCxnE",
-]
-TEST_URL = "https://google.com"
+load_dotenv()
 
-async def test_proxy():
-    for proxy_url in PROXY_URLS:
-        print(f"\n{'='*50}")
-        print(f"Testing: {proxy_url}")
-        print(f"{'='*50}")
-        
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(
-                    TEST_URL,
-                    proxy=proxy_url,
-                    timeout=aiohttp.ClientTimeout(total=10)
-                ) as resp:
-                    print(f"  OK Status: {resp.status}")
-            except Exception as e:
-                print(f"  XX Error: {type(e).__name__}: {e}")
+PROXY_URL = os.getenv("PROXY_URL", "").strip()
+TEST_URL = os.getenv("PROXY_TEST_URL", "https://google.com").strip()
+
+
+async def test_proxy() -> bool:
+    if not PROXY_URL:
+        print("PROXY_URL is not configured")
+        return False
+
+    print("Testing configured proxy")
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(
+                TEST_URL,
+                proxy=PROXY_URL,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                print(f"Status: {resp.status}")
+                return resp.status < 500
+        except Exception as exc:
+            print(f"Error: {type(exc).__name__}: {exc}")
+            return False
+
 
 if __name__ == "__main__":
     asyncio.run(test_proxy())

@@ -1,9 +1,12 @@
-# -*- coding: utf-8 -*-
-"""Main Parser Runner"""
+﻿# -*- coding: utf-8 -*-
+"""Main Parser Runner with quota-aware provider scheduling."""
 import asyncio
+import json
 import sys
 import os
+import time
 from collections import Counter
+from pathlib import Path
 
 _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _repo_root not in sys.path:
@@ -12,10 +15,65 @@ if _repo_root not in sys.path:
 from backend.db.supabase_client import db
 from backend.utils.redis_client import cache
 
-async def run_all_parsers():
+PARSER_STATE_FILE = Path(os.getenv(
+    "PARSER_STATE_FILE",
+    os.path.join(_repo_root, "backend", ".parser_schedule_state.json"),
+))
+
+PARSER_PROVIDER_INTERVALS = {
+    # Public/free source. Safe to refresh often for live line freshness.
+    "Leonbets": int(os.getenv("LEONBETS_INTERVAL_SECONDS", "300")),
+    # Free quota: 500 requests/month. Current parser uses 6 requests/run.
+    # 2 runs/day = 12 requests/day ~= 360/month, leaving reserve.
+    "OddsAPI": int(os.getenv("ODDS_API_INTERVAL_SECONDS", "43200")),
+    # Free quota: 100 requests/day. Parser uses date/live fixture calls plus
+    # one odds call per selected fixture, so keep it conservative.
+    "ApiFootball": int(os.getenv("API_FOOTBALL_INTERVAL_SECONDS", "43200")),
+    # 1xBet requires a working proxy; keep independent from Leonbets.
+    "1xBet": int(os.getenv("XBET_INTERVAL_SECONDS", "1800")),
+    # Pinnacle is credentials-based; slower cadence is enough for backup.
+    "Pinnacle": int(os.getenv("PINNACLE_INTERVAL_SECONDS", "3600")),
+}
+
+PARSER_FORCE_ALL_ON_START = os.getenv("PARSER_FORCE_ALL_ON_START", "false").lower() == "true"
+
+
+def _load_schedule_state() -> dict:
+    try:
+        return json.loads(PARSER_STATE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_schedule_state(state: dict) -> None:
+    try:
+        PARSER_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        PARSER_STATE_FILE.write_text(
+            json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        print(f"[run_parsers] schedule state save failed: {type(e).__name__}: {e}")
+
+
+def _select_due_parsers(parsers: list, state: dict, now_ts: float) -> list:
+    due = []
+    for parser in parsers:
+        name = getattr(parser, "name", parser.__class__.__name__)
+        interval = PARSER_PROVIDER_INTERVALS.get(name, PARSER_INTERVAL_SECONDS)
+        last_run = float(state.get(name, {}).get("last_run", 0) or 0)
+        elapsed = now_ts - last_run
+        if PARSER_FORCE_ALL_ON_START or last_run <= 0 or elapsed >= interval:
+            due.append(parser)
+        else:
+            remaining = int(interval - elapsed)
+            print(f"[run_parsers] parser={name} status=skipped next_due_in={remaining}s interval={interval}s")
+    return due
+
+async def run_all_parsers(force_all: bool = False):
     """Run all parsers, save to Supabase/cache, and write frontend/matches.json."""
     print("=" * 50)
-    print("PrizmBet v2 - Parser Runner")
+    print("1PrizmBet v3 - Parser Runner")
     print("=" * 50)
 
     db.init()
@@ -28,13 +86,21 @@ async def run_all_parsers():
         from backend.parsers.pinnacle_parser import PinnacleParser
         from backend.parsers.api_football_parser import ApiFootballParser
 
-        parsers = [
+        all_parsers = [
             OddsAPIParser(),
             XBetParser(),
             LeonbetsParser(),
             PinnacleParser(),
             ApiFootballParser(),
         ]
+
+        state = _load_schedule_state()
+        now_ts = time.time()
+        parsers = all_parsers if force_all else _select_due_parsers(all_parsers, state, now_ts)
+
+        if not parsers:
+            print("[run_parsers] no parsers due in this cycle")
+            return 0
 
         tasks = [parser.run() for parser in parsers]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -49,6 +115,15 @@ async def run_all_parsers():
                 print(f"[run_parsers] parser={parser_name} status=error parsed_count={parsed_count} error={type(result).__name__}: {result}")
             else:
                 print(f"[run_parsers] parser={parser_name} status=ok result_count={result} buffered_count={parsed_count}")
+                state[parser_name] = {
+                    "last_run": now_ts,
+                    "last_run_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now_ts)),
+                    "interval_seconds": PARSER_PROVIDER_INTERVALS.get(parser_name, PARSER_INTERVAL_SECONDS),
+                    "buffered_count": parsed_count,
+                    "result_count": result,
+                }
+
+        _save_schedule_state(state)
 
         # Collect already-parsed matches from all parsers (avoids re-running the API calls).
         # BaseParser.__init__ always sets self.matches = [], so getattr is a safe fallback.
@@ -68,6 +143,8 @@ async def run_all_parsers():
                 await generate_from_raw(all_matches)
             except Exception as e:
                 print(f"[run_parsers] generate_json failed: {type(e).__name__}: {e}")
+        else:
+            print("[run_parsers] no fresh matches collected; keeping existing frontend JSON")
     finally:
         await cache.close()
 
@@ -102,4 +179,4 @@ if __name__ == "__main__":
     if "--loop" in sys.argv:
         asyncio.run(run_parsers_loop())
     else:
-        asyncio.run(run_all_parsers())
+        asyncio.run(run_all_parsers(force_all="--force-all" in sys.argv))

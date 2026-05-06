@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PRIZMBET</string>
+    <string name="app_name">1PrizmBet</string>
     <string name="error_icon">\u26A1</string>
     <string name="error_no_connection">Нет подключения к интернету.\nПроверьте сеть и попробуйте снова.</string>
     <string name="retry">Повторить</string>

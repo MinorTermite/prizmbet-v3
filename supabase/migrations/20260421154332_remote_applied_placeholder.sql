@@ -1,0 +1,3 @@
+-- Remote-applied migration placeholder.
+-- This version exists in Supabase migration history but was missing locally.
+-- Keep this file so `supabase db push` can reconcile migration history.

@@ -16,7 +16,7 @@ import java.util.Random;
  *  1. Тёмный фон #06060e
  *  2. Плавающие частицы (бренд-палитра)
  *  3. Логотип из ресурса (ic_splash_logo) + неоновый ореол
- *  4. Название "PRIZMBET" с glow, анимация снизу вверх
+ *  4. Название "1PRIZMBET" с glow, анимация снизу вверх
  *  5. Reveal-кольцо: дуга 0→360° вокруг логотипа
  *
  * Таймлайн (0..1 = 3200 мс):
@@ -256,11 +256,11 @@ public class PremiumSplashView extends View {
 
         // glow
         txtGlowPaint.setAlpha((int)(e * 170));
-        canvas.drawText("PRIZMBET", cx, slideY, txtGlowPaint);
+        canvas.drawText("1PRIZMBET", cx, slideY, txtGlowPaint);
 
         // основной текст
         txtPaint.setAlpha((int)(e * 255));
-        canvas.drawText("PRIZMBET", cx, slideY, txtPaint);
+        canvas.drawText("1PRIZMBET", cx, slideY, txtPaint);
 
         // подпись
         float ssz = 9.5f * density;

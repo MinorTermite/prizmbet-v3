@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'prizmbet_operator_console_v3';
+const STORAGE_KEY = 'one_prizmbet_operator_console_v3';
 const AUTO_REFRESH_MS = 20000;
 
 const state = {
@@ -20,12 +20,15 @@ const state = {
   currentUser: null,
   sessionInfo: null,
   users: [],
+  weeklyResult: null,
+  raffles: [],
 };
 
 const dom = {};
 
 function init() {
   cacheDom();
+  seedRaffleQuestionsInput();
   bindEvents();
   restoreState();
   syncInputs();
@@ -78,11 +81,43 @@ function cacheDom() {
 
   dom.statsGrid = document.getElementById('statsGrid');
   dom.queryInput = document.getElementById('queryInput');
+  dom.walletSection = document.getElementById('walletSection');
+  dom.walletHotAddress = document.getElementById('walletHotAddress');
+  dom.walletBalance = document.getElementById('walletBalance');
+  dom.walletPassphraseStatus = document.getElementById('walletPassphraseStatus');
+  dom.walletMasterKeyStatus = document.getElementById('walletMasterKeyStatus');
+  dom.walletAdminAddress = document.getElementById('walletAdminAddress');
+  dom.walletRefreshBtn = document.getElementById('walletRefreshBtn');
+  dom.walletStatus = document.getElementById('walletStatus');
+  dom.passphraseSection = document.getElementById('passphraseSection');
+  dom.hotPassphraseInput = document.getElementById('hotPassphraseInput');
+  dom.hotPassphraseConfirm = document.getElementById('hotPassphraseConfirm');
+  dom.savePassphraseBtn = document.getElementById('savePassphraseBtn');
+  dom.passphraseStatus = document.getElementById('passphraseStatus');
   dom.statusFilter = document.getElementById('statusFilter');
   dom.feedMeta = document.getElementById('feedMeta');
   dom.feedList = document.getElementById('feedList');
   dom.auditMeta = document.getElementById('auditMeta');
   dom.auditList = document.getElementById('auditList');
+  dom.gamificationSection = document.getElementById('gamificationSection');
+  dom.weeklyStartInput = document.getElementById('weeklyStartInput');
+  dom.finalizeWeeklyBtn = document.getElementById('finalizeWeeklyBtn');
+  dom.weeklyStatus = document.getElementById('weeklyStatus');
+  dom.weeklyResultList = document.getElementById('weeklyResultList');
+  dom.raffleTitleInput = document.getElementById('raffleTitleInput');
+  dom.raffleStartsInput = document.getElementById('raffleStartsInput');
+  dom.raffleEndsInput = document.getElementById('raffleEndsInput');
+  dom.raffleStatusInput = document.getElementById('raffleStatusInput');
+  dom.raffleQuestionsInput = document.getElementById('raffleQuestionsInput');
+  dom.createRaffleBtn = document.getElementById('createRaffleBtn');
+  dom.loadRafflesBtn = document.getElementById('loadRafflesBtn');
+  dom.raffleStatus = document.getElementById('raffleStatus');
+  dom.raffleList = document.getElementById('raffleList');
+  dom.gameWalletInput = document.getElementById('gameWalletInput');
+  dom.gameSessionsInput = document.getElementById('gameSessionsInput');
+  dom.gameNoteInput = document.getElementById('gameNoteInput');
+  dom.creditGameSessionBtn = document.getElementById('creditGameSessionBtn');
+  dom.gameSessionStatus = document.getElementById('gameSessionStatus');
 }
 
 function bindEvents() {
@@ -94,6 +129,13 @@ function bindEvents() {
 
   dom.refreshBtn.addEventListener('click', async () => {
     await refreshCurrentView();
+  });
+
+  dom.statsGrid?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-export-status]');
+    if (!button) return;
+    const status = button.dataset.exportStatus || '';
+    window.exportCSV(status || undefined);
   });
 
   dom.autoRefreshToggle.addEventListener('change', () => {
@@ -163,6 +205,55 @@ function bindEvents() {
     }
   });
 
+  if (dom.walletRefreshBtn) {
+    dom.walletRefreshBtn.addEventListener('click', async () => {
+      await loadWallet();
+    });
+  }
+
+  if (dom.savePassphraseBtn) {
+    dom.savePassphraseBtn.addEventListener('click', async () => {
+      await handleSavePassphrase();
+    });
+  }
+
+  if (dom.finalizeWeeklyBtn) {
+    dom.finalizeWeeklyBtn.addEventListener('click', async () => {
+      await finalizeWeeklyLeaderboard();
+    });
+  }
+
+  if (dom.loadRafflesBtn) {
+    dom.loadRafflesBtn.addEventListener('click', async () => {
+      await loadRaffles();
+    });
+  }
+
+  if (dom.createRaffleBtn) {
+    dom.createRaffleBtn.addEventListener('click', async () => {
+      await createRaffle();
+    });
+  }
+
+  if (dom.creditGameSessionBtn) {
+    dom.creditGameSessionBtn.addEventListener('click', async () => {
+      await creditGameSession();
+    });
+  }
+
+  if (dom.tabButtons.length) {
+    dom.tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        if (button.dataset.operatorTab === 'wallet' && state.currentUser) {
+          loadWallet();
+        }
+        if (button.dataset.operatorTab === 'gamification' && state.currentUser && isOwner()) {
+          loadRaffles();
+        }
+      });
+    });
+  }
+
   dom.userList.addEventListener('click', async (event) => {
     const toggleButton = event.target.closest('[data-toggle-user]');
     if (toggleButton) {
@@ -185,25 +276,31 @@ function restoreState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     state.apiBase = normalizeApiBase(saved.apiBase || detectApiBase());
-    state.sessionToken = String(saved.sessionToken || '');
     state.query = String(saved.query || '');
     state.status = String(saved.status || '');
     state.autoRefresh = saved.autoRefresh !== false;
     state.activeTab = 'control';
+    // Session token is stored in sessionStorage (dies with tab) — not localStorage.
+    state.sessionToken = String(sessionStorage.getItem(STORAGE_KEY + '_token') || '');
   } catch {
     state.apiBase = detectApiBase();
   }
 }
 
 function persistState() {
+  // Preferences go to localStorage (persistent); token goes to sessionStorage (tab-scoped).
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     apiBase: state.apiBase,
-    sessionToken: state.sessionToken,
     query: state.query,
     status: state.status,
     autoRefresh: state.autoRefresh,
     activeTab: state.activeTab,
   }));
+  if (state.sessionToken) {
+    sessionStorage.setItem(STORAGE_KEY + '_token', state.sessionToken);
+  } else {
+    sessionStorage.removeItem(STORAGE_KEY + '_token');
+  }
 }
 
 function syncInputs() {
@@ -243,7 +340,7 @@ function detectApiBase() {
   if (origin && origin !== 'null' && !origin.startsWith('file:')) {
     return origin;
   }
-  return 'https://prizmbet.net';
+  return 'http://213.165.38.210';
 }
 
 function normalizeApiBase(value) {
@@ -260,14 +357,23 @@ function buildAuthHeaders() {
 
 function availableTabs() {
   if (!state.currentUser) return ['control'];
-  return state.currentUser.role === 'super_admin'
-    ? ['control', 'users', 'feed', 'audit']
-    : ['control', 'feed', 'audit'];
+  const role = state.currentUser.role;
+  const tabs = role === 'super_admin'
+    ? ['control', 'users', 'feed', 'audit', 'wallet']
+    : role === 'finance'
+      ? ['control', 'feed', 'audit', 'wallet']
+      : ['control', 'feed', 'audit'];
+  if (isOwner()) tabs.push('gamification');
+  return tabs;
+}
+
+function isOwner() {
+  return Boolean(state.currentUser?.is_owner);
 }
 
 function getOperatorLang() {
   try {
-    return (localStorage.getItem('prizmbet_lang_v1') || 'ru').toLowerCase() === 'en' ? 'en' : 'ru';
+    return (localStorage.getItem('one_prizmbet_lang_v1') || 'ru').toLowerCase() === 'en' ? 'en' : 'ru';
   } catch {
     return 'ru';
   }
@@ -280,12 +386,16 @@ function labelTab(tab) {
       users: 'Пользователи',
       feed: 'Прогнозы',
       audit: 'Аудит',
+      wallet: 'Кошельки',
+      gamification: 'Геймификация',
     },
     en: {
       control: 'Control',
       users: 'Users',
       feed: 'Feed',
       audit: 'Audit',
+      wallet: 'Wallet',
+      gamification: 'Gamification',
     },
   };
   const lang = getOperatorLang();
@@ -336,6 +446,8 @@ function syncWorkspace() {
     setHidden(dom.feedSection, true);
     setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
+    setHidden(dom.walletSection, true);
+    setHidden(dom.gamificationSection, true);
     return;
   }
 
@@ -343,7 +455,9 @@ function syncWorkspace() {
     return;
   }
 
-  const isSuper = state.currentUser.role === 'super_admin';
+  const role = state.currentUser.role;
+  const isSuper = role === 'super_admin';
+  const owner = isOwner();
   const active = state.activeTab || 'control';
   const showControl = active === 'control';
 
@@ -352,6 +466,12 @@ function syncWorkspace() {
   setHidden(dom.feedSection, active !== 'feed');
   setHidden(dom.auditSection, active !== 'audit');
   setHidden(dom.userManagementSection, !(isSuper && active === 'users'));
+  setHidden(dom.walletSection, active !== 'wallet');
+  setHidden(dom.gamificationSection, !(owner && active === 'gamification'));
+
+  if (dom.passphraseSection) {
+    setHidden(dom.passphraseSection, !(active === 'wallet' && owner));
+  }
 }
 
 async function connectFlow() {
@@ -424,6 +544,8 @@ function clearSession() {
   state.currentUser = null;
   state.sessionInfo = null;
   state.users = [];
+  state.weeklyResult = null;
+  state.raffles = [];
   persistState();
 }
 
@@ -437,6 +559,12 @@ async function refreshCurrentView() {
     const ok = await loadMe();
     if (ok) {
       await fetchFeed();
+      if (state.activeTab === 'wallet') {
+        await loadWallet();
+      }
+      if (state.activeTab === 'gamification' && isOwner()) {
+        await loadRaffles();
+      }
       return;
     }
   }
@@ -638,6 +766,240 @@ async function loadUsers() {
   }
 }
 
+function seedRaffleQuestionsInput() {
+  if (!dom.raffleQuestionsInput || dom.raffleQuestionsInput.value.trim()) return;
+  const questions = Array.from({ length: 11 }, (_, index) => ({
+    id: String(index + 1),
+    text: `Вопрос ${index + 1}`,
+    options: ['Вариант A', 'Вариант B'],
+    correct: 'Вариант A',
+  }));
+  dom.raffleQuestionsInput.value = JSON.stringify(questions, null, 2);
+}
+
+async function finalizeWeeklyLeaderboard() {
+  if (!isOwner()) {
+    renderStatus('Only the owner can finalize weekly leaderboard.', 'warn');
+    return;
+  }
+  if (!state.apiBase || !state.sessionToken) {
+    renderStatus('Log in first.', 'warn');
+    return;
+  }
+
+  if (dom.finalizeWeeklyBtn) dom.finalizeWeeklyBtn.disabled = true;
+  if (dom.weeklyStatus) {
+    dom.weeklyStatus.textContent = 'Finalizing weekly leaderboard...';
+    dom.weeklyStatus.dataset.tone = 'neutral';
+  }
+
+  try {
+    const weekStart = dom.weeklyStartInput?.value || '';
+    const response = await fetch(`${state.apiBase}/api/admin/leaderboard/weekly/finalize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...buildAuthHeaders(),
+      },
+      body: JSON.stringify({ week_start: weekStart || undefined }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || `Leaderboard API returned ${response.status}`);
+    }
+    state.weeklyResult = payload;
+    if (dom.weeklyStatus) {
+      const count = Array.isArray(payload.leaderboard) ? payload.leaderboard.length : 0;
+      dom.weeklyStatus.textContent = `Finalized ${payload.week_start || '-'} - ${payload.week_end || '-'}: ${count} rows.`;
+      dom.weeklyStatus.dataset.tone = 'good';
+    }
+    renderStatus('Weekly leaderboard finalized.', 'good');
+  } catch (error) {
+    if (dom.weeklyStatus) {
+      dom.weeklyStatus.textContent = normalizeErrorMessage(error, 'Failed to finalize weekly leaderboard.');
+      dom.weeklyStatus.dataset.tone = 'bad';
+    }
+    renderStatus(normalizeErrorMessage(error, 'Failed to finalize weekly leaderboard.'), 'bad');
+  } finally {
+    if (dom.finalizeWeeklyBtn) dom.finalizeWeeklyBtn.disabled = false;
+    renderGamificationAdmin();
+  }
+}
+
+async function loadRaffles() {
+  if (!isOwner() || !state.apiBase || !state.sessionToken || !dom.raffleList) return;
+  if (dom.raffleStatus) {
+    dom.raffleStatus.textContent = 'Loading raffles...';
+    dom.raffleStatus.dataset.tone = 'neutral';
+  }
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/raffles`, {
+      headers: buildAuthHeaders(),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || `Raffles API returned ${response.status}`);
+    }
+    state.raffles = Array.isArray(payload.raffles) ? payload.raffles : [];
+    if (dom.raffleStatus) {
+      dom.raffleStatus.textContent = `Loaded raffles: ${state.raffles.length}.`;
+      dom.raffleStatus.dataset.tone = 'good';
+    }
+  } catch (error) {
+    if (dom.raffleStatus) {
+      dom.raffleStatus.textContent = normalizeErrorMessage(error, 'Failed to load raffles.');
+      dom.raffleStatus.dataset.tone = 'bad';
+    }
+  } finally {
+    renderGamificationAdmin();
+  }
+}
+
+async function createRaffle() {
+  if (!isOwner()) {
+    renderStatus('Only the owner can create raffles.', 'warn');
+    return;
+  }
+  if (!state.apiBase || !state.sessionToken) {
+    renderStatus('Log in first.', 'warn');
+    return;
+  }
+
+  const title = dom.raffleTitleInput?.value.trim() || '';
+  if (!title) {
+    if (dom.raffleStatus) {
+      dom.raffleStatus.textContent = 'Raffle title is required.';
+      dom.raffleStatus.dataset.tone = 'warn';
+    }
+    return;
+  }
+
+  let questions = [];
+  try {
+    questions = JSON.parse(dom.raffleQuestionsInput?.value || '[]');
+  } catch {
+    if (dom.raffleStatus) {
+      dom.raffleStatus.textContent = 'Questions JSON is invalid.';
+      dom.raffleStatus.dataset.tone = 'bad';
+    }
+    return;
+  }
+  if (!Array.isArray(questions) || questions.length !== 11) {
+    if (dom.raffleStatus) {
+      dom.raffleStatus.textContent = 'Raffle requires exactly 11 questions.';
+      dom.raffleStatus.dataset.tone = 'warn';
+    }
+    return;
+  }
+
+  const payload = {
+    title,
+    questions,
+    starts_at: normalizeLocalDateTime(dom.raffleStartsInput?.value),
+    ends_at: normalizeLocalDateTime(dom.raffleEndsInput?.value),
+    status: dom.raffleStatusInput?.value || 'draft',
+  };
+
+  if (dom.createRaffleBtn) dom.createRaffleBtn.disabled = true;
+  if (dom.raffleStatus) {
+    dom.raffleStatus.textContent = 'Creating raffle...';
+    dom.raffleStatus.dataset.tone = 'neutral';
+  }
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/raffles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...buildAuthHeaders(),
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.error || `Raffles API returned ${response.status}`);
+    }
+    if (dom.raffleTitleInput) dom.raffleTitleInput.value = '';
+    if (dom.raffleStatusInput) dom.raffleStatusInput.value = 'draft';
+    if (dom.raffleStatus) {
+      dom.raffleStatus.textContent = 'Raffle created.';
+      dom.raffleStatus.dataset.tone = 'good';
+    }
+    renderStatus('Raffle created.', 'good');
+    await loadRaffles();
+  } catch (error) {
+    if (dom.raffleStatus) {
+      dom.raffleStatus.textContent = normalizeErrorMessage(error, 'Failed to create raffle.');
+      dom.raffleStatus.dataset.tone = 'bad';
+    }
+    renderStatus(normalizeErrorMessage(error, 'Failed to create raffle.'), 'bad');
+  } finally {
+    if (dom.createRaffleBtn) dom.createRaffleBtn.disabled = false;
+  }
+}
+
+async function creditGameSession() {
+  if (!isOwner()) {
+    renderStatus('Only the owner can credit gameplay sessions.', 'warn');
+    return;
+  }
+  if (!state.apiBase || !state.sessionToken) {
+    renderStatus('Log in first.', 'warn');
+    return;
+  }
+
+  const wallet = dom.gameWalletInput?.value.trim().toUpperCase() || '';
+  const sessions = Math.max(1, Math.min(Number.parseInt(dom.gameSessionsInput?.value || '1', 10) || 1, 24));
+  const note = dom.gameNoteInput?.value.trim() || '';
+  if (!wallet) {
+    if (dom.gameSessionStatus) {
+      dom.gameSessionStatus.textContent = 'Wallet is required.';
+      dom.gameSessionStatus.dataset.tone = 'warn';
+    }
+    return;
+  }
+
+  if (dom.creditGameSessionBtn) dom.creditGameSessionBtn.disabled = true;
+  if (dom.gameSessionStatus) {
+    dom.gameSessionStatus.textContent = 'Crediting gameplay session...';
+    dom.gameSessionStatus.dataset.tone = 'neutral';
+  }
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/player/${encodeURIComponent(wallet)}/game-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...buildAuthHeaders(),
+      },
+      body: JSON.stringify({ sessions, note }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.error || `Gameplay API returned ${response.status}`);
+    }
+    if (dom.gameSessionStatus) {
+      dom.gameSessionStatus.textContent = `Credited ${result.sessions || sessions} gameplay session(s) to ${result.wallet || wallet}.`;
+      dom.gameSessionStatus.dataset.tone = 'good';
+    }
+    if (dom.gameNoteInput) dom.gameNoteInput.value = '';
+    renderStatus('Gameplay session credited.', 'good');
+  } catch (error) {
+    const message = normalizeErrorMessage(error, 'Failed to credit gameplay session.');
+    if (dom.gameSessionStatus) {
+      dom.gameSessionStatus.textContent = message;
+      dom.gameSessionStatus.dataset.tone = 'bad';
+    }
+    renderStatus(message, 'bad');
+  } finally {
+    if (dom.creditGameSessionBtn) dom.creditGameSessionBtn.disabled = false;
+  }
+}
+
+function normalizeLocalDateTime(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 async function fetchFeed() {
   if (!state.apiBase) {
     renderStatus('Set API base first.', 'warn');
@@ -722,6 +1084,10 @@ function buildSuccessMessage() {
 
 
 async function handleMarkPaid(button) {
+  if (!isOwner()) {
+    renderStatus('Only the owner can change payout state.', 'warn');
+    return;
+  }
   const txId = button.getAttribute('data-mark-paid') || '';
   const payoutAmount = Number(button.getAttribute('data-payout') || 0);
   if (!txId) return;
@@ -786,6 +1152,7 @@ function render() {
   renderFeed();
   renderAuditMeta();
   renderAudit();
+  renderGamificationAdmin();
   syncWorkspace();
 }
 
@@ -801,6 +1168,8 @@ function renderAuthState() {
     setHidden(dom.feedSection, true);
     setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
+    setHidden(dom.walletSection, true);
+    setHidden(dom.gamificationSection, true);
     return;
   }
 
@@ -814,6 +1183,8 @@ function renderAuthState() {
     setHidden(dom.feedSection, true);
     setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
+    setHidden(dom.walletSection, true);
+    setHidden(dom.gamificationSection, true);
     return;
   }
 
@@ -827,6 +1198,8 @@ function renderAuthState() {
     setHidden(dom.feedSection, true);
     setHidden(dom.auditSection, true);
     setHidden(dom.userManagementSection, true);
+    setHidden(dom.walletSection, true);
+    setHidden(dom.gamificationSection, true);
     return;
   }
 
@@ -922,32 +1295,88 @@ function renderStats() {
   const stats = state.stats;
   if (!stats) {
     dom.statsGrid.innerHTML = [
-      buildStatCard('Feed size', '0'),
-      buildStatCard('Accepted', '0'),
-      buildStatCard('To payout', '0'),
-      buildStatCard('Paid', '0'),
-      buildStatCard('Turnover', '0 PRIZM'),
+      buildStatCard('Turnover', '0 PRIZM', 'neutral'),
+      buildStatCard('Profit', '0 PRIZM', 'neutral'),
+      buildStatCard('Win rate', '0%', 'neutral'),
+      buildStatCard('Avg bet', '0 PRIZM', 'neutral'),
+      buildStatCard('Accepted', '0', 'neutral'),
+      buildStatCard('To payout', '0', 'neutral'),
+      buildStatCard('Paid', '0', 'neutral'),
+      buildStatCard('Lost', '0', 'neutral'),
     ].join('');
     return;
   }
 
+  const profit = stats.profit_prizm ?? 0;
+  const profitTone = profit > 0 ? 'good' : profit < 0 ? 'bad' : 'neutral';
+
   dom.statsGrid.innerHTML = [
-    buildStatCard('Feed size', formatNumber(stats.total_items)),
-    buildStatCard('Accepted', formatNumber(stats.accepted_count)),
-    buildStatCard('To payout', formatNumber(stats.to_payout_count ?? stats.won_count ?? 0)),
-    buildStatCard('Paid', formatNumber(stats.paid_count ?? 0)),
-    buildStatCard('Turnover', `${formatNumber(stats.turnover_prizm)} PRIZM`),
-  ].join('');
+    buildStatCard('Turnover', `${formatNumber(stats.turnover_prizm)} PRIZM`, 'neutral'),
+    buildStatCard('Profit', `${profit >= 0 ? '+' : ''}${formatNumber(profit)} PRIZM`, profitTone),
+    buildStatCard('Win rate', `${stats.win_rate ?? 0}%`, 'neutral'),
+    buildStatCard('Avg bet', `${formatNumber(stats.avg_bet_prizm ?? 0)} PRIZM`, 'neutral'),
+    buildStatCard('Accepted', formatNumber(stats.accepted_count), 'good'),
+    buildStatCard('To payout', formatNumber(stats.to_payout_count ?? stats.won_count ?? 0), 'warn'),
+    buildStatCard('Paid', `${formatNumber(stats.paid_count ?? 0)} (${formatNumber(stats.paid_amount_prizm ?? 0)} PRIZM)`, 'good'),
+    buildStatCard('Lost', formatNumber(stats.lost_count), 'bad'),
+  ].join('') + renderExportButton();
 }
 
-function buildStatCard(label, value) {
+function buildStatCard(label, value, tone) {
   return `
-    <article class="operator-stat-card">
+    <article class="operator-stat-card" data-tone="${tone || 'neutral'}">
       <div class="operator-stat-label">${escapeHtml(label)}</div>
       <div class="operator-stat-value">${escapeHtml(value)}</div>
     </article>
   `;
 }
+
+function renderExportButton() {
+  if (!isOwner()) return '';
+  return `
+    <div class="operator-export-row">
+      <button class="operator-chip operator-chip--export" type="button" data-export-status="">Export CSV</button>
+      <button class="operator-chip operator-chip--export" type="button" data-export-status="accepted">Accepted</button>
+      <button class="operator-chip operator-chip--export" type="button" data-export-status="won">Won</button>
+      <button class="operator-chip operator-chip--export" type="button" data-export-status="paid">Paid</button>
+    </div>
+  `;
+}
+
+window.exportCSV = async function(statusFilter) {
+  if (!isOwner()) {
+    renderStatus('Only the owner can export financial data.', 'warn');
+    return;
+  }
+  if (!state.apiBase || !state.sessionToken) {
+    renderStatus('Log in first.', 'warn');
+    return;
+  }
+  const url = new URL(`${state.apiBase}/api/admin/export-csv`);
+  url.searchParams.set('limit', '2000');
+  if (statusFilter) url.searchParams.set('status', statusFilter);
+  try {
+    const resp = await fetch(url.toString(), { headers: buildAuthHeaders() });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      renderStatus(normalizeErrorMessage(err, 'CSV export failed.'), 'bad');
+      return;
+    }
+    const blob = await resp.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const cd = resp.headers.get('content-disposition') || '';
+    const match = cd.match(/filename="?([^"]+)"?/);
+    a.download = match ? match[1] : 'one_prizmbet_export.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    renderStatus('CSV exported.', 'good');
+  } catch {
+    renderStatus('Network error during CSV export.', 'bad');
+  }
+};
 
 function renderFeedMeta() {
   const parts = [];
@@ -1012,8 +1441,62 @@ function renderAudit() {
   dom.auditList.innerHTML = state.auditItems.map(renderAuditCard).join('');
 }
 
+function renderGamificationAdmin() {
+  if (!dom.gamificationSection) return;
+  if (dom.weeklyResultList) {
+    const rows = Array.isArray(state.weeklyResult?.leaderboard) ? state.weeklyResult.leaderboard : [];
+    if (!rows.length) {
+      dom.weeklyResultList.innerHTML = `
+        <div class="operator-empty">
+          <strong>No finalized leaderboard in this session.</strong><br>
+          Run finalization to preview persisted top-10 rows.
+        </div>
+      `;
+    } else {
+      dom.weeklyResultList.innerHTML = rows.map((row) => `
+        <article class="operator-card operator-card--compact">
+          <div class="operator-badges">
+            <span class="operator-badge" data-tone="${row.rank <= 3 ? 'good' : 'neutral'}">#${escapeHtml(row.rank)}</span>
+            <span class="operator-badge" data-tone="${row.prize_distributed ? 'good' : 'neutral'}">${row.prize_distributed ? 'Prize distributed' : 'No prize'}</span>
+          </div>
+          <h3 class="operator-card-title">${escapeHtml(row.wallet || '-')}</h3>
+          <p class="operator-card-copy">${escapeHtml(formatNumber(row.won_prizm))} PRIZM won this week</p>
+        </article>
+      `).join('');
+    }
+  }
+
+  if (!dom.raffleList) return;
+  if (!state.raffles.length) {
+    dom.raffleList.innerHTML = `
+      <div class="operator-empty">
+        <strong>No raffles loaded.</strong><br>
+        Load the list or create the first raffle.
+      </div>
+    `;
+    return;
+  }
+  dom.raffleList.innerHTML = state.raffles.map((raffle) => {
+    const questions = Array.isArray(raffle.questions) ? raffle.questions.length : 0;
+    return `
+      <article class="operator-card operator-card--compact">
+        <div class="operator-badges">
+          <span class="operator-badge" data-tone="${labelRaffleTone(raffle.status)}">${escapeHtml(raffle.status || 'draft')}</span>
+          <span class="operator-badge" data-tone="neutral">${questions} questions</span>
+        </div>
+        <h3 class="operator-card-title">${escapeHtml(raffle.title || 'Untitled raffle')}</h3>
+        <div class="operator-inline-meta">
+          <span><strong>ID:</strong> ${escapeHtml(raffle.id || '-')}</span>
+          <span><strong>Start:</strong> ${escapeHtml(formatDate(raffle.starts_at))}</span>
+          <span><strong>End:</strong> ${escapeHtml(formatDate(raffle.ends_at))}</span>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
 function renderFeedCard(item) {
-  const payoutAction = item.status === 'won' && (state.currentUser?.role === 'super_admin' || state.currentUser?.role === 'finance')
+  const payoutAction = item.status === 'won' && isOwner()
     ? `<button class="operator-chip" type="button" data-mark-paid="${escapeAttr(item.tx_id || '')}" data-payout="${escapeAttr(item.potential_payout_prizm || 0)}">Mark paid</button>`
     : '';
   const rejectBlock = item.reject_reason
@@ -1301,6 +1784,9 @@ function labelAuditEvent(value) {
     admin_logout: 'Operator logout',
     admin_user_created: 'Operator user created',
     admin_user_state_changed: 'Operator user state changed',
+    weekly_leaderboard_finalized: 'Weekly leaderboard finalized',
+    raffle_created: 'Raffle created',
+    game_session_credited: 'Gameplay session credited',
   };
   return labels[eventType] || (eventType || 'Event');
 }
@@ -1317,6 +1803,7 @@ function labelRejectReason(reason) {
     LIVE_DISABLED: 'Live bets are disabled in the public version',
     MATCH_ALREADY_STARTED: 'The match has already started',
     LATE_BET: 'The transfer arrived after the safe acceptance window',
+    CASHBACK_BONUS: 'Cashback bonus payout',
   };
   return labels[value] || value || 'Rejected';
 }
@@ -1339,8 +1826,16 @@ function resolveMatchStateTone(state) {
 function resolveAuditTone(eventType, status) {
   const event = String(eventType || '').trim().toLowerCase();
   if (event === 'bet_rejected' || event === 'bet_lost') return 'bad';
-  if (event === 'bet_accepted' || event === 'bet_won' || event === 'bet_paid' || event.startsWith('admin_')) return 'good';
+  if (event === 'bet_accepted' || event === 'bet_won' || event === 'bet_paid' || event.startsWith('admin_') || event === 'weekly_leaderboard_finalized' || event === 'raffle_created' || event === 'game_session_credited') return 'good';
   return resolveStatusTone(status);
+}
+
+function labelRaffleTone(status) {
+  const value = String(status || '').trim().toLowerCase();
+  if (value === 'active') return 'good';
+  if (value === 'completed') return 'neutral';
+  if (value === 'cancelled') return 'bad';
+  return 'warn';
 }
 
 function cleanText(value) {
@@ -1389,10 +1884,105 @@ function escapeAttr(value) {
   return escapeHtml(value).replace(/`/g, '&#96;');
 }
 
+async function loadWallet() {
+  if (!state.apiBase || !state.sessionToken) return;
+  if (dom.walletStatus) dom.walletStatus.textContent = 'Loading…';
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/wallet`, {
+      headers: buildAuthHeaders(),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      if (dom.walletStatus) dom.walletStatus.textContent = normalizeErrorMessage(err, 'Failed to load wallet info.');
+      return;
+    }
+    const data = await response.json();
+    renderWalletInfo(data);
+    if (dom.walletStatus) dom.walletStatus.textContent = '';
+  } catch (e) {
+    if (dom.walletStatus) dom.walletStatus.textContent = 'Network error loading wallet info.';
+  }
+}
+
+function renderWalletInfo(data) {
+  const hot = data.hot_wallet || {};
+  const admin = data.admin_wallet || {};
+  const lang = getOperatorLang();
+
+  if (dom.walletHotAddress) dom.walletHotAddress.textContent = hot.address || '—';
+
+  if (dom.walletBalance) {
+    if (hot.balance == null) {
+      dom.walletBalance.textContent = lang === 'ru' ? 'Нет данных' : 'Unavailable';
+    } else {
+      dom.walletBalance.textContent = `${Number(hot.balance).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} PRIZM`;
+    }
+  }
+
+  if (dom.walletPassphraseStatus) {
+    dom.walletPassphraseStatus.textContent = hot.passphrase_configured
+      ? (lang === 'ru' ? '✅ Настроена' : '✅ Configured')
+      : (lang === 'ru' ? '⚠️ Не настроена' : '⚠️ Not configured');
+  }
+
+  if (dom.walletMasterKeyStatus) {
+    dom.walletMasterKeyStatus.textContent = data.master_key_configured
+      ? (lang === 'ru' ? '✅ Есть в .env' : '✅ Set in .env')
+      : (lang === 'ru' ? '❌ Отсутствует' : '❌ Missing');
+  }
+
+  if (dom.walletAdminAddress) {
+    dom.walletAdminAddress.textContent = admin.address || (lang === 'ru' ? 'Не задан' : 'Not set');
+  }
+}
+
+async function handleSavePassphrase() {
+  if (!isOwner()) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = getOperatorLang() === 'ru'
+      ? 'Только владелец может менять парольную фразу.'
+      : 'Only the owner can change the passphrase.';
+    return;
+  }
+  const pass = dom.hotPassphraseInput ? dom.hotPassphraseInput.value : '';
+  const confirm = dom.hotPassphraseConfirm ? dom.hotPassphraseConfirm.value : '';
+  const lang = getOperatorLang();
+
+  if (!pass) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Введите парольную фразу.' : 'Enter the passphrase.';
+    return;
+  }
+  if (pass !== confirm) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Фразы не совпадают.' : 'Passphrases do not match.';
+    return;
+  }
+  if (pass.length < 8) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Минимум 8 символов.' : 'Minimum 8 characters.';
+    return;
+  }
+
+  if (dom.savePassphraseBtn) dom.savePassphraseBtn.disabled = true;
+  if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Сохранение…' : 'Saving…';
+
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/wallet/passphrase`, {
+      method: 'POST',
+      headers: { ...buildAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passphrase: pass }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (dom.passphraseStatus) dom.passphraseStatus.textContent = normalizeErrorMessage(result, 'Failed to save passphrase.');
+    } else {
+      if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? '✅ Парольная фраза зашифрована и сохранена.' : '✅ Passphrase encrypted and saved.';
+      if (dom.hotPassphraseInput) dom.hotPassphraseInput.value = '';
+      if (dom.hotPassphraseConfirm) dom.hotPassphraseConfirm.value = '';
+      await loadWallet();
+    }
+  } catch (e) {
+    if (dom.passphraseStatus) dom.passphraseStatus.textContent = lang === 'ru' ? 'Ошибка сети.' : 'Network error.';
+  } finally {
+    if (dom.savePassphraseBtn) dom.savePassphraseBtn.disabled = false;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', init);
-
-
-
-
-
-

@@ -1,7 +1,7 @@
-// ── PrizmBet Service Worker ───────────────────────────────────────────────────
-const VERSION     = 'v39';
-const SHELL_CACHE = `prizmbet-shell-${VERSION}`;
-const DATA_CACHE  = 'prizmbet-data';   // вечный, обновляется по контенту
+// ── 1PrizmBet Service Worker ─────────────────────────────────────────────────
+const VERSION     = 'v71';
+const SHELL_CACHE = `one-prizmbet-shell-${VERSION}`;
+const DATA_CACHE  = 'one-prizmbet-data';   // вечный, обновляется по контенту
 
 // Статика, которую кэшируем при install (App Shell)
 const SHELL_ASSETS = [
@@ -12,6 +12,7 @@ const SHELL_ASSETS = [
     './tests.js',
     './js/app.js',
     './js/modules/bet_slip.js',
+    './js/modules/cabinet_v2.js',
     './js/modules/filters.js',
     './js/modules/history_ui.js',
     './js/modules/i18n.js',
@@ -24,13 +25,13 @@ const SHELL_ASSETS = [
     './css/base.min.css',
     './css/smart-flow.css',
     './prizm-icon.svg',
-    './prizmbet-header-lockup.svg',
-    './prizmbet-logo.webp',
+    './one-prizmbet-logo.png',
+    './one-prizmbet-logo-wide.png',
+    './one-prizmbet-mark.png',
+    './one-prizmbet-header.png',
     './qr_wallet.webp',
     './prizmbet-info-1.webp',
     './prizmbet-info-2.webp',
-    './icon-192x192.png',
-    './icon-512x512.png',
 ];
 
 // ── INSTALL: предзагрузка Shell ───────────────────────────────────────────────
@@ -145,8 +146,3 @@ self.addEventListener('fetch', event => {
     // Всё остальное (Google Fonts, внешние CDN): сеть, без кэша
     // (браузер сам их кэширует по Cache-Control заголовкам)
 });
-
-
-
-
-

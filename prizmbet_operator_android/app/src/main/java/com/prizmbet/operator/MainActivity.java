@@ -38,21 +38,24 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * PrizmBet Operator Console — Android wrapper.
+ * 1PrizmBet Operator Console — Android wrapper.
  *
  * Loads operator.html from APK assets with the same hybrid online/offline
- * approach as the main PrizmBet app. The operator connects to the API server
+ * approach as the main 1PrizmBet app. The operator connects to the API server
  * directly from the WebView.
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String SITE_URL = "http://213.165.38.210/operator.html";
-    private static final String VERSION_URL = "http://213.165.38.210/app-version.json";
+    private static final String SITE_URL = "https://prizmbet.net/operator.html";
+    private static final String VERSION_URL = "https://prizmbet.net/app-version.json";
     private static final String APP_KEY = "operator";
     private static final int CURRENT_VERSION_CODE = 1;
 
     private static final String[] ALLOWED_HOSTS = {
-            "213.165.38.210",
+            "prizmbet.net",
+            "www.prizmbet.net",
+            "1prizmbet.net",
+            "www.1prizmbet.net",
             "minortermite.github.io",
             "fonts.googleapis.com",
             "fonts.gstatic.com",
@@ -190,14 +193,15 @@ public class MainActivity extends AppCompatActivity {
         s.setDatabaseEnabled(true);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setAllowFileAccess(true);
-        s.setAllowContentAccess(true);
-        // Allow mixed content so operator can connect to local HTTP API
-        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
+        s.setAllowFileAccessFromFileURLs(false);
+        s.setAllowUniversalAccessFromFileURLs(false);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
         String ua = s.getUserAgentString();
         ua = ua.replace("; wv)", ")");
-        s.setUserAgentString(ua + " PrizmBetOperator/1.0");
+        s.setUserAgentString(ua + " 1PrizmBetOperator/1.0");
 
         webView.setWebViewClient(new WebViewClient() {
 
@@ -210,9 +214,10 @@ public class MainActivity extends AppCompatActivity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String host = request.getUrl().getHost();
                 if (host != null && isAllowedHost(host)) return false;
-                // Allow API connections to any host (operator needs to connect to backend)
                 String scheme = request.getUrl().getScheme();
-                if ("http".equals(scheme) || "https".equals(scheme)) return false;
+                if ("http".equals(scheme) || "https".equals(scheme)) {
+                    return true;
+                }
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, request.getUrl()));
                 } catch (Exception ignored) {

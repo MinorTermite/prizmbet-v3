@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Operator audit log and optional Google Sheets mirror."""
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def _post_json(url: str, payload: dict[str, Any], token: str = "") -> None:
 async def mirror_operator_event(payload: dict[str, Any]) -> bool:
     if not config.GOOGLE_SHEETS_MIRROR_ENABLED or not config.GOOGLE_SHEETS_WEBHOOK_URL:
         return False
-    envelope = {"source": "prizmbet_v3", "event": payload}
+    envelope = {"source": "one_prizmbet_v3", "event": payload}
     try:
         await asyncio.to_thread(
             _post_json,

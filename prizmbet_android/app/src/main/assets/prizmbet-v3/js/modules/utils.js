@@ -1,5 +1,5 @@
 /**
- * PrizmBet v3 - Utils Module
+ * 1PrizmBet - Utils Module
  */
 import { formatDate, formatTime, getLanguage, getTimeZone, t } from './i18n.js';
 
@@ -7,6 +7,10 @@ export function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+export function escapeAttr(text) {
+    return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 const RU_MONTHS = {

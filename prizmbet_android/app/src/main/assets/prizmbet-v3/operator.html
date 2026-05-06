@@ -1,12 +1,15 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PRIZMBET - Operator Console</title>
+<title>1PrizmBet - Operator Console</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/smart-flow.css">
-<link rel="stylesheet" href="css/operator.css?v=20260321c">
+<link rel="stylesheet" href="css/operator.css?v=20260322d">
 </head>
 <body>
 <div class="bg-canvas"></div>
@@ -35,6 +38,8 @@
       <button class="operator-tab" type="button" data-operator-tab="users">Users</button>
       <button class="operator-tab" type="button" data-operator-tab="feed">Feed</button>
       <button class="operator-tab" type="button" data-operator-tab="audit">Audit</button>
+      <button class="operator-tab" type="button" data-operator-tab="wallet">Wallet</button>
+      <button class="operator-tab" type="button" data-operator-tab="gamification">Gamification</button>
     </div>
   </section>
   <section class="section operator-access">
@@ -204,11 +209,159 @@
     <div class="operator-audit-body">
       <div id="auditList" class="operator-audit-list"></div>
     </div>
+  </section>
+
+  <section id="walletSection" class="section operator-wallet-section operator-hidden" hidden aria-hidden="true">
+    <div class="operator-access-card">
+      <div>
+        <div class="smart-banner-eyebrow" data-oi18n="wallet.eyebrow">Wallet Management</div>
+        <h2 class="operator-subtitle" data-oi18n="wallet.title">Hot &amp; Admin wallets</h2>
+        <p class="operator-copy operator-copy--compact" data-oi18n="wallet.copy">The hot wallet receives bets and sends payouts automatically. The admin wallet is the finance manager's cold wallet — never used by the system.</p>
+      </div>
+
+      <div id="walletInfo" class="operator-wallet-info">
+        <div class="operator-wallet-grid">
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.hotAddress">Hot Wallet</div>
+            <div id="walletHotAddress" class="operator-meta-value operator-meta-mono">—</div>
+          </div>
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.balance">Balance</div>
+            <div id="walletBalance" class="operator-meta-value">—</div>
+          </div>
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.passphraseStatus">Passphrase</div>
+            <div id="walletPassphraseStatus" class="operator-meta-value">—</div>
+          </div>
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.masterKeyStatus">Master Key</div>
+            <div id="walletMasterKeyStatus" class="operator-meta-value">—</div>
+          </div>
+          <div class="operator-meta">
+            <div class="operator-meta-label" data-oi18n="wallet.adminAddress">Admin (Cold) Wallet</div>
+            <div id="walletAdminAddress" class="operator-meta-value operator-meta-mono">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="operator-actions">
+        <button id="walletRefreshBtn" class="operator-btn" data-oi18n="wallet.refresh" type="button">Refresh</button>
+      </div>
+      <div id="walletStatus" class="operator-status-line"></div>
+    </div>
+
+    <div id="passphraseSection" class="operator-access-card operator-hidden" hidden>
+      <div>
+        <div class="smart-banner-eyebrow" data-oi18n="wallet.passphraseEyebrow">Set Hot Wallet Passphrase</div>
+        <h2 class="operator-subtitle" data-oi18n="wallet.passphraseTitle">Encrypt &amp; store passphrase</h2>
+        <p class="operator-copy operator-copy--compact" data-oi18n="wallet.passphraseCopy">The passphrase is encrypted with AES-256-GCM using the server master key (PRIZM_MASTER_KEY) and stored in the database. It is never returned to the client.</p>
+      </div>
+      <div class="operator-access-grid">
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="wallet.passphraseInput">PRIZM Passphrase (seed phrase)</span>
+          <input id="hotPassphraseInput" class="operator-input" type="password" placeholder="Enter the hot wallet passphrase…" autocomplete="new-password">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="wallet.passphraseConfirm">Confirm passphrase</span>
+          <input id="hotPassphraseConfirm" class="operator-input" type="password" placeholder="Repeat the passphrase…" autocomplete="new-password">
+        </label>
+      </div>
+      <div class="operator-actions">
+        <button id="savePassphraseBtn" class="operator-btn operator-btn--primary" data-oi18n="wallet.passphraseSave" type="button">Encrypt &amp; Save</button>
+      </div>
+      <div id="passphraseStatus" class="operator-status-line"></div>
+    </div>
+  </section>
+
+  <section id="gamificationSection" class="section operator-gamification-section operator-hidden" hidden aria-hidden="true">
+    <div class="operator-access-card">
+      <div>
+        <div class="smart-banner-eyebrow">Gamification Admin</div>
+        <h2 class="operator-subtitle">Недельный рейтинг</h2>
+        <p class="operator-copy operator-copy--compact">Финализация фиксирует топ-10 за неделю и один раз выдаёт награды топ-3.</p>
+      </div>
+      <div class="operator-access-grid operator-gamification-grid">
+        <label class="operator-field">
+          <span class="operator-label">Начало недели</span>
+          <input id="weeklyStartInput" class="operator-input" type="date">
+        </label>
+        <div class="operator-actions operator-actions--align-end">
+          <button id="finalizeWeeklyBtn" class="operator-btn operator-btn--primary" type="button">Finalize weekly leaderboard</button>
+        </div>
+      </div>
+      <div id="weeklyStatus" class="operator-status-line">Укажите понедельник недели или оставьте пустым для текущей недели.</div>
+      <div id="weeklyResultList" class="operator-admin-list"></div>
+    </div>
+
+    <div class="operator-access-card">
+      <div>
+        <div class="smart-banner-eyebrow">Raffles</div>
+        <h2 class="operator-subtitle">Создать розыгрыш</h2>
+        <p class="operator-copy operator-copy--compact">Нужно ровно 11 вопросов. Формат: JSON-массив объектов с text, options и correct.</p>
+      </div>
+      <div class="operator-access-grid operator-raffle-grid">
+        <label class="operator-field">
+          <span class="operator-label">Название</span>
+          <input id="raffleTitleInput" class="operator-input" type="text" placeholder="Розыгрыш недели">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Старт</span>
+          <input id="raffleStartsInput" class="operator-input" type="datetime-local">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Финиш</span>
+          <input id="raffleEndsInput" class="operator-input" type="datetime-local">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Статус</span>
+          <select id="raffleStatusInput" class="operator-select">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+          </select>
+        </label>
+      </div>
+      <label class="operator-field">
+        <span class="operator-label">11 вопросов JSON</span>
+        <textarea id="raffleQuestionsInput" class="operator-textarea" rows="12" spellcheck="false" placeholder='[{"text":"Вопрос 1","options":["A","B"],"correct":"A"}]'></textarea>
+      </label>
+      <div class="operator-actions">
+        <button id="createRaffleBtn" class="operator-btn operator-btn--primary" type="button">Create raffle</button>
+        <button id="loadRafflesBtn" class="operator-btn" type="button">Load raffles</button>
+      </div>
+      <div id="raffleStatus" class="operator-status-line">Список розыгрышей не загружен.</div>
+      <div id="raffleList" class="operator-admin-list"></div>
+    </div>
+
+    <div class="operator-access-card">
+      <div>
+        <div class="smart-banner-eyebrow">Manual Gameplay</div>
+        <h2 class="operator-subtitle">Начислить “Игроман”</h2>
+        <p class="operator-copy operator-copy--compact">Временный ручной источник прогресса до подключения игрового трекинга. 1 сессия = 1 час игры.</p>
+      </div>
+      <div class="operator-access-grid operator-gameplay-grid">
+        <label class="operator-field">
+          <span class="operator-label">PRIZM wallet</span>
+          <input id="gameWalletInput" class="operator-input" type="text" placeholder="PRIZM wallet">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Сессий</span>
+          <input id="gameSessionsInput" class="operator-input" type="number" min="1" max="24" value="1">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label">Комментарий</span>
+          <input id="gameNoteInput" class="operator-input" type="text" placeholder="optional">
+        </label>
+      </div>
+      <div class="operator-actions">
+        <button id="creditGameSessionBtn" class="operator-btn operator-btn--primary" type="button">Credit game session</button>
+      </div>
+      <div id="gameSessionStatus" class="operator-status-line">Готово к ручному начислению.</div>
+    </div>
   </section></div>
 </main>
 
-<script src="js/operator.js?v=20260321c"></script>
-<script src="js/operator-i18n.js?v=20260321c"></script>
+<script src="js/operator-shell.js?v=20260325b"></script>
+<script src="js/operator-shell-i18n.js?v=20260325b"></script>
 </body>
 </html>
 

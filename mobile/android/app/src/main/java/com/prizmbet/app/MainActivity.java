@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * PrizmBet Android wrapper.
+ * 1PrizmBet Android wrapper.
  *
  * Features implemented:
  *  - SwipeRefreshLayout: свайп вниз → обновляет данные матчей
@@ -42,10 +42,14 @@ import java.io.InputStream;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String SITE_URL     = "https://minortermite.github.io/prizmbet-v2/";
+    private static final String SITE_URL     = "https://prizmbet.net/";
     public  static final String EXTRA_SHORTCUT = "shortcut_action";
 
     private static final String[] ALLOWED_HOSTS = {
+            "prizmbet.net",
+            "www.prizmbet.net",
+            "1prizmbet.net",
+            "www.1prizmbet.net",
             "minortermite.github.io",
             "fonts.googleapis.com",
             "fonts.gstatic.com",

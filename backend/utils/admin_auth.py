@@ -104,15 +104,32 @@ def serialize_admin_user(user: dict[str, Any] | None) -> dict[str, Any] | None:
         "login": user.get("login"),
         "email": user.get("email"),
         "role": user.get("role"),
+        "is_owner": is_owner_user(user),
         "is_active": bool(user.get("is_active", True)),
         "created_at": user.get("created_at"),
         "last_login_at": user.get("last_login_at"),
     }
 
 
+def is_owner_user(user: dict[str, Any] | None) -> bool:
+    if not user:
+        return False
+    login = normalize_login(user.get("login"))
+    email = normalize_email(user.get("email"))
+    owner_login = normalize_login(config.SUPER_ADMIN_LOGIN)
+    owner_email = normalize_email(config.SUPER_ADMIN_EMAIL)
+    if owner_login and login == owner_login:
+        return True
+    if owner_email and email == owner_email:
+        return True
+    return False
+
+
 def role_can_manage_users(role: str) -> bool:
     return str(role or "").strip().lower() == "super_admin"
 
 
-def role_can_mark_paid(role: str) -> bool:
-    return str(role or "").strip().lower() in {"super_admin", "finance"}
+def role_can_mark_paid(user: dict[str, Any] | str | None) -> bool:
+    if isinstance(user, dict):
+        return is_owner_user(user)
+    return False

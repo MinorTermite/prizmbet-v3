@@ -572,11 +572,11 @@ public class PremiumSplashView extends View {
 
         // Glow
         titleGlow.setAlpha((int)(100*eased));
-        c.drawText("PRIZMBET", cx + glitch, y, titleGlow);
+        c.drawText("1PRIZMBET", cx + glitch, y, titleGlow);
 
         // Text
         titlePaint.setAlpha((int)(250*eased));
-        c.drawText("PRIZMBET", cx, y, titlePaint);
+        c.drawText("1PRIZMBET", cx, y, titlePaint);
 
         // Subtitle with typing reveal
         subPaint.setTextSize(8f*density);

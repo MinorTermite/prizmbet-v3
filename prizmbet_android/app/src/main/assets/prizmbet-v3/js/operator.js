@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = 'prizmbet_operator_console_v3';
+const STORAGE_KEY = 'one_prizmbet_operator_console_v3';
 const AUTO_REFRESH_MS = 20000;
 
 const state = {
@@ -244,7 +244,7 @@ function detectApiBase() {
   if (origin && origin !== 'null' && !origin.startsWith('file:')) {
     return origin;
   }
-  return 'https://prizmbet.net';
+  return 'http://213.165.38.210';
 }
 
 function normalizeApiBase(value) {
@@ -268,7 +268,7 @@ function availableTabs() {
 
 function getOperatorLang() {
   try {
-    return (localStorage.getItem('prizmbet_lang_v1') || 'ru').toLowerCase() === 'en' ? 'en' : 'ru';
+    return (localStorage.getItem('one_prizmbet_lang_v1') || 'ru').toLowerCase() === 'en' ? 'en' : 'ru';
   } catch {
     return 'ru';
   }
@@ -1391,9 +1391,3 @@ function escapeAttr(value) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
-
-
-
-
-

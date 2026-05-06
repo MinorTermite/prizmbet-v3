@@ -1,11 +1,12 @@
 /**
- * PrizmBet v3 - Wallet Cabinet UI
+ * 1PrizmBet - Wallet Cabinet UI
  */
 import { clearIntentRecords, getWalletAddress, saveWalletAddress } from './storage.js';
 import { escapeHtml } from './utils.js';
 import { getCabinetData, syncWalletInput } from './bet_slip.js';
 import { showToast } from './notifications.js';
 import { formatNumber, t } from './i18n.js';
+import { initCabinetV2, renderGamification } from './cabinet_v2.js';
 
 let initialized = false;
 const dom = {};
@@ -50,7 +51,7 @@ export function initHistoryUI() {
         dom.walletInput.value = wallet;
         saveWalletAddress(wallet);
         syncWalletInput(wallet);
-        window.dispatchEvent(new CustomEvent('prizmbet:wallet-changed', {
+        window.dispatchEvent(new CustomEvent('one-prizmbet:wallet-changed', {
             detail: { wallet, source: 'cabinet' },
         }));
     });
@@ -59,20 +60,23 @@ export function initHistoryUI() {
         if (event.key === 'Enter') openHistory();
     });
 
-    window.addEventListener('prizmbet:intent-updated', () => {
+    window.addEventListener('one-prizmbet:intent-updated', () => {
         if (dom.modal?.classList.contains('show')) openHistory();
     });
 
-    window.addEventListener('prizmbet:language-changed', () => {
+    window.addEventListener('one-prizmbet:language-changed', () => {
         if (dom.modal?.classList.contains('show')) renderCabinet();
     });
 
+    initCabinetV2();
     initialized = true;
 }
 
 export async function openHistory() {
     initHistoryUI();
     if (!dom.modal) return;
+
+    document.getElementById('betSlip')?.classList.remove('show');
 
     if (dom.walletInput && !dom.walletInput.value) {
         dom.walletInput.value = getWalletAddress();
@@ -112,6 +116,8 @@ async function renderCabinet() {
         const data = await getCabinetData(wallet);
         renderStats(data);
         renderFeed(data.feed || []);
+        // Gamification panel (v2) — fires after bet history renders
+        renderGamification(wallet, data).catch(() => {});
     } catch (_) {
         renderEmptyCabinet(getCabinetErrorText());
     }

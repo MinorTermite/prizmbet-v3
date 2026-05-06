@@ -18,6 +18,10 @@ prizmbet_android/.idea/
 prizmbet_android/build/
 prizmbet_android/app/build/
 prizmbet_android/local.properties
+prizmbet_operator_android/.gradle/
+prizmbet_operator_android/build/
+prizmbet_operator_android/app/build/
+prizmbet_operator_android/local.properties
 
 # Generated/local project artifacts
 *.backup
@@ -26,3 +30,27 @@ prizmbet_android/local.properties
 *.pid
 *.out.log
 *.err.log
+PRIZMBET_V3_SECRETS*.env
+PRIZMBET_V3_SECRETS*.txt
+
+# Local assistant / IDE state
+.agents/
+.claude/settings.local.json
+.claude/skills/
+.continue/
+.npm-cache/
+.playwright-mcp/
+.qwen/
+.trae/
+skills/
+skills-lock.json
+
+# Generated QA / browser artifacts
+output/
+__codex_*.sql
+frontend/__codex_*.png
+frontend/__source_logo_*.png
+testsprite_tests/
+
+# Generated release binaries
+frontend/apk/*.apk

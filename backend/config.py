@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-"""PrizmBet v3 configuration."""
+﻿# -*- coding: utf-8 -*-
+"""1PrizmBet v3 configuration."""
 import os
 from dotenv import load_dotenv
 
@@ -38,6 +38,17 @@ class Config:
     PROXY_URL = os.getenv("PROXY_URL", "")
     RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "10"))
     RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
+    API_MAX_REQUEST_BYTES = int(os.getenv("API_MAX_REQUEST_BYTES", "262144"))
+    API_RATE_LIMIT_REQUESTS = int(os.getenv("API_RATE_LIMIT_REQUESTS", "120"))
+    API_RATE_LIMIT_WINDOW = int(os.getenv("API_RATE_LIMIT_WINDOW", "60"))
+    STATUS_RATE_LIMIT_REQUESTS = int(os.getenv("STATUS_RATE_LIMIT_REQUESTS", "60"))
+    STATUS_RATE_LIMIT_WINDOW = int(os.getenv("STATUS_RATE_LIMIT_WINDOW", "60"))
+    ADMIN_RATE_LIMIT_REQUESTS = int(os.getenv("ADMIN_RATE_LIMIT_REQUESTS", "60"))
+    ADMIN_RATE_LIMIT_WINDOW = int(os.getenv("ADMIN_RATE_LIMIT_WINDOW", "60"))
+    GAMIFICATION_RATE_LIMIT_REQUESTS = int(os.getenv("GAMIFICATION_RATE_LIMIT_REQUESTS", "20"))
+    GAMIFICATION_RATE_LIMIT_WINDOW = int(os.getenv("GAMIFICATION_RATE_LIMIT_WINDOW", "60"))
+    RATE_LIMIT_MAX_KEYS = int(os.getenv("RATE_LIMIT_MAX_KEYS", "20000"))
+    GAMIFICATION_PUBLIC_MUTATIONS_ENABLED = os.getenv("GAMIFICATION_PUBLIC_MUTATIONS_ENABLED", "false").lower() == "true"
 
     PINNACLE_LOGIN = os.getenv("PINNACLE_LOGIN", "")
     PINNACLE_PASSWORD = os.getenv("PINNACLE_PASSWORD", "")

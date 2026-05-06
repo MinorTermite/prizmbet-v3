@@ -1,8 +1,8 @@
-﻿// ===== CONFIG =====
+// ===== CONFIG =====
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
-const LS_CACHE_KEY = 'prizmbet_matches_cache';
-const LS_FULL_KEY = 'prizmbet_matches_full_cache';
-const LANG_KEY = 'prizmbet_lang_v1';
+const LS_CACHE_KEY = 'one_prizmbet_matches_cache';
+const LS_FULL_KEY = 'one_prizmbet_matches_full_cache';
+const LANG_KEY = 'one_prizmbet_lang_v1';
 const STALE_SNAPSHOT_MS = 8 * 60 * 60 * 1000;
 
 function getLang() {

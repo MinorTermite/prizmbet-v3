@@ -8,6 +8,10 @@ import logging
 import re
 from typing import Any
 
+from backend.bot.gamification import (
+    apply_settlement_bonuses as _gamification_apply_bonuses,
+    on_bet_settled as _gamification_on_bet_settled,
+)
 from backend.db.supabase_client import db
 from backend.utils.bet_views import load_matches_cache, normalize_outcome_label
 from backend.utils.operator_audit import log_operator_event
@@ -97,21 +101,120 @@ async def run_once(limit: int = SETTLEMENT_FETCH_LIMIT) -> int:
         return 0
 
     intent_map = await db.get_bet_intents_map([str(item.get('intent_hash') or '') for item in bets])
-    match_ids = []
+
+    # Collect all match_ids: single bets + every express leg
+    match_ids: list[str] = []
     for bet in bets:
         intent = intent_map.get(str(bet.get('intent_hash') or '').upper()) or {}
         match_id = str(bet.get('match_id') or intent.get('match_id') or '').strip()
         if match_id:
             match_ids.append(match_id)
+        legs = intent.get('express_legs') or []
+        if isinstance(legs, list):
+            for leg in legs:
+                if isinstance(leg, dict):
+                    leg_mid = str(leg.get('match_id') or '').strip()
+                    if leg_mid:
+                        match_ids.append(leg_mid)
     match_map = await db.get_matches_map(match_ids)
     match_cache = load_matches_cache()
+
+    def _resolve_match(mid: str) -> dict:
+        return match_map.get(mid) or match_cache.get(mid) or {}
 
     settled = 0
     for bet in bets:
         intent_hash = str(bet.get('intent_hash') or '').strip().upper()
         intent = intent_map.get(intent_hash) or {}
         match_id = str(bet.get('match_id') or intent.get('match_id') or '').strip()
-        match = match_map.get(match_id) or match_cache.get(match_id) or {}
+        match = _resolve_match(match_id)
+
+        bet_type = str(intent.get('bet_type') or 'single').strip().lower()
+
+        # ---------- EXPRESS settlement ----------
+        if bet_type == 'express':
+            legs = intent.get('express_legs') or []
+            if not isinstance(legs, list) or not legs:
+                log.warning('[EXPRESS] tx=%s has no legs in intent', str(bet.get('tx_id') or '')[:18])
+                continue
+
+            verdict: bool | None = True
+            incomplete = False
+            unsupported = False
+            for leg in legs:
+                if not isinstance(leg, dict):
+                    unsupported = True
+                    break
+                leg_mid = str(leg.get('match_id') or '').strip()
+                leg_outcome = leg.get('outcome')
+                leg_match = _resolve_match(leg_mid)
+                leg_score = _parse_score(leg_match.get('score'))
+                if not leg_score:
+                    incomplete = True
+                    break
+                leg_verdict = determine_bet_result(leg_outcome, leg_score[0], leg_score[1])
+                if leg_verdict is None:
+                    unsupported = True
+                    break
+                if not leg_verdict:
+                    verdict = False
+                    break  # one leg lost → express lost; remaining legs irrelevant
+
+            if unsupported:
+                log.warning('[EXPRESS] unsupported market tx=%s', str(bet.get('tx_id') or '')[:18])
+                continue
+            if incomplete:
+                continue  # wait for all legs to finish
+
+            odds_fixed = float(bet.get('odds_fixed') or intent.get('odds_fixed') or 0)
+            amount = float(bet.get('amount_prizm') or 0)
+            base_payout = round(amount * odds_fixed, 2) if verdict else 0.0
+            sender_wallet = str(bet.get('sender_wallet') or intent.get('sender_wallet') or '').strip().upper()
+            bonus_result = await _gamification_apply_bonuses(
+                wallet=sender_wallet,
+                bet_tx_id=str(bet.get('tx_id') or ''),
+                amount_prizm=amount,
+                base_payout=base_payout,
+                won=verdict,
+            )
+            payout_amount = float(bonus_result.get('payout_amount') or base_payout)
+            status = 'won' if verdict or payout_amount > 0 else 'lost'
+            settlement_reason = 'CASHBACK_BONUS' if (not verdict and payout_amount > 0) else None
+            updated_rows = await db.update_bet_settlement(
+                str(bet.get('tx_id') or ''),
+                status=status,
+                payout_amount=payout_amount,
+                reason=settlement_reason,
+            )
+            updated = updated_rows[0] if updated_rows else {**bet, 'status': status, 'payout_amount': payout_amount}
+            await log_operator_event(
+                'bet_won' if verdict else 'bet_lost',
+                updated,
+                intent=dict(intent) if intent else None,
+                match=dict(match) if match else None,
+                extra={'bet_type': 'express', 'legs_count': len(legs), 'bonus_result': bonus_result},
+            )
+            await notify_bet_settled(updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
+
+            try:
+                if sender_wallet:
+                    asyncio.create_task(_gamification_on_bet_settled(
+                        wallet=sender_wallet,
+                        bet_tx_id=str(bet.get('tx_id') or ''),
+                        amount_prizm=float(bet.get('amount_prizm') or 0),
+                        odds=odds_fixed,
+                        won=verdict,
+                        league=str((legs[0] or {}).get('league') or match.get('league') or ''),
+                        sport=str((legs[0] or {}).get('sport') or match.get('sport') or ''),
+                    ))
+            except Exception as _gex:
+                log.warning('[GAMIFICATION] express hook error tx=%s: %s', str(bet.get('tx_id') or '')[:18], _gex)
+
+            settled += 1
+            log.info('[SETTLED-EXPRESS] tx=%s status=%s legs=%s', str(bet.get('tx_id') or '')[:18], status, len(legs))
+            continue
+
+        # ---------- SINGLE settlement ----------
         score_pair = _parse_score(match.get('score'))
         if not score_pair:
             continue
@@ -124,18 +227,51 @@ async def run_once(limit: int = SETTLEMENT_FETCH_LIMIT) -> int:
 
         odds_fixed = float(bet.get('odds_fixed') or intent.get('odds_fixed') or 0)
         amount = float(bet.get('amount_prizm') or 0)
-        status = 'won' if verdict else 'lost'
-        payout_amount = round(amount * odds_fixed, 2) if verdict else 0.0
-        updated_rows = await db.update_bet_settlement(str(bet.get('tx_id') or ''), status=status, payout_amount=payout_amount)
+        base_payout = round(amount * odds_fixed, 2) if verdict else 0.0
+        sender_wallet = str(
+            bet.get('sender_wallet') or intent.get('sender_wallet') or ''
+        ).strip().upper()
+        bonus_result = await _gamification_apply_bonuses(
+            wallet=sender_wallet,
+            bet_tx_id=str(bet.get('tx_id') or ''),
+            amount_prizm=amount,
+            base_payout=base_payout,
+            won=verdict,
+        )
+        payout_amount = float(bonus_result.get('payout_amount') or base_payout)
+        status = 'won' if verdict or payout_amount > 0 else 'lost'
+        settlement_reason = 'CASHBACK_BONUS' if (not verdict and payout_amount > 0) else None
+        updated_rows = await db.update_bet_settlement(
+            str(bet.get('tx_id') or ''),
+            status=status,
+            payout_amount=payout_amount,
+            reason=settlement_reason,
+        )
         updated = updated_rows[0] if updated_rows else {**bet, 'status': status, 'payout_amount': payout_amount}
         await log_operator_event(
             'bet_won' if verdict else 'bet_lost',
             updated,
             intent=dict(intent) if intent else None,
             match=dict(match) if match else None,
-            extra={'score': match.get('score')},
+            extra={'score': match.get('score'), 'bonus_result': bonus_result},
         )
         await notify_bet_settled(updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
+
+        # Gamification hook — fire-and-forget, never blocks settlement
+        try:
+            if sender_wallet:
+                asyncio.create_task(_gamification_on_bet_settled(
+                    wallet=sender_wallet,
+                    bet_tx_id=str(bet.get('tx_id') or ''),
+                    amount_prizm=float(bet.get('amount_prizm') or 0),
+                    odds=odds_fixed,
+                    won=verdict,
+                    league=str(match.get('league') or ''),
+                    sport=str(match.get('sport') or ''),
+                ))
+        except Exception as _gex:
+            log.warning('[GAMIFICATION] hook error tx=%s: %s', str(bet.get('tx_id') or '')[:18], _gex)
+
         settled += 1
         log.info('[SETTLED] tx=%s status=%s score=%s', str(bet.get('tx_id') or '')[:18], status, match.get('score'))
 
