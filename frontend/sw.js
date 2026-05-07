@@ -1,5 +1,5 @@
 // ── 1PrizmBet Service Worker ─────────────────────────────────────────────────
-const VERSION     = 'v71';
+const VERSION     = 'v72';
 const SHELL_CACHE = `one-prizmbet-shell-${VERSION}`;
 const DATA_CACHE  = 'one-prizmbet-data';   // вечный, обновляется по контенту
 
