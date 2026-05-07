@@ -3247,11 +3247,11 @@ button.market-chip:hover {
 }
 
 .header-v2-logo-shell.header-v2-logo-shell--source {
-    width: clamp(240px, 22vw, 320px);
+    width: clamp(230px, 20vw, 300px);
     aspect-ratio: 1916 / 821;
     height: auto;
     border-radius: 18px;
-    background: #070816;
+    background: rgba(7, 8, 22, 0.86);
     box-shadow: none;
     animation: none;
     overflow: hidden;
@@ -3277,14 +3277,17 @@ button.market-chip:hover {
 
 @media (max-width: 760px) {
     .header-v2-logo-shell.header-v2-logo-shell--source {
-        width: clamp(148px, 41vw, 166px);
+        width: clamp(136px, 36vw, 154px);
         aspect-ratio: 1916 / 821;
         height: auto;
-        border-radius: 16px;
+        border-radius: 12px;
+        background: rgba(7, 8, 22, 0.72);
+        box-shadow: none;
+        padding: 0;
     }
 
     .header-v2-logo-shell.header-v2-logo-shell--source .header-v2-logo {
-        border-radius: 16px;
+        border-radius: 12px;
         object-position: center !important;
         filter: none !important;
     }
@@ -3292,7 +3295,7 @@ button.market-chip:hover {
 
 @media (max-width: 380px) {
     .header-v2-logo-shell.header-v2-logo-shell--source {
-        width: 146px;
+        width: 128px;
         height: auto;
     }
 }
