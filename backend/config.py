@@ -49,6 +49,9 @@ class Config:
     GAMIFICATION_RATE_LIMIT_WINDOW = int(os.getenv("GAMIFICATION_RATE_LIMIT_WINDOW", "60"))
     RATE_LIMIT_MAX_KEYS = int(os.getenv("RATE_LIMIT_MAX_KEYS", "20000"))
     GAMIFICATION_PUBLIC_MUTATIONS_ENABLED = os.getenv("GAMIFICATION_PUBLIC_MUTATIONS_ENABLED", "false").lower() == "true"
+    WALLET_VERIFICATION_AMOUNT_PRIZM = float(os.getenv("WALLET_VERIFICATION_AMOUNT_PRIZM", "1"))
+    WALLET_VERIFICATION_TTL_MINUTES = int(os.getenv("WALLET_VERIFICATION_TTL_MINUTES", "30"))
+    WALLET_VERIFICATION_MIN_CONFIRMATIONS = int(os.getenv("WALLET_VERIFICATION_MIN_CONFIRMATIONS", "0"))
 
     PINNACLE_LOGIN = os.getenv("PINNACLE_LOGIN", "")
     PINNACLE_PASSWORD = os.getenv("PINNACLE_PASSWORD", "")
@@ -66,6 +69,7 @@ class Config:
     # The encryption key (PRIZM_MASTER_KEY) lives ONLY in this .env file.
     PRIZM_MASTER_KEY = os.getenv("PRIZM_MASTER_KEY", "")       # 32-byte base64url key for AES-256-GCM
     PRIZM_HOT_WALLET = os.getenv("PRIZM_HOT_WALLET", "")       # Hot wallet public address
+    PRIZM_VERIFICATION_WALLET = os.getenv("PRIZM_VERIFICATION_WALLET", "")  # Public address for wallet-proof deposits
     # ADMIN wallet — finance manager's personal wallet, never used automatically.
     # Only its public address is stored here for display in the operator cabinet.
     PRIZM_ADMIN_WALLET = os.getenv("PRIZM_ADMIN_WALLET", "")   # Admin/cold wallet public address

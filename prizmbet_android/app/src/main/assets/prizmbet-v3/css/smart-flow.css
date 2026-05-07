@@ -3413,6 +3413,68 @@ button.market-chip:hover {
     font-weight: 600;
 }
 
+.cv2-wallet-verify {
+    margin: 0 16px 14px;
+    padding: 14px;
+    border: 1px solid rgba(79,209,197,.3);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(79,209,197,.12), rgba(99,102,241,.1));
+}
+
+.cv2-wallet-verify.is-verified {
+    border-color: rgba(34,197,94,.35);
+    background: rgba(34,197,94,.1);
+}
+
+.cv2-wallet-verify-title {
+    font-size: .88rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.cv2-wallet-verify-text {
+    color: rgba(255,255,255,.62);
+    font-size: .78rem;
+    line-height: 1.45;
+}
+
+.cv2-wallet-verify-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.cv2-wallet-verify-grid div {
+    background: rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 8px;
+    min-width: 0;
+}
+
+.cv2-wallet-verify-grid span {
+    display: block;
+    color: rgba(255,255,255,.42);
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 3px;
+}
+
+.cv2-wallet-verify-grid strong {
+    display: block;
+    color: #fff;
+    font-size: .78rem;
+    overflow-wrap: anywhere;
+}
+
+.cv2-wallet-verify-btn {
+    margin-top: 12px;
+    width: 100%;
+}
+
 /* Tabs */
 .cv2-tabs {
     display: flex;

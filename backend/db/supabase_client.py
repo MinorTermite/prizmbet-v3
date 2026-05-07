@@ -277,6 +277,94 @@ class Database:
             print(f"Error updating bet settlement: {exc}")
             return None
 
+    async def get_wallet_verification(self, wallet: str):
+        if not self.initialized:
+            return None
+        cleaned = str(wallet or "").strip().upper()
+        if not cleaned:
+            return None
+        try:
+            response = (
+                self.client.table("wallet_verifications")
+                .select("*")
+                .eq("wallet", cleaned)
+                .limit(1)
+                .execute()
+                .data
+            )
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching wallet verification: {exc}")
+            return None
+
+    async def get_pending_wallet_verification_challenge(self, wallet: str, as_of_iso: str):
+        if not self.initialized:
+            return None
+        cleaned = str(wallet or "").strip().upper()
+        if not cleaned:
+            return None
+        try:
+            response = (
+                self.client.table("wallet_verification_challenges")
+                .select("*")
+                .eq("wallet", cleaned)
+                .eq("status", "pending")
+                .gte("expires_at", as_of_iso)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+                .data
+            )
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error fetching wallet verification challenge: {exc}")
+            return None
+
+    async def create_wallet_verification_challenge(self, challenge_row: dict):
+        if not self.initialized:
+            return None
+        try:
+            response = self.client.table("wallet_verification_challenges").insert(challenge_row).execute().data
+            return response[0] if response else None
+        except Exception as exc:
+            print(f"Error creating wallet verification challenge: {exc}")
+            return None
+
+    async def expire_wallet_verification_challenges(self, wallet: str | None = None):
+        if not self.initialized:
+            return None
+        try:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            query = (
+                self.client.table("wallet_verification_challenges")
+                .update({"status": "expired", "updated_at": now_iso})
+                .eq("status", "pending")
+                .lt("expires_at", now_iso)
+            )
+            if wallet:
+                query = query.eq("wallet", str(wallet).strip().upper())
+            return query.execute().data
+        except Exception as exc:
+            print(f"Error expiring wallet verification challenges: {exc}")
+            return None
+
+    async def verify_wallet_challenge(self, wallet: str, code: str, tx_id: str, block_timestamp: str):
+        if not self.initialized:
+            return None
+        try:
+            result = self.client.rpc("verify_wallet_challenge", {
+                "p_wallet": str(wallet or "").strip().upper(),
+                "p_code": str(code or "").strip().upper(),
+                "p_tx_id": str(tx_id or "").strip(),
+                "p_block_timestamp": block_timestamp,
+            }).execute().data
+            if isinstance(result, list):
+                return result[0] if result else {}
+            return result if isinstance(result, dict) else {}
+        except Exception as exc:
+            print(f"Error verifying wallet challenge: {exc}")
+            return None
+
     async def mark_bet_paid(self, tx_id: str, payout_tx_id: str = "", payout_amount: float | None = None):
         if not self.initialized:
             return None

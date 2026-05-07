@@ -44,6 +44,8 @@ def test_cabinet_v2_calls_registered_player_api_routes():
         assert "/api/player/${encodeURIComponent(wallet)}/roulette" in module_source
         assert "/api/raffles/active" in module_source
         assert "/api/raffles/${encodeURIComponent(raffle.id)}/enter" in module_source
+        assert "/api/wallets/${encodeURIComponent(wallet)}/verification" in module_source
+        assert "/api/wallets/${encodeURIComponent(wallet)}/verification/challenge" in module_source
         assert "method: 'POST'" in module_source
         assert "body: JSON.stringify({ spins })" in module_source
         assert "body: JSON.stringify({ wallet, answers })" in module_source
@@ -62,6 +64,27 @@ def test_cabinet_v2_hides_public_mutations_without_wallet_verification():
         assert "].filter(tab => _isTabAvailable(tab.id));" in module_source
         assert "return _lockedMutationHtml(S.tabs.roulette());" in module_source
         assert "return _lockedMutationHtml(S.tabs.raffle());" in module_source
+
+
+def test_cabinet_v2_renders_wallet_verification_challenge_panel():
+    source = CABINET.read_text(encoding="utf-8")
+    android_source = ANDROID_CABINET.read_text(encoding="utf-8")
+    css = SMART_FLOW.read_text(encoding="utf-8")
+
+    for module_source in (source, android_source):
+        assert "function _renderWalletVerificationPanel()" in module_source
+        assert "_bindWalletVerificationEvents();" in module_source
+        assert "cv2WalletVerifyBtn" in module_source
+        assert "wallet_verification?.challenge" in module_source
+        assert "gamification_public_mutations_configured" in module_source
+        assert "S.verifyTitle()" in module_source
+
+    for selector in (
+        ".cv2-wallet-verify",
+        ".cv2-wallet-verify-grid",
+        ".cv2-wallet-verify-btn",
+    ):
+        assert selector in css
 
 
 def test_android_shell_caches_cabinet_v2_module():

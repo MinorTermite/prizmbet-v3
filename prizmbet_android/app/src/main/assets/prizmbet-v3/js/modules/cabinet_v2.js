@@ -21,6 +21,7 @@ let _activeRaffle = null;
 let _betData    = null;   // passed in from history_ui.js
 let _spinning   = false;
 let _enteringRaffle = false;
+let _verificationBusy = false;
 let _initialized = false;
 
 // ── Level character emoji fallback (until SVG assets are ready) ───────────────
@@ -56,6 +57,13 @@ const S = {
     raffleOk:    () => isEn() ? 'Raffle entry accepted.'      : 'Участие в розыгрыше принято.',
     raffleErr:   () => isEn() ? 'Raffle entry failed.'        : 'Не удалось войти в розыгрыш.',
     locked:      () => isEn() ? 'Locked until wallet verification is enabled.' : 'Требуется подтверждение кошелька. Рулетка и розыгрыш временно отключены.',
+    verifyTitle: () => isEn() ? 'Verify wallet ownership' : 'Подтверждение кошелька',
+    verifyText:  () => isEn() ? 'Send the exact PRIZM amount with this code in the transaction message.' : 'Отправьте точную сумму PRIZM с этим кодом в комментарии к транзакции.',
+    verifyBtn:   () => isEn() ? 'Get verification code' : 'Получить код',
+    verifyCheck: () => isEn() ? 'Refresh status' : 'Проверить статус',
+    verifyBusy:  () => isEn() ? 'Preparing code...' : 'Готовим код...',
+    verified:    () => isEn() ? 'Wallet verified' : 'Кошелек подтвержден',
+    verifyErr:   () => isEn() ? 'Wallet verification failed.' : 'Не удалось подтвердить кошелек.',
     prize:       () => isEn() ? 'Prize'              : 'Приз',
     nothing:     () => isEn() ? 'No prize — try again!' : 'Пусто — попробуй ещё!',
     questDone:   () => isEn() ? '✓ Completed'        : '✓ Выполнено',
@@ -223,6 +231,8 @@ function _renderAll() {
                 }
             </div>
 
+            ${_renderWalletVerificationPanel()}
+
             <!-- Tabs -->
             <div class="cv2-tabs" id="cv2Tabs">
                 ${_renderTabHeaders()}
@@ -237,11 +247,109 @@ function _renderAll() {
 
     _setRootHtml(html);
     _bindTabEvents();
+    _bindWalletVerificationEvents();
     _bindRouletteEvents();
     _bindRaffleEvents();
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────────
+
+function _renderWalletVerificationPanel() {
+    const features = _profile?.features || {};
+    const verification = _profile?.wallet_verification || {};
+    if (!features.wallet_verification_required) return '';
+
+    if (verification.verified || features.wallet_verified) {
+        return `
+            <div class="cv2-wallet-verify is-verified">
+                <div class="cv2-wallet-verify-title">${escapeHtml(S.verified())}</div>
+            </div>
+        `;
+    }
+
+    const challenge = verification.challenge || null;
+    const amount = Number(challenge?.amount_prizm || verification.amount_prizm || 1);
+    const recipient = challenge?.recipient_wallet || verification.recipient_wallet || '';
+    const code = challenge?.code || '';
+    const expiresAt = challenge?.expires_at ? _renderRaffleDate(challenge.expires_at) : '';
+
+    return `
+        <div class="cv2-wallet-verify">
+            <div class="cv2-wallet-verify-title">${escapeHtml(S.verifyTitle())}</div>
+            <div class="cv2-wallet-verify-text">${escapeHtml(S.verifyText())}</div>
+            ${challenge ? `
+                <div class="cv2-wallet-verify-grid">
+                    <div><span>Amount</span><strong>${formatNumber(amount)} PRIZM</strong></div>
+                    <div><span>Wallet</span><strong>${escapeHtml(recipient)}</strong></div>
+                    <div><span>Code</span><strong>${escapeHtml(code)}</strong></div>
+                    <div><span>Expires</span><strong>${escapeHtml(expiresAt)}</strong></div>
+                </div>
+            ` : ''}
+            <button class="btn btn-primary cv2-wallet-verify-btn" id="cv2WalletVerifyBtn" type="button">
+                ${escapeHtml(challenge ? S.verifyCheck() : S.verifyBtn())}
+            </button>
+        </div>
+    `;
+}
+
+function _bindWalletVerificationEvents() {
+    const btn = document.getElementById('cv2WalletVerifyBtn');
+    if (!btn) return;
+    btn.addEventListener('click', _handleWalletVerification);
+}
+
+async function _handleWalletVerification() {
+    if (_verificationBusy) return;
+
+    const wallet = getWalletAddress();
+    const apiBase = getApiBase();
+    if (!wallet || !apiBase) return;
+
+    const btn = document.getElementById('cv2WalletVerifyBtn');
+    _verificationBusy = true;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = S.verifyBusy();
+    }
+
+    try {
+        const hasChallenge = Boolean(_profile?.wallet_verification?.challenge);
+        const endpoint = hasChallenge
+            ? `${apiBase}/api/wallets/${encodeURIComponent(wallet)}/verification`
+            : `${apiBase}/api/wallets/${encodeURIComponent(wallet)}/verification/challenge`;
+        const resp = await fetch(endpoint, {
+            method: hasChallenge ? 'GET' : 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(json.error || S.verifyErr());
+
+        const verified = Boolean(json.verification?.verified);
+        const configured = Boolean(_profile?.features?.gamification_public_mutations_configured);
+        _profile = {
+            ..._profile,
+            wallet_verification: json.verification || _profile.wallet_verification,
+            features: {
+                ...(_profile?.features || {}),
+                wallet_verified: verified,
+                gamification_public_mutations: configured && verified,
+                roulette_enabled: configured && verified,
+                raffle_entry_enabled: configured && verified,
+            },
+        };
+        if (verified) showToast(S.verified());
+        _renderAll();
+    } catch (error) {
+        showToast(String(error?.message || S.verifyErr()));
+    } finally {
+        _verificationBusy = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = S.verifyCheck();
+        }
+    }
+}
 
 function _renderTabHeaders() {
     const tabs = [

@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 API = ROOT / "backend" / "api" / "bet_intents_api.py"
 SETTLER = ROOT / "backend" / "bot" / "v3_settler.py"
 ENGINE = ROOT / "backend" / "bot" / "gamification.py"
+TX_LISTENER = ROOT / "backend" / "bot" / "tx_listener.py"
 
 
 def test_player_api_routes_are_registered():
@@ -14,6 +15,8 @@ def test_player_api_routes_are_registered():
         'app.router.add_get("/api/player/{wallet}",',
         'app.router.add_get("/api/player/{wallet}/quests",',
         'app.router.add_post("/api/player/{wallet}/roulette",',
+        'app.router.add_get("/api/wallets/{wallet}/verification",',
+        'app.router.add_post("/api/wallets/{wallet}/verification/challenge",',
         'app.router.add_get("/api/leaderboard/weekly",',
         'app.router.add_post("/api/admin/leaderboard/weekly/finalize",',
         'app.router.add_post("/api/admin/player/{wallet}/game-session",',
@@ -44,6 +47,17 @@ def test_gamification_engine_does_not_expose_roulette_weights_to_api():
     assert "_ROULETTE_PRIZES" in engine_source
     assert "_ROULETTE_PRIZES" not in api_source
     assert "weight" not in api_source[api_source.find("async def player_roulette") : api_source.find("async def weekly_leaderboard")]
+
+
+def test_roulette_uses_crypto_secure_server_rng():
+    source = ENGINE.read_text(encoding="utf-8")
+    spin_source = source[source.find("async def spin_roulette") : source.find("async def _apply_roulette_prize")]
+
+    assert "import secrets" in source
+    assert "def _roll_roulette_prize" in source
+    assert "secrets.randbelow(_PRIZE_TOTAL_WEIGHT)" in source
+    assert "random.choices" not in source
+    assert "[_roll_roulette_prize() for _ in range(spins)]" in spin_source
 
 
 def test_roulette_spend_uses_atomic_rpc_instead_of_select_then_update():
@@ -132,10 +146,42 @@ def test_player_api_exposes_gamification_feature_flags():
     source = API.read_text(encoding="utf-8")
 
     assert "def _gamification_features" in source
+    assert "public_mutations_configured and wallet_verified" in source
     assert '"gamification_public_mutations": public_mutations' in source
+    assert '"gamification_public_mutations_configured": public_mutations_configured' in source
+    assert '"wallet_verification_required": True' in source
+    assert '"wallet_verified": bool(wallet_verified)' in source
     assert '"roulette_enabled": public_mutations' in source
     assert '"raffle_entry_enabled": public_mutations' in source
     assert '"features": _gamification_features()' in source
+
+
+def test_wallet_verification_api_contract_and_gamification_guards():
+    source = API.read_text(encoding="utf-8")
+    roulette_source = source[source.find("async def player_roulette") : source.find("async def weekly_leaderboard")]
+    raffle_source = source[source.find("async def raffle_enter") : source.find("def create_app")]
+
+    assert "WALLET_VERIFICATION_CODE_RE" in source
+    assert "async def wallet_verification_status" in source
+    assert "async def wallet_verification_challenge" in source
+    assert '"/api/wallets/${encodeURIComponent(wallet)}/verification' not in source
+    assert "await db.create_wallet_verification_challenge" in source
+    assert "await _wallet_is_verified(wallet)" in roulette_source
+    assert "await _wallet_is_verified(wallet)" in raffle_source
+    assert "Wallet ownership verification required" in roulette_source
+    assert "Wallet ownership verification required" in raffle_source
+
+
+def test_tx_listener_verifies_wallet_challenges_before_bet_matching():
+    source = TX_LISTENER.read_text(encoding="utf-8")
+    process_source = source[source.find("async def _process_tx") : source.find("async def run_once")]
+
+    assert "WALLET_VERIFICATION_CODE_RE" in source
+    assert "def _extract_wallet_verification_code" in source
+    assert "await db.verify_wallet_challenge" in source
+    assert "wallet_verification" in source
+    assert "account=account" in source
+    assert process_source.index("await _process_wallet_verification_tx(") < process_source.index("intent_hash = _extract_intent_hash(comment)")
 
 
 def test_settlement_applies_active_gamification_bonuses_before_payout():

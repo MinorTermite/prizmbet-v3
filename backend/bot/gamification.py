@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import math
-import random
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -358,6 +358,7 @@ _ROULETTE_PRIZES: list[dict] = [
 _PRIZE_KEYS:    list[str] = [p["prize_type"]  for p in _ROULETTE_PRIZES]
 _PRIZE_WEIGHTS: list[int] = [p["weight"]      for p in _ROULETTE_PRIZES]
 _PRIZE_MAP:     dict[str, dict] = {p["prize_type"]: p for p in _ROULETTE_PRIZES}
+_PRIZE_TOTAL_WEIGHT = sum(_PRIZE_WEIGHTS)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -368,6 +369,16 @@ def _now_iso() -> str:
 
 def _expires_iso(days: int) -> str:
     return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+
+
+def _roll_roulette_prize() -> str:
+    ticket = secrets.randbelow(_PRIZE_TOTAL_WEIGHT)
+    cursor = 0
+    for prize in _ROULETTE_PRIZES:
+        cursor += int(prize["weight"])
+        if ticket < cursor:
+            return str(prize["prize_type"])
+    return str(_ROULETTE_PRIZES[-1]["prize_type"])
 
 
 def _rpc_scalar(data: Any, function_name: str) -> Any:
@@ -1337,7 +1348,7 @@ async def spin_roulette(wallet: str, spins: int) -> list[dict]:
         }).execute()
 
         # ── Roll prizes ─────────────────────────────────────────────────────
-        prize_types = random.choices(_PRIZE_KEYS, weights=_PRIZE_WEIGHTS, k=spins)
+        prize_types = [_roll_roulette_prize() for _ in range(spins)]
         results: list[dict] = []
 
         for prize_type in prize_types:

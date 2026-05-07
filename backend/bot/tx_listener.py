@@ -3,6 +3,7 @@
 """PRIZM Tx Listener + Anti-fraud."""
 import asyncio
 import logging
+import re
 from datetime import datetime, timezone, timedelta
 
 from backend.config import config
@@ -14,6 +15,7 @@ WALLET = prizm_api.WALLET
 SAFETY_WINDOW_SECONDS = 120
 POLL_INTERVAL_SECONDS = 30
 PAGE_SIZE = 100
+WALLET_VERIFICATION_CODE_RE = re.compile(r"\bPB-[A-Z0-9]{6,12}\b")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -29,6 +31,43 @@ def _extract_intent_hash(comment: str) -> str:
     if 1 <= len(text) <= 12 and text.isalnum():
         return text
     return ""
+
+
+def _verification_wallet() -> str:
+    return (config.PRIZM_VERIFICATION_WALLET or WALLET or "").strip().upper()
+
+
+def _listener_accounts() -> list[str]:
+    accounts = []
+    for wallet in (WALLET, _verification_wallet()):
+        wallet = str(wallet or "").strip().upper()
+        if wallet and wallet not in accounts:
+            accounts.append(wallet)
+    return accounts
+
+
+def _extract_wallet_verification_code(comment: str) -> str:
+    match = WALLET_VERIFICATION_CODE_RE.search(str(comment or "").strip().upper())
+    return match.group(0) if match else ""
+
+
+def _verification_amount_matches(amount: float) -> bool:
+    expected = round(float(config.WALLET_VERIFICATION_AMOUNT_PRIZM or 1), 8)
+    return abs(float(amount or 0) - expected) <= 0.00000001
+
+
+def _has_required_confirmations(tx: dict) -> bool:
+    required = int(config.WALLET_VERIFICATION_MIN_CONFIRMATIONS or 0)
+    if required <= 0:
+        return True
+    for field in ("confirmations", "confirmationCount", "confirmationsCount"):
+        if field not in tx:
+            continue
+        try:
+            return int(tx.get(field) or 0) >= required
+        except Exception:
+            return False
+    return False
 
 
 async def _ensure_db():
@@ -65,13 +104,133 @@ async def _update_checkpoint(ts: int, tx_id: str):
     await db.upsert_listener_state(last_prizm_timestamp=ts, last_tx_id=tx_id)
 
 
+async def _write_wallet_verification_financial_event(
+    *,
+    status: str,
+    tx_id: str,
+    sender_wallet: str,
+    recipient_wallet: str,
+    amount: float,
+    code: str,
+    reason: str = "",
+):
+    try:
+        await db.insert_financial_event({
+            "event_type": "wallet_verification",
+            "direction": "inbound",
+            "status": status,
+            "wallet_from": sender_wallet,
+            "wallet_to": recipient_wallet,
+            "amount_prizm": amount,
+            "fee_prizm": 0,
+            "prizm_tx_id": tx_id,
+            "reference_code": code,
+            "initiated_by": "tx_listener",
+            "details": {"reason": reason} if reason else {},
+        })
+    except Exception as exc:
+        log.warning("Wallet verification financial event failed tx=%s: %s", tx_id[:16], exc)
+
+
+async def _process_wallet_verification_tx(
+    *,
+    tx: dict,
+    tx_id: str,
+    sender_wallet: str,
+    recipient_wallet: str,
+    amount: float,
+    block_ts_utc: datetime,
+    comment: str,
+) -> bool:
+    code = _extract_wallet_verification_code(comment)
+    if not code:
+        return False
+
+    audit_row = {
+        "tx_id": tx_id,
+        "intent_hash": None,
+        "match_id": "wallet_verification",
+        "sender_wallet": sender_wallet,
+        "amount_prizm": amount,
+        "odds_fixed": 1.00,
+        "status": "rejected",
+        "reject_reason": None,
+        "block_timestamp": block_ts_utc.isoformat(),
+    }
+    extra = {
+        "code": code,
+        "recipient_wallet": recipient_wallet,
+        "expected_recipient_wallet": _verification_wallet(),
+        "expected_amount_prizm": round(float(config.WALLET_VERIFICATION_AMOUNT_PRIZM or 1), 8),
+    }
+
+    reason = ""
+    if recipient_wallet != _verification_wallet():
+        reason = "INVALID_VERIFICATION_RECIPIENT"
+    elif not _verification_amount_matches(amount):
+        reason = "INVALID_VERIFICATION_AMOUNT"
+    elif not _has_required_confirmations(tx):
+        reason = "INSUFFICIENT_CONFIRMATIONS"
+
+    if reason:
+        audit_row["reject_reason"] = reason
+        await log_operator_event("wallet_verification_rejected", audit_row, reason=reason, extra=extra)
+        await _write_wallet_verification_financial_event(
+            status="failed",
+            tx_id=tx_id,
+            sender_wallet=sender_wallet,
+            recipient_wallet=recipient_wallet,
+            amount=amount,
+            code=code,
+            reason=reason,
+        )
+        return True
+
+    result = await db.verify_wallet_challenge(
+        sender_wallet,
+        code,
+        tx_id,
+        block_ts_utc.isoformat(),
+    )
+    if result and result.get("ok"):
+        if result.get("idempotent"):
+            return True
+        audit_row["status"] = "accepted"
+        await log_operator_event("wallet_verified", audit_row, extra={**extra, "result": result})
+        await _write_wallet_verification_financial_event(
+            status="completed",
+            tx_id=tx_id,
+            sender_wallet=sender_wallet,
+            recipient_wallet=recipient_wallet,
+            amount=amount,
+            code=code,
+        )
+        log.info("[WALLET VERIFIED] %s tx=%s code=%s", sender_wallet[:18], tx_id[:16], code)
+        return True
+
+    reason = str((result or {}).get("error") or "WALLET_VERIFICATION_CHALLENGE_INVALID")
+    audit_row["reject_reason"] = reason
+    await log_operator_event("wallet_verification_rejected", audit_row, reason=reason, extra={**extra, "result": result or {}})
+    await _write_wallet_verification_financial_event(
+        status="failed",
+        tx_id=tx_id,
+        sender_wallet=sender_wallet,
+        recipient_wallet=recipient_wallet,
+        amount=amount,
+        code=code,
+        reason=reason,
+    )
+    return True
+
+
 async def _process_tx(tx: dict):
     tx_id = tx.get("transaction", "")
     if not tx_id:
         return
     if tx.get("senderRS") == WALLET:
         return
-    if tx.get("recipientRS") != WALLET:
+    recipient_wallet = (tx.get("recipientRS") or "").upper()
+    if recipient_wallet not in _listener_accounts():
         return
 
     amount = round(prizm_api.prizm_amount(tx), 2)
@@ -80,6 +239,16 @@ async def _process_tx(tx: dict):
     sender_wallet = (tx.get("senderRS") or "").upper()
 
     comment = prizm_api.get_message(tx)
+    if await _process_wallet_verification_tx(
+        tx=tx,
+        tx_id=tx_id,
+        sender_wallet=sender_wallet,
+        recipient_wallet=recipient_wallet,
+        amount=amount,
+        block_ts_utc=block_ts_utc,
+        comment=comment,
+    ):
+        return
     intent_hash = _extract_intent_hash(comment)
 
     bet_row = {
@@ -190,24 +359,26 @@ async def run_once():
     last_ts, last_tx = await _get_checkpoint()
 
     txs = []
-    first_index = 0
-    while True:
-        page = prizm_api.get_transactions(
-            first_index=first_index,
-            last_index=first_index + PAGE_SIZE - 1,
-        )
-        if not page:
-            break
+    for account in _listener_accounts():
+        first_index = 0
+        while True:
+            page = prizm_api.get_transactions(
+                first_index=first_index,
+                last_index=first_index + PAGE_SIZE - 1,
+                account=account,
+            )
+            if not page:
+                break
 
-        txs.extend(page)
+            txs.extend(page)
 
-        if len(page) < PAGE_SIZE:
-            break
+            if len(page) < PAGE_SIZE:
+                break
 
-        if all(int(tx.get("timestamp", 0) or 0) < last_ts for tx in page):
-            break
+            if all(int(tx.get("timestamp", 0) or 0) < last_ts for tx in page):
+                break
 
-        first_index += PAGE_SIZE
+            first_index += PAGE_SIZE
 
     unique_txs = {}
     for tx in txs:
@@ -232,7 +403,7 @@ async def run_once():
 
 
 async def main():
-    log.info("Starting Tx Listener for wallet %s", WALLET)
+    log.info("Starting Tx Listener for wallets %s", ", ".join(_listener_accounts()))
     while True:
         try:
             await run_once()

@@ -69,6 +69,9 @@ MATCHES_CACHE_PATH = Path(__file__).resolve().parents[2] / "frontend" / "matches
 INTENT_HASH_LENGTH = 12
 INTENT_HASH_RE = re.compile(r"^[A-Z0-9]{6,32}$")
 WALLET_RE = re.compile(r"^[A-Z0-9:_-]{3,96}$")
+WALLET_VERIFICATION_CODE_RE = re.compile(r"^PB-[A-Z0-9]{6,12}$")
+WALLET_VERIFICATION_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+WALLET_VERIFICATION_CODE_LENGTH = 8
 
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -125,6 +128,32 @@ def _extract_odds(match: dict[str, Any], outcome: str) -> float | None:
 def _intent_hash(length: int = INTENT_HASH_LENGTH) -> str:
     chars = string.ascii_uppercase + string.digits
     return "".join(secrets.choice(chars) for _ in range(length))
+
+
+def _verification_code() -> str:
+    suffix = "".join(secrets.choice(WALLET_VERIFICATION_CODE_ALPHABET) for _ in range(WALLET_VERIFICATION_CODE_LENGTH))
+    return f"PB-{suffix}"
+
+
+def _verification_amount() -> float:
+    return round(max(float(config.WALLET_VERIFICATION_AMOUNT_PRIZM or 1), 0.00000001), 8)
+
+
+def _verification_wallet() -> str:
+    return _normalize_wallet(config.PRIZM_VERIFICATION_WALLET or config.PRIZM_HOT_WALLET)
+
+
+def _public_verification_challenge(row: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not row:
+        return None
+    return {
+        "code": str(row.get("code") or ""),
+        "amount_prizm": float(row.get("amount_prizm") or _verification_amount()),
+        "recipient_wallet": str(row.get("recipient_wallet") or _verification_wallet()),
+        "status": str(row.get("status") or "pending"),
+        "expires_at": row.get("expires_at"),
+        "created_at": row.get("created_at"),
+    }
 
 
 def _parse_dt(value: Any) -> datetime | None:
@@ -1393,6 +1422,7 @@ _api_limiter = _RateLimiter(max_requests=config.API_RATE_LIMIT_REQUESTS, window_
 _status_limiter = _RateLimiter(max_requests=config.STATUS_RATE_LIMIT_REQUESTS, window_seconds=config.STATUS_RATE_LIMIT_WINDOW)
 _admin_limiter = _RateLimiter(max_requests=config.ADMIN_RATE_LIMIT_REQUESTS, window_seconds=config.ADMIN_RATE_LIMIT_WINDOW)
 _gamification_limiter = _RateLimiter(max_requests=config.GAMIFICATION_RATE_LIMIT_REQUESTS, window_seconds=config.GAMIFICATION_RATE_LIMIT_WINDOW)
+_wallet_verification_limiter = _RateLimiter(max_requests=6, window_seconds=300)
 
 RATE_LIMITED_PATHS: dict[str, tuple[_RateLimiter, set[str]]] = {
     "/api/admin/login": (_login_limiter, {"POST"}),
@@ -1431,6 +1461,8 @@ def _limiter_for(request: web.Request) -> _RateLimiter | None:
         return _status_limiter
     if request.path.startswith("/api/wallets/") and request.path.endswith("/dashboard"):
         return _status_limiter
+    if request.path.startswith("/api/wallets/") and "/verification" in request.path:
+        return _status_limiter if request.method == "GET" else _wallet_verification_limiter
     if request.path.startswith("/api/player/") or request.path.startswith("/api/raffles/"):
         return _gamification_limiter
     if request.path.startswith(_ADMIN_PATH_PREFIX):
@@ -1469,6 +1501,108 @@ async def cors_middleware(request: web.Request, handler):
     except web.HTTPException as ex:
         response = ex
     return _finalize_response(request, response)
+
+
+async def _wallet_is_verified(wallet: str) -> bool:
+    if not wallet:
+        return False
+    return bool(await db.get_wallet_verification(wallet))
+
+
+async def _wallet_verification_payload(wallet: str) -> dict[str, Any]:
+    now_iso = datetime.now(timezone.utc).isoformat()
+    verified_row = await db.get_wallet_verification(wallet)
+    challenge = None
+    if not verified_row:
+        challenge = await db.get_pending_wallet_verification_challenge(wallet, now_iso)
+    return {
+        "verified": bool(verified_row),
+        "verified_at": verified_row.get("last_verified_at") if verified_row else None,
+        "method": "prizm_transfer_code",
+        "amount_prizm": _verification_amount(),
+        "recipient_wallet": _verification_wallet(),
+        "challenge": _public_verification_challenge(challenge),
+    }
+
+
+async def wallet_verification_status(request: web.Request) -> web.Response:
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    wallet = _normalize_wallet(request.match_info.get("wallet"))
+    if not wallet:
+        return _json_response({"error": "wallet is required or invalid"}, status=400)
+
+    return _json_response({
+        "ok": True,
+        "wallet": wallet,
+        "verification": await _wallet_verification_payload(wallet),
+    })
+
+
+async def wallet_verification_challenge(request: web.Request) -> web.Response:
+    if not await _ensure_db_ready():
+        return _json_response({"error": "Database not configured"}, status=500)
+
+    wallet = _normalize_wallet(request.match_info.get("wallet"))
+    if not wallet:
+        return _json_response({"error": "wallet is required or invalid"}, status=400)
+
+    recipient_wallet = _verification_wallet()
+    if not recipient_wallet:
+        return _json_response({"error": "Verification wallet is not configured"}, status=500)
+
+    if await _wallet_is_verified(wallet):
+        return _json_response({
+            "ok": True,
+            "wallet": wallet,
+            "verification": await _wallet_verification_payload(wallet),
+        })
+
+    now = datetime.now(timezone.utc)
+    await db.expire_wallet_verification_challenges(wallet)
+    existing = await db.get_pending_wallet_verification_challenge(wallet, now.isoformat())
+    if existing:
+        return _json_response({
+            "ok": True,
+            "wallet": wallet,
+            "verification": await _wallet_verification_payload(wallet),
+        })
+
+    ttl_minutes = max(int(config.WALLET_VERIFICATION_TTL_MINUTES or 30), 5)
+    expires_at = now + timedelta(minutes=ttl_minutes)
+    amount = _verification_amount()
+    ip = client_ip(request)[:120]
+    user_agent = str(request.headers.get("User-Agent") or "")[:500]
+
+    for _ in range(5):
+        code = _verification_code()
+        if not WALLET_VERIFICATION_CODE_RE.fullmatch(code):
+            continue
+        row = await db.create_wallet_verification_challenge({
+            "wallet": wallet,
+            "code": code,
+            "amount_prizm": amount,
+            "recipient_wallet": recipient_wallet,
+            "expires_at": expires_at.isoformat(),
+            "requested_ip": ip,
+            "user_agent": user_agent,
+        })
+        if row:
+            return _json_response({
+                "ok": True,
+                "wallet": wallet,
+                "verification": {
+                    "verified": False,
+                    "verified_at": None,
+                    "method": "prizm_transfer_code",
+                    "amount_prizm": amount,
+                    "recipient_wallet": recipient_wallet,
+                    "challenge": _public_verification_challenge(row),
+                },
+            })
+
+    return _json_response({"error": "Failed to create verification challenge"}, status=500)
 
 
 async def export_bets_csv(request: web.Request) -> web.Response:
@@ -1582,10 +1716,14 @@ def _level_progress(profile: dict) -> dict:
 
 # ── GET /api/player/{wallet} ───────────────────────────────────────────────────
 
-def _gamification_features() -> dict:
-    public_mutations = bool(config.GAMIFICATION_PUBLIC_MUTATIONS_ENABLED)
+def _gamification_features(wallet_verified: bool = False) -> dict:
+    public_mutations_configured = bool(config.GAMIFICATION_PUBLIC_MUTATIONS_ENABLED)
+    public_mutations = bool(public_mutations_configured and wallet_verified)
     return {
         "gamification_public_mutations": public_mutations,
+        "gamification_public_mutations_configured": public_mutations_configured,
+        "wallet_verification_required": True,
+        "wallet_verified": bool(wallet_verified),
         "roulette_enabled": public_mutations,
         "raffle_entry_enabled": public_mutations,
     }
@@ -1634,6 +1772,9 @@ async def player_profile(request: web.Request) -> web.Response:
             .data
         ) or []
 
+        wallet_verification = await _wallet_verification_payload(wallet)
+        wallet_verified = bool(wallet_verification.get("verified"))
+
         return _json_response({
             "ok": True,
             "wallet": wallet,
@@ -1643,7 +1784,8 @@ async def player_profile(request: web.Request) -> web.Response:
             },
             "bonuses": bonuses,
             "quests": _enrich_quests(quests),
-            "features": _gamification_features(),
+            "features": _gamification_features(wallet_verified),
+            "wallet_verification": wallet_verification,
         })
 
     except Exception as exc:
@@ -1700,6 +1842,8 @@ async def player_roulette(request: web.Request) -> web.Response:
         return _json_response({"error": "wallet is required or invalid"}, status=400)
     if not config.GAMIFICATION_PUBLIC_MUTATIONS_ENABLED:
         return _json_response({"error": "Public gamification mutations require wallet ownership verification"}, status=403)
+    if not await _wallet_is_verified(wallet):
+        return _json_response({"error": "Wallet ownership verification required"}, status=403)
 
     ip = client_ip(request)
     if not _roulette_limiter.is_allowed(f"{ip}:{wallet}"):
@@ -2039,6 +2183,8 @@ async def raffle_enter(request: web.Request) -> web.Response:
         return _json_response({"error": "wallet is required or invalid"}, status=400)
     if not config.GAMIFICATION_PUBLIC_MUTATIONS_ENABLED:
         return _json_response({"error": "Public gamification mutations require wallet ownership verification"}, status=403)
+    if not await _wallet_is_verified(wallet):
+        return _json_response({"error": "Wallet ownership verification required"}, status=403)
     if not isinstance(answers, list):
         return _json_response({"error": "answers must be a list"}, status=400)
 
@@ -2084,6 +2230,8 @@ def create_app() -> web.Application:
     app.router.add_get("/api/intents/{intent_hash}", get_intent_status)
     app.router.add_get("/api/bet-status/{intent_hash}", bet_status)
     app.router.add_get("/api/wallets/{wallet}/dashboard", wallet_dashboard)
+    app.router.add_get("/api/wallets/{wallet}/verification", wallet_verification_status)
+    app.router.add_post("/api/wallets/{wallet}/verification/challenge", wallet_verification_challenge)
     app.router.add_get("/api/admin/feed", operator_feed)
     app.router.add_get("/api/admin/audit-log", operator_audit_log)
     app.router.add_post("/api/admin/bets/{tx_id}/mark-paid", mark_bet_paid)
