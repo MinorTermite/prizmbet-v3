@@ -994,9 +994,9 @@ function _gamificationMutationsEnabled() {
 
 function _isTabAvailable(tabId) {
     if (tabId === 'roulette' || tabId === 'raffle') {
-        return _gamificationMutationsEnabled();
+        return true;
     }
-    return true;
+    return ['stats', 'quests', 'bonuses'].includes(tabId);
 }
 
 function _lockedMutationHtml(title) {
