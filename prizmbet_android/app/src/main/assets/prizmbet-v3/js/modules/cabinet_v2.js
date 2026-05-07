@@ -22,6 +22,7 @@ let _betData    = null;   // passed in from history_ui.js
 let _spinning   = false;
 let _enteringRaffle = false;
 let _verificationBusy = false;
+let _rouletteRotation = 0;
 let _initialized = false;
 
 // ── Level character emoji fallback (until SVG assets are ready) ───────────────
@@ -86,6 +87,18 @@ const PRIZE_LABELS = {
 };
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+
+const ROULETTE_SECTORS = [
+    { prize_type: 'nothing',          label: () => isEn() ? 'MISS'     : 'ПУСТО' },
+    { prize_type: 'spins_15',         label: () => '+15' },
+    { prize_type: 'cashback_20',      label: () => isEn() ? 'CASHBACK' : 'КЭШБЭК' },
+    { prize_type: 'win_boost_50',     label: () => isEn() ? 'BOOST'    : 'БУСТ' },
+    { prize_type: 'temp_millionaire', label: () => isEn() ? 'MILLION'  : 'МИЛЛИОН' },
+    { prize_type: 'raffle_token',     label: () => isEn() ? 'TICKET'   : 'БИЛЕТ' },
+];
+
+const ROULETTE_MAX_SPINS_PER_REQUEST = 5;
+const ROULETTE_ANIMATION_MS = 4600;
 
 export function initCabinetV2() {
     if (_initialized) return;
@@ -567,6 +580,7 @@ function _renderRouletteTab() {
         return _lockedMutationHtml(S.tabs.roulette());
     }
     const spins = Number(_profile?.profile?.roulette_spins || 0);
+    const spinOptions = [1, 2, 3, 4, 5].filter(n => n <= Math.max(Math.min(spins, ROULETTE_MAX_SPINS_PER_REQUEST), 1));
 
     return `
         <div class="cv2-roulette">
@@ -574,11 +588,13 @@ function _renderRouletteTab() {
                 🎰 <strong>${formatNumber(spins)}</strong> ${escapeHtml(S.spins())}
             </div>
 
+            ${_renderRouletteWheel()}
+
             <div class="cv2-roulette-controls">
                 <label class="cv2-spin-label">
                     ${isEn() ? 'Spins to use' : 'Использовать прокрутов'}
                     <select class="cv2-spin-select" id="cv2SpinCount" ${spins < 1 ? 'disabled' : ''}>
-                        ${[1,5,10,25,50].filter(n => n <= Math.max(spins, 1)).map(n =>
+                        ${spinOptions.map(n =>
                             `<option value="${n}">${n}</option>`
                         ).join('')}
                     </select>
@@ -604,6 +620,101 @@ function _renderRouletteTab() {
     `;
 }
 
+function _renderRouletteWheel() {
+    const sectorSize = 360 / ROULETTE_SECTORS.length;
+    const labels = ROULETTE_SECTORS.map((sector, index) => {
+        const angle = index * sectorSize;
+        return `
+            <span
+                class="cv2-roulette-sector-label cv2-roulette-sector-${escapeHtml(sector.prize_type)}"
+                style="--sector-angle:${angle}deg"
+            >${escapeHtml(sector.label())}</span>
+        `;
+    }).join('');
+
+    return `
+        <div class="cv2-roulette-stage" id="cv2RouletteStage">
+            <div class="cv2-roulette-pointer" aria-hidden="true"></div>
+            <div
+                class="cv2-roulette-wheel"
+                id="cv2RouletteWheel"
+                style="transform:rotate(${_rouletteRotation}deg)"
+                aria-hidden="true"
+            >
+                <div class="cv2-roulette-wheel-face">
+                    ${labels}
+                    <div class="cv2-roulette-hub"></div>
+                </div>
+            </div>
+            <div class="cv2-roulette-live" id="cv2RouletteLive">
+                ${isEn() ? 'Ready' : 'Готово'}
+            </div>
+        </div>
+    `;
+}
+
+function _roulettePrizeLabel(prize) {
+    const type = String(prize?.prize_type || '');
+    const labelFn = PRIZE_LABELS[type];
+    return labelFn ? labelFn() : type;
+}
+
+function _renderPrizeCard(prize, index) {
+    const type = String(prize?.prize_type || '');
+    const isNothing = type === 'nothing';
+    return `
+        <div class="cv2-prize-row ${isNothing ? 'cv2-prize-nothing' : 'cv2-prize-win'}" style="--prize-index:${index}">
+            <span class="cv2-prize-kicker">${escapeHtml(isEn() ? `Spin ${index + 1}` : `Прокрут ${index + 1}`)}</span>
+            <strong>${escapeHtml(_roulettePrizeLabel(prize))}</strong>
+        </div>
+    `;
+}
+
+function _rouletteTargetRotation(prizeType) {
+    const sectorSize = 360 / ROULETTE_SECTORS.length;
+    const sectorIndex = Math.max(0, ROULETTE_SECTORS.findIndex(sector => sector.prize_type === prizeType));
+    const sectorCenter = sectorIndex * sectorSize;
+    const safeJitter = (Math.random() - 0.5) * Math.min(18, sectorSize * 0.38);
+    const targetMod = (360 - sectorCenter + safeJitter + 360) % 360;
+    const currentMod = ((_rouletteRotation % 360) + 360) % 360;
+    let nextRotation = _rouletteRotation - currentMod + (360 * 7) + targetMod;
+    if (nextRotation <= _rouletteRotation + 720) {
+        nextRotation += 360;
+    }
+    return nextRotation;
+}
+
+function _animateRoulettePrize(prize) {
+    const wheel = document.getElementById('cv2RouletteWheel');
+    const stage = document.getElementById('cv2RouletteStage');
+    const live = document.getElementById('cv2RouletteLive');
+    if (!wheel || !prize) return Promise.resolve();
+
+    _rouletteRotation = _rouletteTargetRotation(prize.prize_type);
+    if (stage) stage.classList.add('is-spinning');
+    if (live) live.textContent = isEn() ? 'Spinning...' : 'Колесо крутится...';
+
+    return new Promise(resolve => {
+        let done = false;
+        const finish = () => {
+            if (done) return;
+            done = true;
+            wheel.removeEventListener('transitionend', finish);
+            if (stage) {
+                stage.classList.remove('is-spinning');
+                stage.classList.add(String(prize.prize_type || '') === 'nothing' ? 'is-miss' : 'is-win');
+            }
+            if (live) live.textContent = _roulettePrizeLabel(prize);
+            resolve();
+        };
+        wheel.addEventListener('transitionend', finish, { once: true });
+        requestAnimationFrame(() => {
+            wheel.style.transform = `rotate(${_rouletteRotation}deg)`;
+        });
+        setTimeout(finish, ROULETTE_ANIMATION_MS + 350);
+    });
+}
+
 function _bindRouletteEvents() {
     const btn = document.getElementById('cv2SpinBtn');
     if (!btn) return;
@@ -624,14 +735,20 @@ async function _handleSpin() {
     if (!apiBase) return;
 
     const countEl = document.getElementById('cv2SpinCount');
-    const spins   = parseInt(countEl?.value || '1', 10);
+    const spins = Math.max(1, Math.min(parseInt(countEl?.value || '1', 10), ROULETTE_MAX_SPINS_PER_REQUEST));
 
     const btn = document.getElementById('cv2SpinBtn');
     const resultsEl = document.getElementById('cv2RouletteResults');
+    const stage = document.getElementById('cv2RouletteStage');
+    const live = document.getElementById('cv2RouletteLive');
 
     _spinning = true;
     if (btn) { btn.disabled = true; btn.textContent = S.spinning(); }
-    if (resultsEl) resultsEl.innerHTML = '';
+    if (stage) stage.classList.remove('is-win', 'is-miss');
+    if (live) live.textContent = isEn() ? 'Checking server result...' : 'Проверяем результат на сервере...';
+    if (resultsEl) {
+        resultsEl.innerHTML = `<div class="cv2-roulette-pending">${escapeHtml(isEn() ? 'Server is locking the spin...' : 'Сервер фиксирует прокрут...')}</div>`;
+    }
 
     try {
         const resp = await fetch(`${apiBase}/api/player/${encodeURIComponent(wallet)}/roulette`, {
@@ -657,19 +774,14 @@ async function _handleSpin() {
             }
         } catch (_) {}
 
-        // Show prizes
         const prizes = json.prizes || [];
+        if (prizes.length) {
+            await _animateRoulettePrize(prizes[0]);
+        }
         if (resultsEl) {
-            resultsEl.innerHTML = prizes.map(p => {
-                const labelFn = PRIZE_LABELS[p.prize_type];
-                const label   = labelFn ? labelFn() : escapeHtml(p.prize_type);
-                const isNothing = p.prize_type === 'nothing';
-                return `
-                    <div class="cv2-prize-row ${isNothing ? 'cv2-prize-nothing' : 'cv2-prize-win'}">
-                        ${label}
-                    </div>
-                `;
-            }).join('');
+            resultsEl.innerHTML = prizes.length
+                ? prizes.map(_renderPrizeCard).join('')
+                : `<div class="cv2-empty">${escapeHtml(S.rouletteErr())}</div>`;
         }
 
         // Update spin counter in hero bar

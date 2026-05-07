@@ -3721,6 +3721,129 @@ button.market-chip:hover {
     text-align: center;
 }
 
+.cv2-roulette-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 238px;
+    isolation: isolate;
+}
+
+.cv2-roulette-stage::before {
+    content: "";
+    position: absolute;
+    width: 232px;
+    height: 232px;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle, rgba(79,209,197,.18), transparent 58%),
+        radial-gradient(circle, rgba(99,102,241,.22), transparent 70%);
+    filter: blur(8px);
+    opacity: .8;
+}
+
+.cv2-roulette-pointer {
+    position: absolute;
+    top: 2px;
+    z-index: 4;
+    width: 0;
+    height: 0;
+    border-left: 13px solid transparent;
+    border-right: 13px solid transparent;
+    border-top: 28px solid #fff;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,.45));
+}
+
+.cv2-roulette-wheel {
+    position: relative;
+    z-index: 2;
+    width: 216px;
+    height: 216px;
+    border-radius: 50%;
+    border: 8px solid rgba(255,255,255,.12);
+    background:
+        conic-gradient(
+            from -30deg,
+            #111827 0deg 60deg,
+            #2563eb 60deg 120deg,
+            #059669 120deg 180deg,
+            #f59e0b 180deg 240deg,
+            #dc2626 240deg 300deg,
+            #7c3aed 300deg 360deg
+        );
+    box-shadow:
+        0 22px 44px rgba(0,0,0,.38),
+        inset 0 0 0 1px rgba(255,255,255,.18),
+        inset 0 0 34px rgba(0,0,0,.4);
+    transition: transform 4.6s cubic-bezier(.11,.74,.08,1);
+    will-change: transform;
+}
+
+.cv2-roulette-stage.is-spinning .cv2-roulette-wheel {
+    box-shadow:
+        0 24px 60px rgba(79,209,197,.22),
+        inset 0 0 0 1px rgba(255,255,255,.22),
+        inset 0 0 34px rgba(0,0,0,.4);
+}
+
+.cv2-roulette-stage.is-win .cv2-roulette-wheel {
+    animation: cv2-wheel-win .55s ease both;
+}
+
+.cv2-roulette-wheel-face {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+.cv2-roulette-sector-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 68px;
+    margin-left: -34px;
+    margin-top: -12px;
+    text-align: center;
+    color: #fff;
+    font-size: .58rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-shadow: 0 2px 8px rgba(0,0,0,.55);
+    transform: rotate(var(--sector-angle)) translateY(-76px) rotate(calc(-1 * var(--sector-angle)));
+    transform-origin: center;
+    pointer-events: none;
+}
+
+.cv2-roulette-hub {
+    position: absolute;
+    inset: 50%;
+    width: 54px;
+    height: 54px;
+    margin: -27px 0 0 -27px;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), rgba(255,255,255,.18) 28%, transparent 29%),
+        linear-gradient(135deg, #4fd1c5, #6366f1);
+    border: 6px solid rgba(255,255,255,.14);
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+}
+
+.cv2-roulette-live {
+    position: absolute;
+    z-index: 5;
+    bottom: 4px;
+    max-width: 92%;
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: rgba(0,0,0,.42);
+    border: 1px solid rgba(255,255,255,.12);
+    color: rgba(255,255,255,.78);
+    font-size: .72rem;
+    font-weight: 700;
+    text-align: center;
+    backdrop-filter: blur(12px);
+}
+
 .cv2-roulette-controls {
     display: flex;
     align-items: center;
@@ -3758,13 +3881,34 @@ button.market-chip:hover {
     gap: 6px;
 }
 
+.cv2-roulette-pending {
+    text-align: center;
+    color: rgba(255,255,255,.5);
+    font-size: .78rem;
+    padding: 8px 0;
+}
+
 .cv2-prize-row {
+    display: grid;
+    gap: 3px;
     text-align: center;
     border-radius: 10px;
-    padding: 8px 14px;
+    padding: 10px 14px;
     font-size: .88rem;
-    font-weight: 600;
-    animation: cv2-prize-in .3s ease;
+    animation: cv2-prize-in .34s ease both;
+    animation-delay: calc(var(--prize-index, 0) * 70ms);
+}
+
+.cv2-prize-row strong {
+    font-size: .9rem;
+}
+
+.cv2-prize-kicker {
+    color: rgba(255,255,255,.42);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .11em;
+    text-transform: uppercase;
 }
 
 .cv2-prize-win {
@@ -3901,8 +4045,14 @@ button.market-chip:hover {
 }
 
 @keyframes cv2-prize-in {
-    from { opacity: 0; transform: translateY(-6px); }
+    from { opacity: 0; transform: translateY(-8px) scale(.98); }
     to   { opacity: 1; transform: none; }
+}
+
+@keyframes cv2-wheel-win {
+    0%   { filter: brightness(1); }
+    50%  { filter: brightness(1.35) saturate(1.35); }
+    100% { filter: brightness(1); }
 }
 
 /* Public gamification rules page */

@@ -66,6 +66,35 @@ def test_cabinet_v2_hides_public_mutations_without_wallet_verification():
         assert "return _lockedMutationHtml(S.tabs.raffle());" in module_source
 
 
+def test_cabinet_v2_roulette_is_backend_result_driven_animation():
+    source = CABINET.read_text(encoding="utf-8")
+    android_source = ANDROID_CABINET.read_text(encoding="utf-8")
+    css = SMART_FLOW.read_text(encoding="utf-8")
+
+    for module_source in (source, android_source):
+        assert "const ROULETTE_SECTORS" in module_source
+        assert "const ROULETTE_MAX_SPINS_PER_REQUEST = 5;" in module_source
+        assert "function _renderRouletteWheel()" in module_source
+        assert "function _rouletteTargetRotation(prizeType)" in module_source
+        assert "function _animateRoulettePrize(prize)" in module_source
+        assert "await _animateRoulettePrize(prizes[0]);" in module_source
+        assert "Math.min(parseInt(countEl?.value || '1', 10), ROULETTE_MAX_SPINS_PER_REQUEST)" in module_source
+        assert "Math.random()" in module_source
+        assert "body: JSON.stringify({ spins })" in module_source
+
+    for selector in (
+        ".cv2-roulette-stage",
+        ".cv2-roulette-wheel",
+        ".cv2-roulette-pointer",
+        ".cv2-roulette-sector-label",
+        ".cv2-roulette-hub",
+        ".cv2-roulette-live",
+        ".cv2-roulette-pending",
+        "@keyframes cv2-wheel-win",
+    ):
+        assert selector in css
+
+
 def test_cabinet_v2_renders_wallet_verification_challenge_panel():
     source = CABINET.read_text(encoding="utf-8")
     android_source = ANDROID_CABINET.read_text(encoding="utf-8")
