@@ -391,6 +391,130 @@
     max-width: 560px;
 }
 
+.bet-slip.cabinet-sheet {
+    --cabinet-ink: #eafff8;
+    --cabinet-muted: rgba(210, 255, 242, 0.66);
+    --cabinet-line: rgba(52, 211, 153, 0.26);
+    background:
+        radial-gradient(circle at 14% 0%, rgba(52, 211, 153, 0.24), transparent 34%),
+        radial-gradient(circle at 88% 14%, rgba(14, 165, 233, 0.16), transparent 30%),
+        linear-gradient(145deg, rgba(3, 26, 30, 0.96), rgba(6, 34, 36, 0.93) 44%, rgba(7, 21, 34, 0.97));
+    border-color: rgba(52, 211, 153, 0.44);
+    box-shadow:
+        0 26px 90px rgba(0, 0, 0, 0.76),
+        0 0 0 1px rgba(167, 243, 208, 0.07) inset,
+        0 0 70px rgba(16, 185, 129, 0.20);
+    color: var(--cabinet-ink);
+}
+
+.bet-slip.cabinet-sheet::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+        linear-gradient(90deg, transparent, rgba(167, 243, 208, 0.18), transparent) top / 100% 1px no-repeat,
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 18px);
+    opacity: 0.86;
+}
+
+.cabinet-sheet > * {
+    position: relative;
+    z-index: 1;
+}
+
+.cabinet-sheet .bet-slip-header {
+    border-bottom-color: var(--cabinet-line);
+}
+
+.cabinet-sheet .bet-slip-title {
+    color: #7fffd4;
+    text-shadow: 0 0 18px rgba(52, 211, 153, 0.42);
+}
+
+.cabinet-sheet .coupon-field-label,
+.cabinet-sheet .cabinet-stat-label,
+.cabinet-sheet .summary-label {
+    color: rgba(210, 255, 242, 0.72);
+}
+
+.cabinet-sheet .coupon-input {
+    background: rgba(1, 14, 18, 0.72);
+    border-color: rgba(52, 211, 153, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.cabinet-sheet .coupon-input:focus {
+    border-color: rgba(45, 212, 191, 0.72);
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.13), 0 0 24px rgba(45, 212, 191, 0.10);
+}
+
+.cabinet-sheet .coupon-badge--local {
+    background: rgba(20, 184, 166, 0.16);
+    color: #b8fff1;
+    border-color: rgba(45, 212, 191, 0.34);
+}
+
+.cabinet-sheet .btn-primary {
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    box-shadow: 0 14px 30px rgba(6, 182, 212, 0.18), 0 0 28px rgba(16, 185, 129, 0.18);
+}
+
+.cabinet-sheet .btn-outline {
+    background: rgba(1, 18, 21, 0.58);
+    border-color: rgba(167, 243, 208, 0.20);
+}
+
+.cabinet-sheet .cabinet-rank-box,
+.cabinet-sheet .cabinet-stat-card,
+.cabinet-sheet .cabinet-record {
+    background: rgba(3, 28, 32, 0.72);
+    border-color: rgba(52, 211, 153, 0.18);
+}
+
+.cabinet-sheet .cabinet-rank-name,
+.cabinet-sheet .cabinet-stat-value,
+.cabinet-sheet .cabinet-record-title {
+    color: var(--cabinet-ink);
+}
+
+.cabinet-sheet .cabinet-rank-hint,
+.cabinet-sheet .cabinet-stat-hint,
+.cabinet-sheet .cabinet-record-meta {
+    color: var(--cabinet-muted);
+}
+
+.cabinet-sheet .cv2-character {
+    background: rgba(16, 185, 129, 0.17);
+    border-color: rgba(45, 212, 191, 0.46);
+    box-shadow: 0 0 28px rgba(45, 212, 191, 0.16);
+}
+
+.cabinet-sheet .cv2-level-badge {
+    color: #5eead4;
+}
+
+.cabinet-sheet .cv2-counter,
+.cabinet-sheet .cv2-tab-btn.is-active {
+    background: rgba(20, 184, 166, 0.12);
+}
+
+.cabinet-sheet .cv2-progress-fill,
+.cabinet-sheet .cv2-quest-fill {
+    background: linear-gradient(90deg, #38bdf8, #34d399);
+}
+
+.cabinet-sheet .cv2-tab-btn.is-active {
+    border-bottom-color: #34d399;
+}
+
+.cabinet-sheet .cv2-wallet-verify.is-verified {
+    background:
+        linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(6, 182, 212, 0.10));
+    border-color: rgba(52, 211, 153, 0.42);
+}
+
 .cabinet-toolbar {
     display: grid;
     gap: 12px;
