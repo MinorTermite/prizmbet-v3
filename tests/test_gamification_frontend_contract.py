@@ -30,7 +30,7 @@ def test_cabinet_v2_is_wired_into_history_modal():
     android_history = ANDROID_HISTORY_UI.read_text(encoding="utf-8")
 
     for source in (history, android_history):
-        assert "import { initCabinetV2, renderGamification } from './cabinet_v2.js';" in source
+        assert "import { initCabinetV2, renderGamification } from './cabinet_v2.js?v=" in source
         assert "initCabinetV2();" in source
         assert "renderGamification(wallet, data)" in source
 

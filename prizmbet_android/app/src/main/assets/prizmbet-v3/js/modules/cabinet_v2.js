@@ -10,7 +10,7 @@
 import { formatNumber, getLanguage } from './i18n.js';
 import { escapeHtml } from './utils.js';
 import { getWalletAddress } from './storage.js';
-import { getApiBase } from './bet_slip.js';
+import { getApiBase } from './bet_slip.js?v=20260508-betslip-v75';
 import { showToast } from './notifications.js';
 
 // ── State ──────────────────────────────────────────────────────────────────────
