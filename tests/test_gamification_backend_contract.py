@@ -6,6 +6,7 @@ API = ROOT / "backend" / "api" / "bet_intents_api.py"
 SETTLER = ROOT / "backend" / "bot" / "v3_settler.py"
 ENGINE = ROOT / "backend" / "bot" / "gamification.py"
 TX_LISTENER = ROOT / "backend" / "bot" / "tx_listener.py"
+PRIZM_API = ROOT / "backend" / "bot" / "prizm_api.py"
 
 
 def test_player_api_routes_are_registered():
@@ -179,6 +180,8 @@ def test_tx_listener_verifies_wallet_challenges_before_bet_matching():
     assert "WALLET_VERIFICATION_CODE_RE" in source
     assert "def _extract_wallet_verification_code" in source
     assert "await db.verify_wallet_challenge" in source
+    assert "await prizm_api.get_message_async(tx)" in source
+    assert "async def get_message_async" in PRIZM_API.read_text(encoding="utf-8")
     assert "wallet_verification" in source
     assert "account=account" in source
     assert process_source.index("await _process_wallet_verification_tx(") < process_source.index("intent_hash = _extract_intent_hash(comment)")

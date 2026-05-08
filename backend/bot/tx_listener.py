@@ -124,9 +124,8 @@ async def _write_wallet_verification_financial_event(
             "amount_prizm": amount,
             "fee_prizm": 0,
             "prizm_tx_id": tx_id,
-            "reference_code": code,
             "initiated_by": "tx_listener",
-            "details": {"reason": reason} if reason else {},
+            "details": {"verification_code": code, **({"reason": reason} if reason else {})},
         })
     except Exception as exc:
         log.warning("Wallet verification financial event failed tx=%s: %s", tx_id[:16], exc)
@@ -238,7 +237,7 @@ async def _process_tx(tx: dict):
     block_ts_utc = _to_utc_from_prizm(block_ts_native)
     sender_wallet = (tx.get("senderRS") or "").upper()
 
-    comment = prizm_api.get_message(tx)
+    comment = await prizm_api.get_message_async(tx)
     if await _process_wallet_verification_tx(
         tx=tx,
         tx_id=tx_id,

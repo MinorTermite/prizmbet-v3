@@ -161,6 +161,21 @@ def get_message(tx: dict) -> str:
     return ""
 
 
+async def get_message_async(tx: dict) -> str:
+    """Extract tx message, including DB-encrypted hot-wallet passphrase fallback."""
+    plain = get_message(tx)
+    if plain:
+        return plain
+
+    if not has_encrypted_message(tx):
+        return ""
+
+    secret = await get_hot_passphrase()
+    if not secret:
+        return ""
+    return decrypt_message(tx, secret)
+
+
 def has_encrypted_message(tx: dict) -> bool:
     """Проверить есть ли зашифрованное сообщение (ставка с шифрованием)"""
     att = tx.get("attachment") or {}
