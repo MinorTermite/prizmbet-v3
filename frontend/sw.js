@@ -1,5 +1,5 @@
 // ── 1PrizmBet Service Worker ─────────────────────────────────────────────────
-const VERSION     = 'v76';
+const VERSION     = 'v83';
 const SHELL_CACHE = `one-prizmbet-shell-${VERSION}`;
 const DATA_CACHE  = 'one-prizmbet-data';   // вечный, обновляется по контенту
 
@@ -9,8 +9,8 @@ const SHELL_ASSETS = [
     './index.html',
     './manifest.json',
     './api.js',
-    './tests.js',
     './js/app.js',
+    './js/vendor/spin-wheel-esm.js',
     './js/modules/bet_slip.js',
     './js/modules/cabinet_v2.js',
     './js/modules/filters.js',
@@ -29,6 +29,7 @@ const SHELL_ASSETS = [
     './one-prizmbet-logo-wide.png',
     './one-prizmbet-mark.png',
     './one-prizmbet-header.png',
+    './prizmbet-hub.png',
     './qr_wallet.webp',
     './prizmbet-info-1.webp',
     './prizmbet-info-2.webp',

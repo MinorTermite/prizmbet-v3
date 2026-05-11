@@ -12,6 +12,7 @@ import { escapeHtml } from './utils.js';
 import { getWalletAddress } from './storage.js';
 import { getApiBase } from './bet_slip.js?v=20260508-betslip-v75';
 import { showToast } from './notifications.js';
+import { Wheel } from '../vendor/spin-wheel-esm.js';
 
 // ── State ──────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ let _betData    = null;   // passed in from history_ui.js
 let _spinning   = false;
 let _enteringRaffle = false;
 let _verificationBusy = false;
-let _rouletteRotation = 0;
+let _wheel = null;
 let _initialized = false;
 
 // ── Level character emoji fallback (until SVG assets are ready) ───────────────
@@ -89,12 +90,12 @@ const PRIZE_LABELS = {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 const ROULETTE_SECTORS = [
-    { prize_type: 'nothing',          label: () => isEn() ? 'MISS'     : 'ПУСТО' },
-    { prize_type: 'spins_15',         label: () => '+15' },
-    { prize_type: 'cashback_20',      label: () => isEn() ? 'CASHBACK' : 'КЭШБЭК' },
-    { prize_type: 'win_boost_50',     label: () => isEn() ? 'BOOST'    : 'БУСТ' },
-    { prize_type: 'temp_millionaire', label: () => isEn() ? 'MILLION'  : 'МИЛЛИОН' },
-    { prize_type: 'raffle_token',     label: () => isEn() ? 'TICKET'   : 'БИЛЕТ' },
+    { prize_type: 'nothing',          color: '#1f2937', label: () => isEn() ? 'MISS'     : 'ПУСТО' },
+    { prize_type: 'spins_15',         color: '#4fd1c7', label: () => '+15' },
+    { prize_type: 'cashback_20',      color: '#fbbf24', label: () => isEn() ? 'CASHBACK' : 'КЭШБЭК' },
+    { prize_type: 'win_boost_50',     color: '#22c55e', label: () => isEn() ? 'BOOST'    : 'БУСТ' },
+    { prize_type: 'temp_millionaire', color: '#a855f7', label: () => isEn() ? 'MILLION'  : 'МИЛЛИОН' },
+    { prize_type: 'raffle_token',     color: '#6366f1', label: () => isEn() ? 'TICKET'   : 'БИЛЕТ' },
 ];
 
 const ROULETTE_MAX_SPINS_PER_REQUEST = 5;
@@ -584,73 +585,94 @@ function _renderRouletteTab() {
 
     return `
         <div class="cv2-roulette">
-            <div class="cv2-roulette-counter">
-                🎰 <strong>${formatNumber(spins)}</strong> ${escapeHtml(S.spins())}
-            </div>
+            <div class="cv2-roulette-layout">
+                <div class="cv2-roulette-machine">
+                    <div class="cv2-roulette-counter">
+                        <span class="cv2-roulette-counter-kicker">PRIZM SPIN ENGINE</span>
+                        <span><strong>${formatNumber(spins)}</strong> ${escapeHtml(S.spins())}</span>
+                    </div>
+                    ${_renderRouletteWheel()}
+                </div>
 
-            ${_renderRouletteWheel()}
+                <div class="cv2-roulette-console">
+                    <div class="cv2-roulette-console-head">
+                        <span>${escapeHtml(S.tabs.roulette())}</span>
+                        <strong>SERVER RESULT</strong>
+                    </div>
+                    <div class="cv2-roulette-controls">
+                        <label class="cv2-spin-label">
+                            ${isEn() ? 'Spins to use' : 'Использовать прокрутов'}
+                            <select class="cv2-spin-select" id="cv2SpinCount" ${spins < 1 ? 'disabled' : ''}>
+                                ${spinOptions.map(n =>
+                                    `<option value="${n}">${n}</option>`
+                                ).join('')}
+                            </select>
+                        </label>
+                        <button
+                            class="btn btn-primary cv2-spin-btn"
+                            id="cv2SpinBtn"
+                            type="button"
+                            ${spins < 1 ? 'disabled' : ''}
+                        >
+                            ${spins < 1 ? escapeHtml(S.noSpins()) : escapeHtml(S.spinBtn())}
+                        </button>
+                    </div>
 
-            <div class="cv2-roulette-controls">
-                <label class="cv2-spin-label">
-                    ${isEn() ? 'Spins to use' : 'Использовать прокрутов'}
-                    <select class="cv2-spin-select" id="cv2SpinCount" ${spins < 1 ? 'disabled' : ''}>
-                        ${spinOptions.map(n =>
-                            `<option value="${n}">${n}</option>`
-                        ).join('')}
-                    </select>
-                </label>
-                <button
-                    class="btn btn-primary cv2-spin-btn"
-                    id="cv2SpinBtn"
-                    type="button"
-                    ${spins < 1 ? 'disabled' : ''}
-                >
-                    ${spins < 1 ? escapeHtml(S.noSpins()) : escapeHtml(S.spinBtn())}
-                </button>
-            </div>
+                    <div class="cv2-roulette-results" id="cv2RouletteResults"></div>
 
-            <div class="cv2-roulette-results" id="cv2RouletteResults"></div>
-
-            <div class="cv2-roulette-hint">
-                ${isEn()
-                    ? '1 spin = 1,500 PRIZM bet. Prizes are random — odds are in the rules.'
-                    : '1 прокрут = 1 500 PRIZM ставки. Призы случайны — шансы указаны в правилах.'}
+                    <div class="cv2-roulette-hint">
+                        ${isEn()
+                            ? 'The server locks the prize first. The wheel only animates to the confirmed result.'
+                            : 'Сначала сервер фиксирует приз. Колесо только докручивается до подтверждённого результата.'}
+                    </div>
+                </div>
             </div>
         </div>
     `;
 }
 
 function _renderRouletteWheel() {
-    const sectorSize = 360 / ROULETTE_SECTORS.length;
-    const labels = ROULETTE_SECTORS.map((sector, index) => {
-        const angle = index * sectorSize;
-        return `
-            <span
-                class="cv2-roulette-sector-label cv2-roulette-sector-${escapeHtml(sector.prize_type)}"
-                style="--sector-angle:${angle}deg"
-            >${escapeHtml(sector.label())}</span>
-        `;
-    }).join('');
-
     return `
         <div class="cv2-roulette-stage" id="cv2RouletteStage">
-            <div class="cv2-roulette-pointer" aria-hidden="true"></div>
-            <div
-                class="cv2-roulette-wheel"
-                id="cv2RouletteWheel"
-                style="transform:rotate(${_rouletteRotation}deg)"
-                aria-hidden="true"
-            >
-                <div class="cv2-roulette-wheel-face">
-                    ${labels}
-                    <div class="cv2-roulette-hub"></div>
-                </div>
-            </div>
+            <div class="cv2-roulette-pointer" aria-hidden="true"><span></span></div>
+            <div class="cv2-roulette-rim" aria-hidden="true"></div>
+            <div class="cv2-roulette-canvas" id="cv2RouletteCanvas" aria-hidden="true"></div>
+            <div class="cv2-roulette-hub"><img src="prizmbet-hub.png" alt="" aria-hidden="true"/></div>
             <div class="cv2-roulette-live" id="cv2RouletteLive">
                 ${isEn() ? 'Ready' : 'Готово'}
             </div>
         </div>
     `;
+}
+
+function _initWheel() {
+    const container = document.getElementById('cv2RouletteCanvas');
+    if (!container) return;
+    if (_wheel) {
+        try { _wheel.remove(); } catch (_) {}
+        _wheel = null;
+    }
+    _wheel = new Wheel(container, {
+        items: ROULETTE_SECTORS.map(sector => ({
+            label: sector.label(),
+            backgroundColor: sector.color,
+            labelColor: '#ffffff',
+        })),
+        isInteractive: false,
+        borderColor: 'rgba(255,255,255,.18)',
+        borderWidth: 4,
+        lineColor: 'rgba(0,0,0,.45)',
+        lineWidth: 1,
+        itemLabelFont: '"Orbitron", "Share Tech Mono", "Inter", sans-serif',
+        itemLabelFontSizeMax: 22,
+        itemLabelRadius: 0.78,
+        itemLabelStrokeColor: 'rgba(0,0,0,.55)',
+        itemLabelStrokeWidth: 1,
+        radius: 0.98,
+        pointerAngle: 0,
+        rotationResistance: 0,
+        rotationSpeedMax: 0,
+    });
 }
 
 function _roulettePrizeLabel(prize) {
@@ -670,27 +692,15 @@ function _renderPrizeCard(prize, index) {
     `;
 }
 
-function _rouletteTargetRotation(prizeType) {
-    const sectorSize = 360 / ROULETTE_SECTORS.length;
-    const sectorIndex = Math.max(0, ROULETTE_SECTORS.findIndex(sector => sector.prize_type === prizeType));
-    const sectorCenter = sectorIndex * sectorSize;
-    const safeJitter = (Math.random() - 0.5) * Math.min(18, sectorSize * 0.38);
-    const targetMod = (360 - sectorCenter + safeJitter + 360) % 360;
-    const currentMod = ((_rouletteRotation % 360) + 360) % 360;
-    let nextRotation = _rouletteRotation - currentMod + (360 * 7) + targetMod;
-    if (nextRotation <= _rouletteRotation + 720) {
-        nextRotation += 360;
-    }
-    return nextRotation;
-}
-
 function _animateRoulettePrize(prize) {
-    const wheel = document.getElementById('cv2RouletteWheel');
+    if (!prize) return Promise.resolve();
+    if (!_wheel) _initWheel();
+    if (!_wheel) return Promise.resolve();
+
     const stage = document.getElementById('cv2RouletteStage');
     const live = document.getElementById('cv2RouletteLive');
-    if (!wheel || !prize) return Promise.resolve();
+    const sectorIndex = Math.max(0, ROULETTE_SECTORS.findIndex(s => s.prize_type === prize.prize_type));
 
-    _rouletteRotation = _rouletteTargetRotation(prize.prize_type);
     if (stage) stage.classList.add('is-spinning');
     if (live) live.textContent = isEn() ? 'Spinning...' : 'Колесо крутится...';
 
@@ -699,26 +709,25 @@ function _animateRoulettePrize(prize) {
         const finish = () => {
             if (done) return;
             done = true;
-            wheel.removeEventListener('transitionend', finish);
             if (stage) {
                 stage.classList.remove('is-spinning');
                 stage.classList.add(String(prize.prize_type || '') === 'nothing' ? 'is-miss' : 'is-win');
             }
             if (live) live.textContent = _roulettePrizeLabel(prize);
+            if (_wheel) _wheel.onRest = null;
             resolve();
         };
-        wheel.addEventListener('transitionend', finish, { once: true });
-        requestAnimationFrame(() => {
-            wheel.style.transform = `rotate(${_rouletteRotation}deg)`;
-        });
-        setTimeout(finish, ROULETTE_ANIMATION_MS + 350);
+        _wheel.onRest = finish;
+        // duration, spinToCenter, revolutions, direction (1 = clockwise), default easing
+        _wheel.spinToItem(sectorIndex, ROULETTE_ANIMATION_MS, true, 6, 1, null);
+        setTimeout(finish, ROULETTE_ANIMATION_MS + 600);
     });
 }
 
 function _bindRouletteEvents() {
     const btn = document.getElementById('cv2SpinBtn');
-    if (!btn) return;
-    btn.addEventListener('click', _handleSpin);
+    if (btn) btn.addEventListener('click', _handleSpin);
+    _initWheel();
 }
 
 async function _handleSpin() {

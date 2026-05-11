@@ -94,6 +94,49 @@ def determine_bet_result(outcome: Any, home_goals: int, away_goals: int) -> bool
     return None
 
 
+def _snapshot_to_match(snapshot: Any) -> dict:
+    if not isinstance(snapshot, dict):
+        return {}
+    match_id = str(snapshot.get('match_id') or snapshot.get('id') or '').strip()
+    if not match_id:
+        return {}
+    return {
+        'id': match_id,
+        'match_time': snapshot.get('match_time') or '',
+        'team1': snapshot.get('team1') or snapshot.get('home_team') or '',
+        'team2': snapshot.get('team2') or snapshot.get('away_team') or '',
+        'league': snapshot.get('league') or '',
+        'sport': snapshot.get('sport') or '',
+        'is_live': bool(snapshot.get('is_live')),
+        'score': snapshot.get('score') or '',
+    }
+
+
+def _single_intent_snapshot(intent: dict, match_id: str) -> dict:
+    explicit = _snapshot_to_match(intent.get('match_snapshot'))
+    if explicit:
+        return explicit
+    legs = intent.get('express_legs') or []
+    if not isinstance(legs, list):
+        return {}
+    for leg in legs:
+        snapshot = _snapshot_to_match(leg)
+        if snapshot and str(snapshot.get('id') or '') == match_id:
+            return snapshot
+    return {}
+
+
+def _merge_match(primary: dict, fallback: dict) -> dict:
+    if not primary:
+        return dict(fallback or {})
+    if not fallback:
+        return dict(primary or {})
+    merged = {**fallback, **primary}
+    if not merged.get('score') and fallback.get('score'):
+        merged['score'] = fallback.get('score')
+    return merged
+
+
 async def run_once(limit: int = SETTLEMENT_FETCH_LIMIT) -> int:
     await _ensure_db()
     bets = await db.get_bets_by_status(['accepted'], limit=limit)
@@ -119,15 +162,16 @@ async def run_once(limit: int = SETTLEMENT_FETCH_LIMIT) -> int:
     match_map = await db.get_matches_map(match_ids)
     match_cache = load_matches_cache()
 
-    def _resolve_match(mid: str) -> dict:
-        return match_map.get(mid) or match_cache.get(mid) or {}
+    def _resolve_match(mid: str, snapshot: Any = None) -> dict:
+        current = match_map.get(mid) or match_cache.get(mid) or {}
+        return _merge_match(current, _snapshot_to_match(snapshot))
 
     settled = 0
     for bet in bets:
         intent_hash = str(bet.get('intent_hash') or '').strip().upper()
         intent = intent_map.get(intent_hash) or {}
         match_id = str(bet.get('match_id') or intent.get('match_id') or '').strip()
-        match = _resolve_match(match_id)
+        match = _resolve_match(match_id, _single_intent_snapshot(intent, match_id))
 
         bet_type = str(intent.get('bet_type') or 'single').strip().lower()
 
@@ -147,7 +191,7 @@ async def run_once(limit: int = SETTLEMENT_FETCH_LIMIT) -> int:
                     break
                 leg_mid = str(leg.get('match_id') or '').strip()
                 leg_outcome = leg.get('outcome')
-                leg_match = _resolve_match(leg_mid)
+                leg_match = _resolve_match(leg_mid, leg)
                 leg_score = _parse_score(leg_match.get('score'))
                 if not leg_score:
                     incomplete = True

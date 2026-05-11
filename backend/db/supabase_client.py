@@ -2,14 +2,23 @@
 """Supabase database client for 1PrizmBet v3."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
+from uuid import UUID
 
 from supabase import create_client
 
 from backend.config import config
 from backend.utils.bet_views import load_matches_cache
+
+
+def _is_uuid_text(value: Any) -> bool:
+    try:
+        UUID(str(value))
+        return True
+    except Exception:
+        return False
 
 
 def _frontend_match_row(match_id: str):
@@ -25,6 +34,116 @@ def _frontend_match_row(match_id: str):
         "sport": match.get("sport") or "",
         "is_live": bool(match.get("is_live")),
         "score": match.get("score") or "",
+    }
+
+
+def _safe_float(value: Any) -> float | None:
+    if value in (None, "", "-", "—", "РІР‚вЂќ"):
+        return None
+    try:
+        return round(float(value), 4)
+    except Exception:
+        return None
+
+
+def _safe_iso_datetime(value: Any) -> str | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat()
+    except Exception:
+        return raw
+
+
+def _source_from_external_id(external_id: str) -> str:
+    prefix = str(external_id or "").split("_", 1)[0].strip().lower()
+    return {
+        "leon": "Leonbets",
+        "odds": "OddsAPI",
+        "oddsio": "OddsAPI",
+        "apifootball": "ApiFootball",
+        "pinnacle": "Pinnacle",
+        "1xbet": "1xBet",
+    }.get(prefix, prefix or "unknown")
+
+
+def _match_table_row(match_data: dict[str, Any]) -> dict[str, Any] | None:
+    data = dict(match_data or {})
+    external_id = str(data.get("external_id") or data.get("id") or data.get("match_id") or "").strip()
+    if not external_id:
+        return None
+
+    home_team = str(data.get("home_team") or data.get("team1") or "").strip()
+    away_team = str(data.get("away_team") or data.get("team2") or "").strip()
+    league = str(data.get("league") or "").strip()
+    match_time = _safe_iso_datetime(data.get("match_time"))
+    if not home_team or not away_team or not league or not match_time:
+        return None
+
+    row: dict[str, Any] = {
+        "external_id": external_id,
+        "sport": str(data.get("sport") or "football").strip().lower() or "football",
+        "league": league,
+        "home_team": home_team,
+        "away_team": away_team,
+        "match_time": match_time,
+        "odds_home": _safe_float(data.get("odds_home") or data.get("odds_1") or data.get("p1")),
+        "odds_draw": _safe_float(data.get("odds_draw") or data.get("odds_x") or data.get("x")),
+        "odds_away": _safe_float(data.get("odds_away") or data.get("odds_2") or data.get("p2")),
+        "bookmaker": str(data.get("bookmaker") or data.get("source") or _source_from_external_id(external_id)).strip(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    optional_map = {
+        "score": data.get("score"),
+        "total_value": data.get("total_value"),
+        "total_over": data.get("total_over"),
+        "total_under": data.get("total_under"),
+        "handicap_1_value": data.get("handicap_1_value"),
+        "handicap_1": data.get("handicap_1"),
+        "handicap_2_value": data.get("handicap_2_value"),
+        "handicap_2": data.get("handicap_2"),
+    }
+    for key, value in optional_map.items():
+        if key == "score":
+            row[key] = str(value or "").strip() or None
+            continue
+        row[key] = _safe_float(value)
+
+    return row
+
+
+def _match_db_row_to_frontend(row: dict[str, Any] | None, requested_id: str | None = None) -> dict[str, Any] | None:
+    if not row:
+        return None
+    external_id = str(row.get("external_id") or "").strip()
+    match_id = external_id or str(row.get("id") or requested_id or "").strip()
+    if not match_id:
+        return None
+    return {
+        "id": match_id,
+        "match_id": match_id,
+        "match_time": row.get("match_time") or "",
+        "team1": row.get("team1") or row.get("home_team") or "",
+        "team2": row.get("team2") or row.get("away_team") or "",
+        "home_team": row.get("home_team") or row.get("team1") or "",
+        "away_team": row.get("away_team") or row.get("team2") or "",
+        "league": row.get("league") or "",
+        "sport": row.get("sport") or "",
+        "source": row.get("bookmaker") or _source_from_external_id(match_id),
+        "p1": row.get("p1") or row.get("odds_home") or "",
+        "x": row.get("x") or row.get("odds_draw") or "",
+        "p2": row.get("p2") or row.get("odds_away") or "",
+        "total_value": row.get("total_value"),
+        "total_over": row.get("total_over"),
+        "total_under": row.get("total_under"),
+        "handicap_1_value": row.get("handicap_1_value"),
+        "handicap_1": row.get("handicap_1"),
+        "handicap_2_value": row.get("handicap_2_value"),
+        "handicap_2": row.get("handicap_2"),
+        "score": row.get("score") or "",
+        "is_live": bool(row.get("is_live") or False),
     }
 
 
@@ -52,42 +171,38 @@ class Database:
                 print(f"Database connection failed: {exc}")
                 self.initialized = False
 
-    async def insert_match(self, match_data: dict):
+    async def upsert_match_memory(self, matches: list[dict], retention_hours: int = 48):
         if not self.initialized:
-            return None
-        try:
-            data = dict(match_data or {})
+            return 0
+        rows = []
+        for match in matches or []:
+            row = _match_table_row(match)
+            if row:
+                rows.append(row)
+        if not rows:
+            return 0
+        saved = 0
+        chunk_size = 300
+        for idx in range(0, len(rows), chunk_size):
+            chunk = rows[idx:idx + chunk_size]
             try:
-                response = self.client.table("matches").insert(data).execute()
-                return response.data
+                response = self.client.table("matches").upsert(chunk, on_conflict="external_id").execute()
+                saved += len(response.data or chunk)
             except Exception as exc:
-                err_str = str(exc).lower()
-                if "column" in err_str:
-                    problem_cols = [
-                        "external_id",
-                        "is_live",
-                        "score",
-                        "total_value",
-                        "total_over",
-                        "total_under",
-                        "handicap_1_value",
-                        "handicap_1",
-                        "handicap_2_value",
-                        "handicap_2",
-                    ]
-                    for col in problem_cols:
-                        if col in err_str:
-                            data.pop(col, None)
-                    try:
-                        response = self.client.table("matches").insert(data).execute()
-                        return response.data
-                    except Exception:
-                        return None
-                print(f"Error inserting match: {exc}")
-                return None
+                print(f"Error upserting match memory chunk: {exc}")
+        await self.purge_match_memory(retention_hours=retention_hours)
+        return saved
+
+    async def purge_match_memory(self, retention_hours: int = 48):
+        if not self.initialized:
+            return 0
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=max(1, int(retention_hours)))).isoformat()
+        try:
+            response = self.client.table("matches").delete().lt("match_time", cutoff).execute()
+            return len(response.data or [])
         except Exception as exc:
-            print(f"Unexpected error in insert_match: {exc}")
-            return None
+            print(f"Error purging match memory: {exc}")
+            return 0
 
     async def get_matches(self, sport: str = "football", limit: int = 100):
         if not self.initialized:
@@ -533,7 +648,7 @@ class Database:
 
     async def get_match_by_id(self, match_id: str):
         cache_row = _frontend_match_row(match_id)
-        if self.initialized:
+        if self.initialized and _is_uuid_text(match_id):
             try:
                 response = self.client.table("matches").select("id,match_time,team1,team2,league,sport,is_live,score").eq("id", str(match_id)).limit(1).execute().data
                 if response:
@@ -552,9 +667,10 @@ class Database:
             return {}
 
         rows: dict[str, Any] = {}
-        if self.initialized:
+        uuid_ids = [item for item in cleaned if _is_uuid_text(item)]
+        if self.initialized and uuid_ids:
             try:
-                response = self.client.table("matches").select("id,match_time,team1,team2,league,sport,is_live,score").in_("id", cleaned).execute().data
+                response = self.client.table("matches").select("id,match_time,team1,team2,league,sport,is_live,score").in_("id", uuid_ids).execute().data
                 rows = {str(row.get("id")): row for row in response if row.get("id")}
             except Exception as exc:
                 print(f"Error fetching match map: {exc}")

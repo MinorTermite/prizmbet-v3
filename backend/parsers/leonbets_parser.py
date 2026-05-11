@@ -5,7 +5,6 @@ Leonbets JSON API Parser
 API: https://leon.ru/api-2/betline/events/all
 """
 
-import asyncio
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from backend.parsers.base_parser import BaseParser
@@ -50,73 +49,40 @@ class LeonbetsParser(BaseParser):
 
                 data = await response.json()
                 events = data.get("events", [])
-                print(f"[Leonbets] total events from API: {len(events)}")
 
-                # Filter to supported sports with markets available
-                candidates = []
+                matches = []
+                skipped_sport = 0
+                skipped_no_markets = 0  # marketsCount>0 but markets[] empty in this endpoint
+                skipped_no_odds = 0     # passed parse but no 1/2 odds extracted
                 for event in events:
                     league_obj = event.get("league", {}) or {}
                     sport_obj = league_obj.get("sport", {}) or {}
                     family = sport_obj.get("family", "")
                     if family not in SPORTS_MAP:
+                        skipped_sport += 1
                         continue
-                    if event.get("marketsCount", 0) <= 0:
+                    if not event.get("markets"):
+                        # /events/all does not include inline markets for every event.
+                        # Without markets we cannot compute odds, so skip without parsing.
+                        skipped_no_markets += 1
                         continue
-                    candidates.append(event)
+                    match = self._parse_event(event)
+                    if match:
+                        matches.append(match)
+                    else:
+                        skipped_no_odds += 1
 
-                print(f"[Leonbets] {len(candidates)} events with supported sports & markets")
-
-                # Prematch must be prioritized before truncation.
-                # The Leon API returns a mixed feed where in-play events often occupy the
-                # first slots; taking the first 200 blindly can produce an all-live snapshot.
-                candidates.sort(key=lambda event: (
-                    1 if (
-                        event.get("betline") == "inplay"
-                        or event.get("matchPhase") == "IN_PLAY"
-                    ) else 0,
-                    event.get("kickoff") or 0,
-                ))
-
-                # Fetch markets for top events (limit to avoid rate limiting)
-                MAX_FETCH = 200
-                candidates = candidates[:MAX_FETCH]
-
-                # Fetch markets in batches of 20
-                matches = []
-                BATCH = 20
-                for i in range(0, len(candidates), BATCH):
-                    batch = candidates[i:i+BATCH]
-                    tasks = [self._fetch_event_markets(e, headers) for e in batch]
-                    results = await asyncio.gather(*tasks, return_exceptions=True)
-                    for result in results:
-                        if isinstance(result, dict):
-                            matches.append(result)
+                print(
+                    f"[Leonbets] events_total={len(events)} parsed={len(matches)} "
+                    f"skipped_sport={skipped_sport} skipped_no_markets={skipped_no_markets} "
+                    f"skipped_no_odds={skipped_no_odds}"
+                )
 
                 return matches
 
         except Exception as e:
             print(f"[ERROR] Leonbets: {e}")
             return []
-
-    async def _fetch_event_markets(self, event: Dict, headers: Dict) -> Optional[Dict]:
-        """Fetch full event data with markets from Leon API."""
-        eid = event.get("id")
-        if not eid:
-            return None
-        url = f"{BASE_URL}/api-2/betline/event/all"
-        params = {"ctag": "ru-RU", "eventId": str(eid)}
-        try:
-            async with self.session.get(
-                url, params=params, headers=headers, proxy=self.proxy
-            ) as r:
-                if r.status != 200:
-                    return None
-                full_event = await r.json()
-                # Merge markets into the original event data
-                event_with_markets = {**event, "markets": full_event.get("markets", [])}
-                return self._parse_event(event_with_markets)
-        except Exception:
-            return None
 
     def _parse_event(self, event: Dict) -> Optional[Dict]:
         """Convert a Leonbets event dict to internal match format."""

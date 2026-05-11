@@ -1913,3 +1913,219 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+/* v77 operator scroll/data repair */
+html,
+body {
+    min-height: 100%;
+    overflow-x: clip;
+    overflow-y: auto;
+}
+
+.operator-shell.operator-shell--authed {
+    height: auto !important;
+    min-height: 100vh !important;
+    max-height: none !important;
+    overflow: visible !important;
+    align-items: start !important;
+    padding-bottom: 42px;
+}
+
+.operator-shell.operator-shell--authed > .section,
+.operator-shell.operator-shell--authed .operator-workspace-shell,
+.operator-shell.operator-shell--authed .operator-access,
+.operator-shell.operator-shell--authed .operator-stats-section,
+.operator-shell.operator-shell--authed .operator-feed-section,
+.operator-shell.operator-shell--authed .operator-audit-section,
+.operator-shell.operator-shell--authed .operator-users-section,
+.operator-shell.operator-shell--authed .operator-wallet-section,
+.operator-shell.operator-shell--authed .operator-gamification-section {
+    min-height: 0;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.operator-shell.operator-shell--authed .operator-feed-body,
+.operator-shell.operator-shell--authed .operator-audit-body,
+.operator-shell.operator-shell--authed .operator-user-list {
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0;
+}
+
+@media (min-width: 1280px) {
+    body {
+        overflow-y: auto !important;
+    }
+
+    .operator-shell.operator-shell--authed {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: none !important;
+        grid-template-areas: none !important;
+        gap: 14px !important;
+    }
+
+    .operator-shell.operator-shell--authed .operator-hero,
+    .operator-shell.operator-shell--authed .operator-access,
+    .operator-shell.operator-shell--authed .operator-users-section,
+    .operator-shell.operator-shell--authed .operator-stats-section,
+    .operator-shell.operator-shell--authed .operator-feed-section,
+    .operator-shell.operator-shell--authed .operator-audit-section,
+    .operator-shell.operator-shell--authed .operator-wallet-section,
+    .operator-shell.operator-shell--authed .operator-gamification-section {
+        grid-area: auto !important;
+    }
+
+    .operator-shell.operator-shell--authed .operator-access-card {
+        height: auto !important;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 0.75fr);
+        grid-template-rows: auto;
+    }
+
+    .operator-shell.operator-shell--authed .operator-auth-stack {
+        overflow: visible !important;
+    }
+
+    .operator-shell.operator-shell--authed #sessionSection {
+        height: auto !important;
+    }
+
+    .operator-shell.operator-shell--authed .operator-stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .operator-shell.operator-shell--authed .operator-feed-list,
+    .operator-shell.operator-shell--authed .operator-audit-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 860px) {
+    .operator-shell {
+        max-width: 100%;
+        padding: 10px;
+    }
+
+    .operator-hero-card,
+    .operator-access-card {
+        border-radius: 20px;
+    }
+
+    .operator-hero-card {
+        gap: 14px;
+    }
+
+    .operator-hero-side {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .operator-access-grid,
+    .operator-actions,
+    .operator-feed-toolbar {
+        grid-template-columns: 1fr !important;
+    }
+
+    .operator-tabs-card {
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .operator-tabs-card::-webkit-scrollbar {
+        display: none;
+    }
+
+    .operator-tab {
+        white-space: nowrap;
+    }
+}
+
+/* v78 operator scroll hard lock repair */
+html,
+body {
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: auto !important;
+}
+
+body {
+    position: static !important;
+}
+
+.operator-shell.operator-shell--authed {
+    display: block !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: max(96px, env(safe-area-inset-bottom)) !important;
+}
+
+.operator-shell.operator-shell--authed .operator-workspace-shell {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.operator-shell.operator-shell--authed .operator-hero,
+.operator-shell.operator-shell--authed .operator-workspace-tabs,
+.operator-shell.operator-shell--authed .operator-access,
+.operator-shell.operator-shell--authed .operator-stats-section,
+.operator-shell.operator-shell--authed .operator-feed-section,
+.operator-shell.operator-shell--authed .operator-audit-section,
+.operator-shell.operator-shell--authed .operator-users-section,
+.operator-shell.operator-shell--authed .operator-wallet-section,
+.operator-shell.operator-shell--authed .operator-gamification-section {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.operator-shell.operator-shell--authed .operator-feed-body,
+.operator-shell.operator-shell--authed .operator-audit-body,
+.operator-shell.operator-shell--authed .operator-user-list {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    touch-action: pan-y !important;
+}
+
+@media (min-width: 1280px) {
+    .operator-shell.operator-shell--authed {
+        grid-template-columns: none !important;
+        grid-template-rows: none !important;
+        grid-template-areas: none !important;
+    }
+
+    .operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-feed-body,
+    .operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-audit-body,
+    .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-user-list {
+        min-height: 440px !important;
+        max-height: calc(100dvh - 315px) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain !important;
+        padding-right: 8px !important;
+        scrollbar-gutter: stable;
+    }
+}
+
+@supports not (min-height: 100dvh) {
+    .operator-shell.operator-shell--authed {
+        min-height: 100vh !important;
+    }
+
+    @media (min-width: 1280px) {
+        .operator-shell.operator-shell--authed[data-active-tab='feed'] .operator-feed-body,
+        .operator-shell.operator-shell--authed[data-active-tab='audit'] .operator-audit-body,
+        .operator-shell.operator-shell--authed[data-active-tab='users'] .operator-user-list {
+            max-height: calc(100vh - 315px) !important;
+        }
+    }
+}

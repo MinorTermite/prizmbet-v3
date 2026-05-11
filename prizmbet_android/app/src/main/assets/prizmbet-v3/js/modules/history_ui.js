@@ -3,10 +3,10 @@
  */
 import { clearIntentRecords, getWalletAddress, saveWalletAddress } from './storage.js';
 import { escapeHtml } from './utils.js';
-import { getCabinetData, syncWalletInput } from './bet_slip.js?v=20260508-betslip-v75';
+import { getCabinetData, syncWalletInput } from './bet_slip.js?v=20260508-mobile-operator-notify-v77';
 import { showToast } from './notifications.js';
 import { formatNumber, t } from './i18n.js';
-import { initCabinetV2, renderGamification } from './cabinet_v2.js?v=20260508-betslip-v75';
+import { initCabinetV2, renderGamification } from './cabinet_v2.js?v=20260508-mobile-operator-notify-v77';
 
 let initialized = false;
 const dom = {};
@@ -116,7 +116,7 @@ async function renderCabinet() {
         const data = await getCabinetData(wallet);
         renderStats(data);
         renderFeed(data.feed || []);
-        // Gamification panel (v2) renders after bet history is ready.
+        // Gamification panel (v2) — fires after bet history renders
         renderGamification(wallet, data).catch(() => {});
     } catch (_) {
         renderEmptyCabinet(getCabinetErrorText());

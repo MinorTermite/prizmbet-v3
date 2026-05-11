@@ -1,5 +1,5 @@
 // ── 1PrizmBet Service Worker ─────────────────────────────────────────────────
-const VERSION     = 'v70';
+const VERSION     = 'v81';
 const SHELL_CACHE = `one-prizmbet-shell-${VERSION}`;
 const DATA_CACHE  = 'one-prizmbet-data';   // вечный, обновляется по контенту
 
@@ -9,7 +9,6 @@ const SHELL_ASSETS = [
     './index.html',
     './manifest.json',
     './api.js',
-    './tests.js',
     './js/app.js',
     './js/modules/bet_slip.js',
     './js/modules/filters.js',

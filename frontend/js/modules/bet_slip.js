@@ -1,7 +1,7 @@
 /**
  * 1PrizmBet - Smart Coupon Module
  */
-import { showToast } from './notifications.js';
+import { showNotification, showToast } from './notifications.js';
 import { escapeHtml } from './utils.js';
 import { formatDateTime as formatDateTimeI18n, formatNumber as formatNumberI18n, formatOutcomeLabel, t } from './i18n.js';
 import { getActiveRail, getActiveRailCurrency, getActiveRailLimits, getCopyDoneMessage, getCopyMissingMessage, getCouponRailHint, getRailAddress, getTransferChipText, getTransferInstruction, initPaymentRails, renderPaymentRailUI } from './payment_rails.js';
@@ -98,9 +98,12 @@ let apiCheckPromise = null;
 let domBound = false;
 let countdownStarted = false;
 let statusPollTimer = null;
+let storedStatusWatchTimer = null;
 let expressLegs = [];
 const STATUS_POLL_INTERVAL_MS = 15_000;
 const STATUS_POLL_TERMINAL = new Set(['won', 'lost', 'paid', 'expired', 'rejected']);
+const STORED_STATUS_WATCH_MS = 20_000;
+const PLAYER_NOTIFY_STATUSES = new Set(['accepted', 'rejected', 'won', 'lost', 'paid', 'refund_pending']);
 
 const dom = {};
 
@@ -111,6 +114,7 @@ export function initSmartBetting() {
     calcPayout();
     ensureApiStatus();
     initPaymentRails();
+    startStoredIntentWatcher();
 
     if (!countdownStarted) {
         countdownStarted = true;
@@ -410,6 +414,135 @@ export function checkMyBets() {
     if (typeof window.openHistory === 'function') window.openHistory();
 }
 
+function shouldNotifyPlayerStatus(status) {
+    return PLAYER_NOTIFY_STATUSES.has(String(status || '').toLowerCase());
+}
+
+function getPlayerStatusNotification(intent, data = {}) {
+    const status = String(intent?.status || data.status || '').toLowerCase();
+    const code = intent?.intent_hash || data.intent_hash || '';
+    const amount = Number(intent?.amount_prizm || data.amount_prizm || 0);
+    const match = intent?.match_label || data.match_label || '';
+    const payout = Number(data.payout_amount || intent?.payout_amount || 0);
+    const payoutTx = data.payout_tx_id || intent?.payout_tx_id || '';
+    const reason = getRejectLabel(String(intent?.reject_reason || data.reject_reason || '').toUpperCase());
+    const ru = !isEnglish();
+    const codeTail = code ? `${ru ? 'Код' : 'Code'} ${code}.` : '';
+    const matchTail = match ? ` ${match}.` : '';
+
+    if (status === 'accepted') {
+        return {
+            title: ru ? 'Ставка принята' : 'Bet accepted',
+            body: ru
+                ? `Перевод найден. ${codeTail}${matchTail} Сумма: ${formatNumber(amount)} PRIZM.`
+                : `Transfer found. ${codeTail}${matchTail} Amount: ${formatNumber(amount)} PRIZM.`,
+        };
+    }
+    if (status === 'rejected') {
+        return {
+            title: ru ? 'Ставка отклонена' : 'Bet rejected',
+            body: ru
+                ? `${codeTail} Причина: ${reason || 'нарушены правила ставки'}.`
+                : `${codeTail} Reason: ${reason || 'bet rules were violated'}.`,
+        };
+    }
+    if (status === 'won') {
+        return {
+            title: ru ? 'Ставка выиграла' : 'Bet won',
+            body: ru
+                ? `${codeTail} Расчетный выигрыш: ${formatNumber(payout || amount * Number(intent?.odds_fixed || 0))} PRIZM.`
+                : `${codeTail} Estimated payout: ${formatNumber(payout || amount * Number(intent?.odds_fixed || 0))} PRIZM.`,
+        };
+    }
+    if (status === 'paid') {
+        return {
+            title: ru ? 'Выплата отправлена' : 'Payout sent',
+            body: ru
+                ? `${codeTail} Выплата отправлена${payoutTx ? `, TX: ${payoutTx}` : ''}.`
+                : `${codeTail} Payout sent${payoutTx ? `, TX: ${payoutTx}` : ''}.`,
+        };
+    }
+    if (status === 'lost') {
+        return {
+            title: ru ? 'Ставка проиграла' : 'Bet lost',
+            body: ru ? `${codeTail} Матч рассчитан не в вашу пользу.` : `${codeTail} The result did not win.`,
+        };
+    }
+    return {
+        title: ru ? 'Нужна проверка ставки' : 'Bet needs review',
+        body: ru ? `${codeTail} Система поставила ставку в очередь на ручную проверку.` : `${codeTail} The system queued this bet for review.`,
+    };
+}
+
+function maybeNotifyPlayerStatus(intent, data = {}) {
+    const status = String(intent?.status || data.status || '').toLowerCase();
+    if (!intent || !shouldNotifyPlayerStatus(status)) return;
+    const notifyKey = [
+        status,
+        intent.reject_reason || data.reject_reason || '',
+        intent.payout_tx_id || data.payout_tx_id || '',
+    ].join(':');
+    if (intent.player_notified_key === notifyKey) return;
+
+    intent.player_notified_key = notifyKey;
+    const notification = getPlayerStatusNotification(intent, data);
+    showToast(`${notification.title}. ${notification.body}`);
+    showNotification(notification.title, notification.body);
+}
+
+function startStoredIntentWatcher() {
+    if (storedStatusWatchTimer) return;
+    window.setTimeout(checkStoredIntentStatuses, 2500);
+    storedStatusWatchTimer = window.setInterval(checkStoredIntentStatuses, STORED_STATUS_WATCH_MS);
+}
+
+async function checkStoredIntentStatuses() {
+    await ensureApiStatus();
+    if (!apiLive || !apiBase) return;
+
+    const records = getIntentRecords()
+        .map((item) => normalizeIntentRecord(item))
+        .filter((item) => item?.intent_hash && item.mode === 'live' && !STATUS_POLL_TERMINAL.has(String(item.status || '').toLowerCase()))
+        .slice(0, 8);
+
+    for (const record of records) {
+        await refreshStoredIntentStatus(record);
+    }
+}
+
+async function refreshStoredIntentStatus(record) {
+    try {
+        const response = await fetch(`${apiBase}/api/bet-status/${encodeURIComponent(record.intent_hash)}`, { mode: 'cors' });
+        if (!response.ok) return;
+        const data = await response.json();
+        const previousStatus = String(record.status || '').toLowerCase();
+        const previousPayoutTx = record.payout_tx_id || '';
+        const next = normalizeIntentRecord({
+            ...record,
+            status: data.status || record.status,
+            reject_reason: data.reject_reason || record.reject_reason,
+            payout_tx_id: data.payout_tx_id || record.payout_tx_id,
+            payout_amount: data.payout_amount || record.payout_amount,
+            mode: 'live',
+        });
+        maybeNotifyPlayerStatus(next, data);
+        const nextStatus = String(next.status || '').toLowerCase();
+        const changed = previousStatus !== nextStatus
+            || previousPayoutTx !== (next.payout_tx_id || '')
+            || record.player_notified_key !== next.player_notified_key;
+        if (!changed) return;
+
+        upsertIntentRecord(next);
+        if (activeIntent?.intent_hash === next.intent_hash) {
+            activeIntent = next;
+            renderCoupon();
+        }
+        dispatchIntentUpdate();
+    } catch (_) {
+        // Background status checks must not block the public page.
+    }
+}
+
 function stopBetStatusPolling() {
     if (statusPollTimer) {
         clearInterval(statusPollTimer);
@@ -433,6 +566,7 @@ function startBetStatusPolling() {
                 ...activeIntent,
                 status: data.status || activeIntent.status,
                 reject_reason: data.reject_reason || activeIntent.reject_reason,
+                payout_amount: data.payout_amount || activeIntent.payout_amount,
                 mode: 'live',
             });
             if (prev !== activeIntent.status) {
@@ -442,6 +576,7 @@ function startBetStatusPolling() {
                     `${isEnglish() ? 'New status:' : 'Новый статус:'} ${label}${data.payout_amount ? ` | ${isEnglish() ? 'Payout' : 'Выплата'}: ${formatNumber(data.payout_amount)} PRIZM` : ''}`
                 );
             }
+            maybeNotifyPlayerStatus(activeIntent, data);
             if (data.payout_tx_id && !activeIntent.payout_tx_id) {
                 activeIntent.payout_tx_id = data.payout_tx_id;
                 pushTimeline(activeIntent,
@@ -679,13 +814,19 @@ function renderTimeline(intent) {
 }
 
 function syncIntentFromApi(payload) {
+    const previousStatus = String(activeIntent?.status || '').toLowerCase();
     activeIntent = normalizeIntentRecord({
         ...activeIntent,
         status: payload.status || activeIntent.status,
         expires_at: payload.intent?.expires_at || activeIntent.expires_at,
         reject_reason: payload.bet?.reject_reason || activeIntent.reject_reason,
+        payout_amount: payload.bet?.payout_amount || activeIntent.payout_amount,
+        payout_tx_id: payload.bet?.payout_tx_id || activeIntent.payout_tx_id,
         mode: 'live',
     });
+    if (previousStatus !== String(activeIntent.status || '').toLowerCase() || payload.bet) {
+        maybeNotifyPlayerStatus(activeIntent, payload.bet || payload);
+    }
     pushTimeline(
         activeIntent,
         isEnglish() ? 'Status synchronized' : 'Статус синхронизирован',

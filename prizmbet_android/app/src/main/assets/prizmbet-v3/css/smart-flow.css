@@ -3881,78 +3881,77 @@ button.market-chip:hover {
     filter: drop-shadow(0 6px 12px rgba(0,0,0,.45));
 }
 
-.cv2-roulette-wheel {
+.cv2-roulette-canvas {
     position: relative;
     z-index: 2;
-    width: 216px;
-    height: 216px;
+    width: 232px;
+    height: 232px;
     border-radius: 50%;
-    border: 8px solid rgba(255,255,255,.12);
-    background:
-        conic-gradient(
-            from -30deg,
-            #111827 0deg 60deg,
-            #2563eb 60deg 120deg,
-            #059669 120deg 180deg,
-            #f59e0b 180deg 240deg,
-            #dc2626 240deg 300deg,
-            #7c3aed 300deg 360deg
-        );
+    overflow: hidden;
     box-shadow:
         0 22px 44px rgba(0,0,0,.38),
-        inset 0 0 0 1px rgba(255,255,255,.18),
-        inset 0 0 34px rgba(0,0,0,.4);
-    transition: transform 4.6s cubic-bezier(.11,.74,.08,1);
-    will-change: transform;
+        inset 0 0 0 1px rgba(255,255,255,.18);
+    transition: box-shadow .35s ease;
 }
 
-.cv2-roulette-stage.is-spinning .cv2-roulette-wheel {
+.cv2-roulette-canvas canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.cv2-roulette-stage.is-spinning .cv2-roulette-canvas {
     box-shadow:
-        0 24px 60px rgba(79,209,197,.22),
-        inset 0 0 0 1px rgba(255,255,255,.22),
-        inset 0 0 34px rgba(0,0,0,.4);
+        0 24px 60px rgba(79,209,197,.32),
+        inset 0 0 0 1px rgba(255,255,255,.28),
+        0 0 0 1px rgba(99,102,241,.35);
 }
 
-.cv2-roulette-stage.is-win .cv2-roulette-wheel {
+.cv2-roulette-stage.is-win .cv2-roulette-canvas {
     animation: cv2-wheel-win .55s ease both;
-}
-
-.cv2-roulette-wheel-face {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-}
-
-.cv2-roulette-sector-label {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 68px;
-    margin-left: -34px;
-    margin-top: -12px;
-    text-align: center;
-    color: #fff;
-    font-size: .58rem;
-    font-weight: 900;
-    letter-spacing: .08em;
-    text-shadow: 0 2px 8px rgba(0,0,0,.55);
-    transform: rotate(var(--sector-angle)) translateY(-76px) rotate(calc(-1 * var(--sector-angle)));
-    transform-origin: center;
-    pointer-events: none;
+    box-shadow:
+        0 24px 60px rgba(79,209,197,.4),
+        inset 0 0 0 1px rgba(255,255,255,.32);
 }
 
 .cv2-roulette-hub {
     position: absolute;
     inset: 50%;
-    width: 54px;
-    height: 54px;
-    margin: -27px 0 0 -27px;
+    z-index: 3;
+    width: 72px;
+    height: 72px;
+    margin: -36px 0 0 -36px;
     border-radius: 999px;
-    background:
-        radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), rgba(255,255,255,.18) 28%, transparent 29%),
-        linear-gradient(135deg, #4fd1c5, #6366f1);
-    border: 6px solid rgba(255,255,255,.14);
-    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    overflow: hidden;
+    background: #14101c;
+    border: 4px solid rgba(255,255,255,.18);
+    box-shadow:
+        0 10px 24px rgba(0,0,0,.45),
+        0 0 0 6px rgba(99,102,241,.14),
+        inset 0 0 0 1px rgba(255,255,255,.1);
+}
+
+.cv2-roulette-hub img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.cv2-roulette-stage.is-spinning .cv2-roulette-hub {
+    box-shadow:
+        0 12px 30px rgba(0,0,0,.5),
+        0 0 0 6px rgba(79,209,197,.32),
+        inset 0 0 0 1px rgba(255,255,255,.18);
+}
+
+.cv2-roulette-stage.is-win .cv2-roulette-hub {
+    box-shadow:
+        0 14px 36px rgba(0,0,0,.55),
+        0 0 0 6px rgba(79,209,197,.42),
+        inset 0 0 0 1px rgba(255,255,255,.22);
 }
 
 .cv2-roulette-live {
@@ -4327,5 +4326,144 @@ button.market-chip:hover {
 
     .rules-page-header .coupon-secondary-btn {
         width: 100%;
+    }
+}
+
+/* v77 mobile readability repair */
+@media (max-width: 760px) {
+    html,
+    body {
+        overflow-x: hidden;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 100%;
+        padding: 8px 10px 28px;
+    }
+
+    .header {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 0 10px;
+        padding: 8px 10px;
+        gap: 8px;
+        overflow: visible;
+    }
+
+    .header .header-brand-link {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .header-v2-logo-shell.header-v2-logo-shell--source {
+        width: clamp(122px, 38vw, 154px);
+        max-width: calc(100vw - 210px);
+        min-width: 112px;
+        flex: 0 1 auto;
+    }
+
+    .header-utility {
+        flex: 0 0 auto;
+        gap: 8px;
+    }
+
+    .header-time-chip {
+        min-width: 74px;
+        padding: 8px 9px;
+    }
+
+    .top-stage {
+        display: block !important;
+        width: 100%;
+        margin: 10px 0 14px !important;
+    }
+
+    .quick-start--aside {
+        display: none !important;
+    }
+
+    .hero-panel {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 22px 18px;
+        overflow: hidden;
+        border-radius: 24px;
+    }
+
+    .hero-panel .hero-section {
+        width: 100%;
+        max-width: none;
+        padding: 0;
+        text-align: left;
+    }
+
+    .hero-panel .smart-banner-eyebrow {
+        text-align: left;
+    }
+
+    .hero-panel .hero-title {
+        max-width: none !important;
+        width: 100%;
+        margin: 0 0 12px;
+        font-size: clamp(2.08rem, 10.5vw, 3rem);
+        line-height: 0.98;
+        letter-spacing: 0.005em;
+        text-align: left;
+        word-break: normal;
+        overflow-wrap: normal;
+        hyphens: none;
+        text-wrap: balance;
+    }
+
+    .hero-panel .hero-subtitle {
+        max-width: none !important;
+        margin: 0;
+        font-size: 0.98rem;
+        line-height: 1.48;
+        text-align: left;
+    }
+
+    .hero-actions {
+        grid-template-columns: 1fr !important;
+        width: 100%;
+    }
+
+    .hero-action-btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .hero-trust-grid,
+    .stats-bar--hero {
+        display: none !important;
+    }
+
+    .market-layout,
+    .market-feed,
+    .filters-bar,
+    .search-container {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 420px) {
+    .header-time-chip {
+        display: none;
+    }
+
+    .header-v2-logo-shell.header-v2-logo-shell--source {
+        max-width: calc(100vw - 132px);
+        width: clamp(126px, 45vw, 154px);
+    }
+
+    .hero-panel {
+        padding: 20px 16px;
+    }
+
+    .hero-panel .hero-title {
+        font-size: clamp(2rem, 11.5vw, 2.7rem);
     }
 }

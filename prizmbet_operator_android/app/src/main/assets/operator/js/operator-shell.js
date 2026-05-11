@@ -195,6 +195,12 @@ function bindEvents() {
     const paidButton = event.target.closest('[data-mark-paid]');
     if (paidButton) {
       await handleMarkPaid(paidButton);
+      return;
+    }
+
+    const settleButton = event.target.closest('[data-manual-settle]');
+    if (settleButton) {
+      await handleManualSettle(settleButton);
     }
   });
 
@@ -1123,6 +1129,44 @@ async function handleMarkPaid(button) {
   }
 }
 
+async function handleManualSettle(button) {
+  if (!isOwner()) {
+    renderStatus('Only the owner can settle bets manually.', 'warn');
+    return;
+  }
+  const txId = button.getAttribute('data-manual-settle') || '';
+  if (!txId) return;
+  if (!state.apiBase || !state.sessionToken) {
+    renderStatus('Log in first to settle bets.', 'warn');
+    return;
+  }
+
+  const score = window.prompt('Введите финальный счёт в формате хозяева:гости. Пример: 2:1', '') || '';
+  if (!score.trim()) return;
+
+  button.disabled = true;
+  try {
+    const response = await fetch(`${state.apiBase}/api/admin/bets/${encodeURIComponent(txId)}/settle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...buildAuthHeaders(),
+      },
+      body: JSON.stringify({ score: score.trim() }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || `API returned ${response.status}`);
+    }
+    renderStatus(`Bet ${txId} settled manually.`, 'good');
+    await fetchFeed();
+  } catch (error) {
+    renderStatus(normalizeErrorMessage(error, 'Failed to settle bet manually.'), 'bad');
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function renderStatus(message, tone) {
   dom.operatorStatus.textContent = String(message || 'No API connection.');
   dom.operatorStatus.dataset.tone = tone || 'neutral';
@@ -1496,6 +1540,9 @@ function renderGamificationAdmin() {
 }
 
 function renderFeedCard(item) {
+  const settleAction = item.status === 'accepted' && isOwner()
+    ? `<button class="operator-chip" type="button" data-manual-settle="${escapeAttr(item.tx_id || '')}">Рассчитать</button>`
+    : '';
   const payoutAction = item.status === 'won' && isOwner()
     ? `<button class="operator-chip" type="button" data-mark-paid="${escapeAttr(item.tx_id || '')}" data-payout="${escapeAttr(item.potential_payout_prizm || 0)}">Mark paid</button>`
     : '';
@@ -1549,6 +1596,7 @@ ${item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeA
           ${item.intent_hash ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.intent_hash)}">Intent</button>` : ''}
           ${item.tx_id ? `<button class="operator-chip" type="button" data-copy="${escapeAttr(item.tx_id)}">TX</button>` : ''}
           ${payoutTxChip}
+          ${settleAction}
           ${payoutAction}
         </div>
       </div>

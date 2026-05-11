@@ -6,7 +6,7 @@ import { t } from './i18n.js';
 
 export function updateNotifBell() {
     document.querySelectorAll('[data-notif-glyph="true"]').forEach((node) => {
-        const isGranted = Notification.permission === 'granted';
+        const isGranted = 'Notification' in window && Notification.permission === 'granted';
         node.innerHTML = isGranted ? '&#128276;' : '&#128277;';
         node.closest('button, a')?.style.setProperty('opacity', isGranted ? '1' : '0.7');
     });
@@ -29,7 +29,7 @@ export function playNotificationSound() {
 }
 
 export function showNotification(title, body) {
-    if (Notification.permission === 'granted') {
+    if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, { body, icon: '/one-prizmbet-logo.png' });
         playNotificationSound();
     }

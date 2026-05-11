@@ -112,6 +112,13 @@ def _teams_match(our_t1: str, our_t2: str, api_t1: str, api_t2: str) -> bool:
 
 def _parse_match_date(match_json_item: Dict) -> Optional[datetime]:
     """Парсит поля date и time матча из matches.json в datetime."""
+    raw_match_time = str(match_json_item.get("match_time") or "").strip()
+    if raw_match_time:
+        try:
+            return datetime.fromisoformat(raw_match_time.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
     date_str = (match_json_item.get("date") or "").strip()
     time_str = (match_json_item.get("time") or "").strip()
     if not date_str: return None
@@ -148,6 +155,82 @@ async def _fetch_fixtures(session: aiohttp.ClientSession, date_str: str) -> List
     return []
 
 
+def _snapshot_to_match_item(snapshot: Dict) -> Optional[Dict]:
+    if not isinstance(snapshot, dict):
+        return None
+    match_id = str(snapshot.get("match_id") or snapshot.get("id") or "").strip()
+    if not match_id:
+        return None
+    team1 = str(snapshot.get("team1") or snapshot.get("home_team") or "").strip()
+    team2 = str(snapshot.get("team2") or snapshot.get("away_team") or "").strip()
+    if not team1 or not team2:
+        return None
+    return {
+        "id": match_id,
+        "sport": snapshot.get("sport") or "football",
+        "league": snapshot.get("league") or "",
+        "date": snapshot.get("date") or "",
+        "time": snapshot.get("time") or "",
+        "match_time": snapshot.get("match_time") or "",
+        "team1": team1,
+        "team2": team2,
+        "match_url": snapshot.get("match_url") or "",
+        "p1": snapshot.get("p1") or "0.00",
+        "x": snapshot.get("x") or "0.00",
+        "p2": snapshot.get("p2") or "0.00",
+        "p1x": snapshot.get("p1x") or "0.00",
+        "p12": snapshot.get("p12") or "0.00",
+        "px2": snapshot.get("px2") or "0.00",
+        "source": snapshot.get("source") or "",
+        "total_value": snapshot.get("total_value"),
+        "total_over": snapshot.get("total_over") or "0.00",
+        "total_under": snapshot.get("total_under") or "0.00",
+        "is_live": bool(snapshot.get("is_live")),
+        "score": snapshot.get("score") or "",
+    }
+
+
+async def _load_pending_bet_snapshots(existing_ids: set[str]) -> List[Dict]:
+    try:
+        from backend.db.supabase_client import db
+    except Exception as exc:
+        print(f"[score_enricher] pending snapshot import failed: {type(exc).__name__}: {exc}")
+        return []
+
+    try:
+        db.init()
+        if not db.initialized:
+            return []
+        bets = await db.get_bets_by_status(["accepted"], limit=500)
+        intent_hashes = [str(item.get("intent_hash") or "") for item in bets]
+        intent_map = await db.get_bet_intents_map(intent_hashes)
+    except Exception as exc:
+        print(f"[score_enricher] pending snapshot load failed: {type(exc).__name__}: {exc}")
+        return []
+
+    additions: List[Dict] = []
+    for intent in intent_map.values():
+        snapshots = []
+        explicit = intent.get("match_snapshot")
+        if isinstance(explicit, dict):
+            snapshots.append(explicit)
+        legs = intent.get("express_legs") or []
+        if isinstance(legs, list):
+            snapshots.extend([item for item in legs if isinstance(item, dict)])
+        for snapshot in snapshots:
+            item = _snapshot_to_match_item(snapshot)
+            if not item:
+                continue
+            match_id = str(item.get("id") or "")
+            if match_id in existing_ids:
+                continue
+            existing_ids.add(match_id)
+            additions.append(item)
+    if additions:
+        print(f"[score_enricher] added {len(additions)} pending bet snapshot(s)")
+    return additions
+
+
 async def main():
     if not API_KEY:
         print("[score_enricher] API_FOOTBALL_KEY не найден — пропускаем")
@@ -163,6 +246,9 @@ async def main():
     our_matches = payload.get("matches", [])
     if not our_matches:
         return
+    existing_ids = {str(item.get("id") or "") for item in our_matches if item.get("id")}
+    our_matches.extend(await _load_pending_bet_snapshots(existing_ids))
+    payload["matches"] = our_matches
 
     print(f"[score_enricher] Обогащаем {len(our_matches)} матчей...")
 

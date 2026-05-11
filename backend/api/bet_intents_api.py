@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import collections
+import asyncio
 import csv
 import io
 import json
+import logging
 import os
 import re
 import secrets
@@ -16,6 +18,8 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
+
+logger = logging.getLogger(__name__)
 
 from backend.config import config
 from backend.db.supabase_client import db
@@ -39,12 +43,15 @@ from backend.utils.admin_auth import (
 from backend.bot.gamification import (
     LEVELS as _GAMIFICATION_LEVELS,
     QUEST_BY_ID as _QUEST_BY_ID,
+    apply_settlement_bonuses as _gamification_apply_bonuses,
     finalize_weekly_leaderboard as _gamification_finalize_weekly,
     increment_quest_progress as _gamification_increment_quest,
+    on_bet_settled as _gamification_on_bet_settled,
     spin_roulette as _gamification_spin_roulette,
 )
+from backend.bot.v3_settler import determine_bet_result
 from backend.utils.bet_views import ACCEPTED_STATUSES, build_bet_view, search_blob
-from backend.utils.operator_alerts import notify_payout_sent
+from backend.utils.operator_alerts import notify_bet_settled, notify_payout_sent
 from backend.utils.operator_audit import log_operator_event, mirror_operator_event
 
 
@@ -72,12 +79,23 @@ WALLET_RE = re.compile(r"^[A-Z0-9:_-]{3,96}$")
 WALLET_VERIFICATION_CODE_RE = re.compile(r"^PB-[A-Z0-9]{6,12}$")
 WALLET_VERIFICATION_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 WALLET_VERIFICATION_CODE_LENGTH = 8
+MANUAL_SCORE_RE = re.compile(r"^\s*(\d{1,2})\s*[:\-]\s*(\d{1,2})\s*$")
 
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Content-Security-Policy": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cookieconsent.orestbida.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https://www.googletagmanager.com; "
+        "connect-src 'self' https://www.googletagmanager.com; "
+        "frame-src 'self' https://www.googletagmanager.com; "
+        "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'"
+    ),
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 }
 
@@ -123,6 +141,45 @@ def _extract_odds(match: dict[str, Any], outcome: str) -> float | None:
         return round(float(value), 2)
     except Exception:
         return None
+
+
+def _build_match_snapshot(match: dict[str, Any], *, outcome: str, odds: float) -> dict[str, Any]:
+    match_id = str(match.get("id") or match.get("match_id") or "").strip()
+    snapshot = {
+        "match_id": match_id,
+        "id": match_id,
+        "outcome": str(outcome or "").strip().upper(),
+        "odds": round(float(odds or 0), 4),
+        "team1": match.get("team1") or match.get("home_team") or "",
+        "team2": match.get("team2") or match.get("away_team") or "",
+        "league": match.get("league") or "",
+        "sport": match.get("sport") or "",
+        "match_time": match.get("match_time") or "",
+        "date": match.get("date") or "",
+        "time": match.get("time") or "",
+        "source": match.get("source") or "",
+        "match_url": match.get("match_url") or "",
+        "is_live": bool(match.get("is_live")),
+        "score": match.get("score") or "",
+    }
+    for key in (
+        "p1",
+        "x",
+        "p2",
+        "p1x",
+        "p12",
+        "px2",
+        "total_value",
+        "total_over",
+        "total_under",
+        "handicap_1_value",
+        "handicap_1",
+        "handicap_2_value",
+        "handicap_2",
+    ):
+        if key in match:
+            snapshot[key] = match.get(key)
+    return snapshot
 
 
 def _intent_hash(length: int = INTENT_HASH_LENGTH) -> str:
@@ -672,14 +729,9 @@ async def create_intent(request: web.Request) -> web.Response:
 
             combined_odds *= float(leg_odds)
             normalized_legs.append({
+                **_build_match_snapshot(leg_match, outcome=leg_outcome, odds=float(leg_odds)),
                 "match_id": leg_match_id,
-                "outcome": leg_outcome,
-                "odds": round(float(leg_odds), 4),
-                "team1": leg_match.get("team1"),
-                "team2": leg_match.get("team2"),
-                "league": leg_match.get("league"),
-                "sport": leg_match.get("sport"),
-                "match_time": leg_match.get("match_time"),
+                "id": leg_match_id,
             })
 
         if combined_odds > 100.0:
@@ -752,6 +804,7 @@ async def create_intent(request: web.Request) -> web.Response:
     odds = _extract_odds(match, outcome)
     if not odds:
         return _json_response({"error": "outcome/odds unavailable"}, status=400)
+    single_snapshot = _build_match_snapshot(match, outcome=outcome, odds=odds)
 
     pending_mode, pending_intent = await _find_wallet_pending_intent(sender_wallet, now)
     if pending_mode == 'single' and pending_intent:
@@ -776,6 +829,7 @@ async def create_intent(request: web.Request) -> web.Response:
                 expires_at=expires_at,
                 payment_currency=payment_currency,
                 bet_type="single",
+                express_legs=[single_snapshot],
             )
             intent = {
                 "intent_hash": intent_hash,
@@ -785,6 +839,7 @@ async def create_intent(request: web.Request) -> web.Response:
                 "sender_wallet": sender_wallet,
                 "payment_currency": payment_currency,
                 "bet_type": "single",
+                "match_snapshot": single_snapshot,
             }
             break
         except Exception:
@@ -1104,6 +1159,139 @@ async def operator_audit_log(request: web.Request) -> web.Response:
     })
 
 
+def _parse_manual_score(raw_score: Any) -> tuple[int, int] | None:
+    match = MANUAL_SCORE_RE.fullmatch(str(raw_score or "").strip())
+    if not match:
+        return None
+    home_goals = int(match.group(1))
+    away_goals = int(match.group(2))
+    if home_goals > 50 or away_goals > 50:
+        return None
+    return home_goals, away_goals
+
+
+def _intent_express_legs(intent: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not intent:
+        return []
+    legs = intent.get("express_legs")
+    return legs if isinstance(legs, list) else []
+
+
+def _manual_match_payload(
+    current: dict[str, Any],
+    intent: dict[str, Any] | None,
+    match: dict[str, Any] | None,
+    score: str,
+) -> dict[str, Any]:
+    payload = dict(match or {})
+    match_id = str(current.get("match_id") or (intent or {}).get("match_id") or payload.get("id") or "").strip()
+    if not payload:
+        for leg in _intent_express_legs(intent):
+            leg_match_id = str(leg.get("match_id") or leg.get("id") or "").strip()
+            if leg_match_id and leg_match_id == match_id:
+                payload = dict(leg)
+                break
+    if match_id:
+        payload.setdefault("id", match_id)
+        payload.setdefault("match_id", match_id)
+    payload["score"] = score
+    return payload
+
+
+async def manual_settle_bet(request: web.Request) -> web.Response:
+    context, error = await _require_owner(request)
+    if error:
+        return error
+
+    tx_id = str(request.match_info.get("tx_id") or "").strip()
+    if not tx_id:
+        return _json_response({"error": "tx_id is required"}, status=400)
+
+    current = await db.get_bet_by_tx_id(tx_id)
+    if not current:
+        return _json_response({"error": "bet not found"}, status=404)
+
+    current_status = str(current.get("status") or "").strip().lower()
+    if current_status != "accepted":
+        return _json_response({"error": "Only accepted bets can be settled manually"}, status=400)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    score_pair = _parse_manual_score(payload.get("score"))
+    if not score_pair:
+        return _json_response({"error": "score must use home:away format, for example 2:1"}, status=400)
+    score = f"{score_pair[0]}:{score_pair[1]}"
+
+    intent = await db.get_bet_intent(str(current.get("intent_hash") or "").strip().upper()) if current.get("intent_hash") else None
+    legs = _intent_express_legs(dict(intent) if intent else None)
+    if len(legs) > 1 or str((intent or {}).get("bet_type") or current.get("bet_type") or "").strip().lower() == "express":
+        return _json_response({"error": "Manual score settlement supports single bets only"}, status=400)
+
+    outcome = str((intent or {}).get("outcome") or current.get("outcome") or "").strip()
+    verdict = determine_bet_result(outcome, score_pair[0], score_pair[1])
+    if verdict is None:
+        return _json_response({"error": "Unsupported outcome for manual settlement"}, status=400)
+
+    amount_prizm = float(current.get("amount_prizm") or current.get("amount") or 0)
+    odds_fixed = float(current.get("odds_fixed") or (intent or {}).get("odds_fixed") or 0)
+    base_payout = round(amount_prizm * odds_fixed, 2) if verdict else 0.0
+    sender_wallet = str(current.get("sender_wallet") or (intent or {}).get("sender_wallet") or "").strip().upper()
+    bonus_result = await _gamification_apply_bonuses(
+        sender_wallet,
+        tx_id,
+        amount_prizm,
+        base_payout,
+        verdict,
+    )
+    payout_amount = float(bonus_result.get("payout_amount") or base_payout)
+    status = "won" if verdict or payout_amount > 0 else "lost"
+    settlement_reason = "CASHBACK_BONUS" if (not verdict and payout_amount > 0) else None
+
+    updated_rows = await db.update_bet_settlement(
+        tx_id,
+        status=status,
+        payout_amount=payout_amount,
+        reason=settlement_reason,
+    )
+    updated = (updated_rows or [{**current, "status": status, "payout_amount": payout_amount}])[0]
+    match = await db.get_match_by_id(str(current.get("match_id") or (intent or {}).get("match_id") or "").strip())
+    match_payload = _manual_match_payload(current, dict(intent) if intent else None, dict(match) if match else None, score)
+
+    await log_operator_event(
+        "bet_won" if verdict else "bet_lost",
+        updated,
+        intent=dict(intent) if intent else None,
+        match=match_payload,
+        actor=context["actor"],
+        extra={
+            "manual": True,
+            "score": score,
+            "bonus_result": bonus_result,
+        },
+    )
+    await notify_bet_settled(updated, intent=dict(intent) if intent else None, match=match_payload)
+
+    try:
+        if sender_wallet:
+            asyncio.create_task(_gamification_on_bet_settled(
+                wallet=sender_wallet,
+                bet_tx_id=tx_id,
+                amount_prizm=amount_prizm,
+                odds=odds_fixed,
+                won=verdict,
+                league=str(match_payload.get("league") or ""),
+                sport=str(match_payload.get("sport") or ""),
+            ))
+    except Exception:
+        pass
+
+    view = build_bet_view(updated, intent=intent, match=match_payload, match_cache=_load_matches_cache())
+    return _json_response({"ok": True, "item": view})
+
+
 async def mark_bet_paid(request: web.Request) -> web.Response:
     context, error = await _require_owner(request)
     if error:
@@ -1130,6 +1318,13 @@ async def mark_bet_paid(request: web.Request) -> web.Response:
     expected_payout = float(current.get("payout_amount") or 0) or round(
         float(current.get("amount_prizm") or 0) * float(current.get("odds_fixed") or 0), 2
     )
+    if expected_payout <= 0:
+        # Legacy/manually-settled bets without amount/odds cannot be marked paid blindly:
+        # without an expected value, the В±10% deviation guard below would let owner write
+        # any payout_amount. Require manual_settle first (or db cleanup) to set amount/odds.
+        return _json_response({
+            "error": "cannot mark bet paid: bet has zero/missing amount or odds",
+        }, status=400)
     raw_payout_amount = payload.get("payout_amount")
     if raw_payout_amount in (None, ""):
         payout_amount = expected_payout
@@ -1788,8 +1983,9 @@ async def player_profile(request: web.Request) -> web.Response:
             "wallet_verification": wallet_verification,
         })
 
-    except Exception as exc:
-        return _json_response({"error": str(exc)}, status=500)
+    except Exception:
+        logger.exception("API handler failed")
+        return _json_response({"error": "Internal error"}, status=500)
 
 
 # ── GET /api/player/{wallet}/quests ───────────────────────────────────────────
@@ -1823,8 +2019,9 @@ async def player_quests(request: web.Request) -> web.Response:
             "wallet": wallet,
             "quests": _enrich_quests(quests),
         })
-    except Exception as exc:
-        return _json_response({"error": str(exc)}, status=500)
+    except Exception:
+        logger.exception("API handler failed")
+        return _json_response({"error": "Internal error"}, status=500)
 
 
 # ── POST /api/player/{wallet}/roulette ────────────────────────────────────────
@@ -1948,8 +2145,9 @@ async def weekly_leaderboard(request: web.Request) -> web.Response:
             "leaderboard": rows,
         })
 
-    except Exception as exc:
-        return _json_response({"error": str(exc)}, status=500)
+    except Exception:
+        logger.exception("API handler failed")
+        return _json_response({"error": "Internal error"}, status=500)
 
 
 # ── POST /api/admin/leaderboard/weekly/finalize ───────────────────────────────
@@ -2021,8 +2219,9 @@ async def admin_credit_game_session(request: web.Request) -> web.Response:
             "wallet": wallet,
             "sessions": sessions,
         })
-    except Exception as exc:
-        return _json_response({"error": str(exc)}, status=500)
+    except Exception:
+        logger.exception("API handler failed")
+        return _json_response({"error": "Internal error"}, status=500)
 
 
 # ── Admin raffles ─────────────────────────────────────────────────────────────
@@ -2149,8 +2348,9 @@ async def raffles_active(request: web.Request) -> web.Response:
             "features": _gamification_features(),
         })
 
-    except Exception as exc:
-        return _json_response({"error": str(exc)}, status=500)
+    except Exception:
+        logger.exception("API handler failed")
+        return _json_response({"error": "Internal error"}, status=500)
 
 
 # ── POST /api/raffles/{id}/enter ──────────────────────────────────────────────
@@ -2208,8 +2408,9 @@ async def raffle_enter(request: web.Request) -> web.Response:
 
         return _json_response(result)
 
-    except Exception as exc:
-        return _json_response({"error": str(exc)}, status=500)
+    except Exception:
+        logger.exception("API handler failed")
+        return _json_response({"error": "Internal error"}, status=500)
 
 
 def create_app() -> web.Application:
@@ -2234,6 +2435,7 @@ def create_app() -> web.Application:
     app.router.add_post("/api/wallets/{wallet}/verification/challenge", wallet_verification_challenge)
     app.router.add_get("/api/admin/feed", operator_feed)
     app.router.add_get("/api/admin/audit-log", operator_audit_log)
+    app.router.add_post("/api/admin/bets/{tx_id}/settle", manual_settle_bet)
     app.router.add_post("/api/admin/bets/{tx_id}/mark-paid", mark_bet_paid)
     app.router.add_get("/api/admin/wallet", admin_wallet_info)
     app.router.add_get("/api/admin/wallet/status", admin_wallet_status)

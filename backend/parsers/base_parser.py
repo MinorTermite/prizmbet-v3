@@ -155,20 +155,14 @@ class BaseParser:
                 matches_to_insert.append(match)
                 cache_to_set[cache_key] = "1"
         
-        # 4. Save to DB and bulk cache update
+        # 4. Save to DB (bulk upsert + 48h retention purge) and bulk cache update
         saved = 0
         if matches_to_insert and db.initialized:
-            # Note: insert_match is still per-item, but bulk insert could be a future step
-            for match in matches_to_insert:
-                try:
-                    result = await db.insert_match(match)
-                    if result is not None:
-                        saved += 1
-                    else:
-                        print(f"DB skipped {match.get('home_team')} vs {match.get('away_team')}")
-                except Exception as e:
-                    print(f"DB Error for {match.get('home_team')}: {e}")
-            
+            try:
+                saved = await db.upsert_match_memory(matches_to_insert, retention_hours=48)
+            except Exception as e:
+                print(f"DB bulk upsert failed for {self.name}: {type(e).__name__}: {e}")
+
             if cache_to_set:
                 await cache.set_many(cache_to_set, expire=3600)
         
