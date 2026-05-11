@@ -1343,19 +1343,24 @@ async def mark_bet_paid(request: web.Request) -> web.Response:
             }, status=400)
 
     updated_rows = await db.mark_bet_paid(tx_id, payout_tx_id=payout_tx_id, payout_amount=payout_amount)
+    # Idempotent: empty rows means DB guard (status='won' AND payout_tx_id IS NULL)
+    # did not match — bet was already paid. Skip notify/log to avoid duplicate
+    # Telegram messages and operator events on retry.
+    already_paid = not updated_rows
     updated = (updated_rows or [current])[0]
     intent = await db.get_bet_intent(str(updated.get("intent_hash") or "").strip().upper()) if updated.get("intent_hash") else None
     match = await db.get_match_by_id(str(updated.get("match_id") or (intent or {}).get("match_id") or "").strip())
-    await notify_payout_sent(updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
-    await log_operator_event(
-        "bet_paid",
-        updated,
-        intent=dict(intent) if intent else None,
-        match=dict(match) if match else None,
-        actor=context["actor"],
-    )
+    if not already_paid:
+        await notify_payout_sent(updated, intent=dict(intent) if intent else None, match=dict(match) if match else None)
+        await log_operator_event(
+            "bet_paid",
+            updated,
+            intent=dict(intent) if intent else None,
+            match=dict(match) if match else None,
+            actor=context["actor"],
+        )
     view = build_bet_view(updated, intent=intent, match=match, match_cache=_load_matches_cache())
-    return _json_response({"ok": True, "item": view})
+    return _json_response({"ok": True, "item": view, "already_paid": already_paid})
 
 
 async def _wallet_status_payload() -> dict[str, Any]:
