@@ -1,0 +1,220 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRIZMBET - Operator Console</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/smart-flow.css">
+<link rel="stylesheet" href="css/operator.css?v=20260321c">
+</head>
+<body>
+<div class="bg-canvas"></div>
+
+<main class="container operator-shell">
+  <section class="section operator-hero">
+    <div class="operator-hero-card">
+      <div>
+        <div class="smart-banner-eyebrow" data-oi18n="hero.eyebrow">Operator Console</div>
+        <h1 class="operator-title" data-oi18n="hero.title">Bets, users and activity log</h1>
+        <p class="operator-copy" data-oi18n="hero.copy">Compact operator workspace for bets, payouts and audit.</p>
+      </div>
+      <div class="operator-hero-side">
+        <div aria-label="Language switch" class="lang-switch lang-switch--desktop">
+          <button class="lang-option" data-lang-option="ru" type="button">RU</button>
+          <button class="lang-option" data-lang-option="en" type="button">EN</button>
+        </div>
+        <a class="operator-back" data-oi18n="hero.back" href="./index.html">Back to site</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="workspaceShell" class="operator-workspace-shell operator-hidden" hidden aria-hidden="true"><section id="workspaceTabsSection" class="section operator-workspace-tabs">
+    <div class="operator-tabs-card">
+      <button class="operator-tab is-active" type="button" data-operator-tab="control">Control</button>
+      <button class="operator-tab" type="button" data-operator-tab="users">Users</button>
+      <button class="operator-tab" type="button" data-operator-tab="feed">Feed</button>
+      <button class="operator-tab" type="button" data-operator-tab="audit">Audit</button>
+    </div>
+  </section>
+  <section class="section operator-access">
+    <div class="operator-access-card">
+      <div class="operator-access-grid">
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="access.apiBase">API base</span>
+          <input id="apiBaseInput" class="operator-input" data-oi18n-placeholder="access.apiBasePlaceholder" type="text" placeholder="http://127.0.0.1:8081">
+        </label>
+      </div>
+
+      <div class="operator-actions">
+        <button id="connectBtn" class="operator-btn operator-btn--primary" data-oi18n="access.connect" type="button">Connect</button>
+        <button id="refreshBtn" class="operator-btn" data-oi18n="access.refresh" type="button">Refresh</button>
+        <label class="operator-toggle">
+          <input id="autoRefreshToggle" type="checkbox" checked>
+          <span data-oi18n="access.autoRefresh">Auto refresh</span>
+        </label>
+      </div>
+
+      <div id="operatorStatus" class="operator-status-line">Set API base and connect.</div>
+      <div id="authStateMeta" class="operator-status-line">Auth state is unknown.</div>
+
+      <div class="operator-auth-stack">
+        <section id="bootstrapSection" class="operator-auth-block operator-hidden">
+          <div>
+            <div class="smart-banner-eyebrow" data-oi18n="bootstrap.eyebrow">System bootstrap</div>
+            <h2 class="operator-subtitle" data-oi18n="bootstrap.title">Create the only super admin</h2>
+            <p class="operator-copy operator-copy--compact" data-oi18n="bootstrap.copy">This step runs once to create the primary administrator.</p>
+          </div>
+          <div class="operator-access-grid">
+            <label class="operator-field">
+              <span class="operator-label" data-oi18n="bootstrap.email">Administrator email</span>
+              <input id="ownerEmailInput" class="operator-input" data-oi18n-placeholder="bootstrap.emailPlaceholder" type="email" placeholder="admin@example.com">
+            </label>
+            <label class="operator-field">
+              <span class="operator-label" data-oi18n="bootstrap.login">Administrator login</span>
+              <input id="ownerLoginInput" class="operator-input" data-oi18n-placeholder="bootstrap.loginPlaceholder" type="text" placeholder="admin">
+            </label>
+            <label class="operator-field">
+              <span class="operator-label" data-oi18n="bootstrap.password">Password</span>
+              <input id="bootstrapPasswordInput" class="operator-input" data-oi18n-placeholder="bootstrap.passwordPlaceholder" type="password" placeholder="Minimum 8 characters">
+            </label>
+            <label class="operator-field">
+              <span class="operator-label" data-oi18n="bootstrap.key">Bootstrap key</span>
+              <input id="bootstrapKeyInput" class="operator-input" data-oi18n-placeholder="bootstrap.keyPlaceholder" type="password" placeholder="ADMIN_VIEW_KEY from .env">
+            </label>
+          </div>
+          <div class="operator-actions">
+            <button id="bootstrapBtn" class="operator-btn operator-btn--primary" data-oi18n="bootstrap.action" type="button">Create admin account</button>
+          </div>
+        </section>
+
+        <section id="loginSection" class="operator-auth-block operator-hidden">
+          <div>
+            <div class="smart-banner-eyebrow" data-oi18n="login.eyebrow">Login</div>
+            <h2 class="operator-subtitle" data-oi18n="login.title">Enter as operator</h2>
+            <p class="operator-copy operator-copy--compact" data-oi18n="login.copy">Use the assigned login or email and your password.</p>
+          </div>
+          <div class="operator-access-grid">
+            <label class="operator-field">
+              <span class="operator-label" data-oi18n="login.identity">Login or email</span>
+              <input id="identityInput" class="operator-input" data-oi18n-placeholder="login.identityPlaceholder" type="text" placeholder="login or name@example.com">
+            </label>
+            <label class="operator-field">
+              <span class="operator-label" data-oi18n="login.password">Password</span>
+              <input id="passwordInput" class="operator-input" data-oi18n-placeholder="login.passwordPlaceholder" type="password" placeholder="Password">
+            </label>
+          </div>
+          <div class="operator-actions">
+            <button id="loginBtn" class="operator-btn operator-btn--primary" data-oi18n="login.action" type="button">Log in</button>
+          </div>
+        </section>
+
+        <section id="sessionSection" class="operator-auth-block operator-hidden">
+          <div>
+            <div class="smart-banner-eyebrow" data-oi18n="session.eyebrow">Session</div>
+            <h2 class="operator-subtitle" data-oi18n="session.title">Current operator</h2>
+          </div>
+          <div class="operator-access-grid operator-session-grid">
+            <div class="operator-meta">
+              <div class="operator-meta-label" data-oi18n="session.user">Operator</div>
+              <div id="sessionUserMeta" class="operator-meta-value">-</div>
+            </div>
+            <div class="operator-meta">
+              <div class="operator-meta-label" data-oi18n="session.expires">Session expires</div>
+              <div id="sessionExpiresMeta" class="operator-meta-value">-</div>
+            </div>
+          </div>
+          <div class="operator-actions">
+            <button id="logoutBtn" class="operator-btn" data-oi18n="session.logout" type="button">Log out</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="userManagementSection" class="section operator-users-section operator-hidden">
+    <div class="operator-access-card">
+      <div>
+        <div class="smart-banner-eyebrow" data-oi18n="users.eyebrow">User Management</div>
+        <h2 class="operator-subtitle" data-oi18n="users.title">Assigned operators</h2>
+        <p class="operator-copy operator-copy--compact" data-oi18n="users.copy">Create and manage operator accounts.</p>
+      </div>
+
+      <div class="operator-access-grid operator-user-create-grid">
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="users.login">Login</span>
+          <input id="newUserLoginInput" class="operator-input" data-oi18n-placeholder="users.loginPlaceholder" type="text" placeholder="operator.login">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="users.email">Email</span>
+          <input id="newUserEmailInput" class="operator-input" data-oi18n-placeholder="users.emailPlaceholder" type="email" placeholder="optional@example.com">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="users.password">Password</span>
+          <input id="newUserPasswordInput" class="operator-input" data-oi18n-placeholder="users.passwordPlaceholder" type="password" placeholder="Minimum 8 characters">
+        </label>
+        <label class="operator-field">
+          <span class="operator-label" data-oi18n="users.role">Role</span>
+          <select id="newUserRoleInput" class="operator-select">
+            <option data-oi18n="role.operator" value="operator">Operator</option>
+            <option data-oi18n="role.finance" value="finance">Finance</option>
+            <option data-oi18n="role.viewer" value="viewer">Viewer</option>
+          </select>
+        </label>
+      </div>
+      <div class="operator-actions">
+        <button id="createUserBtn" class="operator-btn operator-btn--primary" data-oi18n="users.action" type="button">Create user</button>
+      </div>
+      <div id="userList" class="operator-user-list"></div>
+    </div>
+  </section>
+
+  <section class="section operator-stats-section operator-hidden" hidden aria-hidden="true">
+    <div id="statsGrid" class="operator-stats"></div>
+  </section>
+
+  <section class="section operator-feed-section operator-hidden" hidden aria-hidden="true">
+    <div class="operator-feed-toolbar">
+      <input id="queryInput" class="operator-input operator-input--search" data-oi18n-placeholder="feed.searchPlaceholder" type="search" placeholder="Search by match, TX, wallet, intent or league">
+      <select id="statusFilter" class="operator-select">
+        <option data-oi18n="statusFilter.all" value="">All statuses</option>
+        <option data-oi18n="status.accepted" value="accepted">Accepted</option>
+        <option data-oi18n="status.rejected" value="rejected">Rejected</option>
+        <option data-oi18n="status.won" value="won">Won</option>
+        <option data-oi18n="status.lost" value="lost">Lost</option>
+        <option data-oi18n="status.refund_pending" value="refund_pending">Refund pending</option>
+        <option data-oi18n="status.paid" value="paid">Paid</option>
+      </select>
+      <div id="feedMeta" class="operator-feed-meta">Feed not loaded yet.</div>
+    </div>
+    <div class="operator-feed-body">
+      <div id="feedList" class="operator-feed-list"></div>
+    </div>
+  </section>
+
+  <section class="section operator-audit-section operator-hidden" hidden aria-hidden="true">
+    <div class="operator-audit-head">
+      <div>
+        <div class="smart-banner-eyebrow" data-oi18n="audit.eyebrow">Audit Log</div>
+        <h2 class="operator-subtitle" data-oi18n="audit.title">Recent backend and operator events</h2>
+        <p class="operator-copy operator-copy--compact" data-oi18n="audit.copy">Accepted, rejected, settled and paid events are listed here. If the webhook is enabled, the same events can be mirrored to Google Sheets.</p>
+      </div>
+      <div id="auditMeta" class="operator-feed-meta">Audit log not loaded yet.</div>
+    </div>
+    <div class="operator-audit-body">
+      <div id="auditList" class="operator-audit-list"></div>
+    </div>
+  </section></div>
+</main>
+
+<script src="js/operator.js?v=20260321c"></script>
+<script src="js/operator-i18n.js?v=20260321c"></script>
+</body>
+</html>
+
+
+
+
+
+
+

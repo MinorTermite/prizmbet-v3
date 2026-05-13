@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Shortcut 1: Football -->
+    <shortcut
+        android:shortcutId="shortcut_football"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_football"
+        android:shortcutShortLabel="@string/shortcut_football_short"
+        android:shortcutLongLabel="@string/shortcut_football_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.prizmbet.app"
+            android:targetClass="com.prizmbet.app.MainActivity">
+            <extra android:name="shortcut_action" android:value="football" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- Shortcut 2: Esports -->
+    <shortcut
+        android:shortcutId="shortcut_esports"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_esports"
+        android:shortcutShortLabel="@string/shortcut_esports_short"
+        android:shortcutLongLabel="@string/shortcut_esports_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.prizmbet.app"
+            android:targetClass="com.prizmbet.app.MainActivity">
+            <extra android:name="shortcut_action" android:value="esports" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- Shortcut 3: Refresh data -->
+    <shortcut
+        android:shortcutId="shortcut_refresh"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_refresh"
+        android:shortcutShortLabel="@string/shortcut_refresh_short"
+        android:shortcutLongLabel="@string/shortcut_refresh_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.prizmbet.app"
+            android:targetClass="com.prizmbet.app.MainActivity">
+            <extra android:name="shortcut_action" android:value="refresh" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+</shortcuts>

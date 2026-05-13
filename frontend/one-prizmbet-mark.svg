@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="1PrizmBet mark">
+  <defs>
+    <linearGradient id="mark-bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#11152a"/>
+      <stop offset="1" stop-color="#070816"/>
+    </linearGradient>
+    <linearGradient id="mark-violet" x1="118" y1="116" x2="394" y2="386" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f4b4ff"/>
+      <stop offset="0.45" stop-color="#b84cff"/>
+      <stop offset="1" stop-color="#6f2bd6"/>
+    </linearGradient>
+    <linearGradient id="mark-edge" x1="147" y1="134" x2="364" y2="366" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff4ff"/>
+      <stop offset="0.5" stop-color="#e285ff"/>
+      <stop offset="1" stop-color="#a448ff"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="24" y="24" width="464" height="464" rx="86" fill="url(#mark-bg)"/>
+  <rect x="32" y="32" width="448" height="448" rx="78" fill="none" stroke="#6f4a9d" stroke-width="2"/>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M124 144 256 382 388 144Z" stroke="url(#mark-violet)" stroke-width="30"/>
+    <path d="M157 167 256 342 355 167" stroke="url(#mark-edge)" stroke-width="9"/>
+    <path d="M198 146h50l-22 43h-45z" fill="#a941e9" stroke="#f0b7ff" stroke-width="5"/>
+
+    <path d="M128 237 76 263M143 267 91 293M158 297 106 323" stroke="url(#mark-violet)" stroke-width="20"/>
+    <path d="M384 237 436 263M369 267 421 293M354 297 406 323" stroke="url(#mark-violet)" stroke-width="20"/>
+
+    <path d="M124 144 256 382 388 144" stroke="#2a123c" stroke-width="6" opacity=".55"/>
+    <path d="M124 144 256 382 388 144" stroke="#ffd8ff" stroke-width="3" opacity=".58"/>
+  </g>
+</svg>

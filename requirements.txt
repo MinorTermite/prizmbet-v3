@@ -1,0 +1,10 @@
+aiohttp>=3.9.0
+redis>=4.6.0
+supabase>=2.0.0
+python-dotenv>=1.0.0
+fake-useragent>=1.4.0
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+Brotli>=1.1.0
+aiohttp-socks>=0.8.0
+upstash-redis>=1.6.0
