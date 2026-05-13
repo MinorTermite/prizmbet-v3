@@ -1,0 +1,14 @@
+{
+  "one_prizmbet": {
+    "versionCode": 4,
+    "versionName": "1.3",
+    "apkUrl": "https://prizmbet.net/apk/prizmbet.apk",
+    "changelog": "Дашборд статистики, CSV экспорт, исправления UI"
+  },
+  "operator": {
+    "versionCode": 2,
+    "versionName": "1.1",
+    "apkUrl": "https://prizmbet.net/apk/prizmbet_operator.apk",
+    "changelog": "Первая версия оператор-панели"
+  }
+}

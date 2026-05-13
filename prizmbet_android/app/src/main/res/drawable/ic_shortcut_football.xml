@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Football shortcut icon: soccer ball -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background circle -->
+    <path
+        android:fillColor="#6366f1"
+        android:pathData="M54,54m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+    <!-- Ball circle (white) -->
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M54,24m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+    <!-- Pentagon center (dark) -->
+    <path
+        android:fillColor="#1a1a2e"
+        android:pathData="M54,18 L59,22 L57,28 L51,28 L49,22 Z" />
+    <!-- Side patches -->
+    <path
+        android:fillColor="#1a1a2e"
+        android:pathData="M43,25 L45,30 L40,33 L37,29 Z" />
+    <path
+        android:fillColor="#1a1a2e"
+        android:pathData="M65,25 L63,30 L68,33 L71,29 Z" />
+    <path
+        android:fillColor="#1a1a2e"
+        android:pathData="M46,36 L51,36 L52,41 L47,43 L44,39 Z" />
+    <path
+        android:fillColor="#1a1a2e"
+        android:pathData="M62,36 L57,36 L56,41 L61,43 L64,39 Z" />
+    <!-- Text label -->
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M38,68 L40,68 L40,74 L38,74 Z" />
+</vector>

@@ -1,0 +1,88 @@
+﻿# -*- coding: utf-8 -*-
+"""1PrizmBet v3 configuration."""
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+class Config:
+    SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+
+    UPSTASH_REDIS_URL = os.getenv("UPSTASH_REDIS_URL", "")
+    UPSTASH_REDIS_TOKEN = os.getenv("UPSTASH_REDIS_TOKEN", "")
+
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+    TELEGRAM_NOTIFY_CHAT_IDS = os.getenv("TELEGRAM_NOTIFY_CHAT_IDS", "")
+    V3_TELEGRAM_BOT_TOKEN = os.getenv("V3_TELEGRAM_BOT_TOKEN", "")
+    V3_TELEGRAM_CHAT_ID = os.getenv("V3_TELEGRAM_CHAT_ID", "")
+    V3_TELEGRAM_CHAT_IDS = os.getenv("V3_TELEGRAM_CHAT_IDS", "")
+    V3_TELEGRAM_MIN_ALERT_PRIZM = float(os.getenv("V3_TELEGRAM_MIN_ALERT_PRIZM", "1000"))
+
+    ADMIN_VIEW_KEY = os.getenv("ADMIN_VIEW_KEY", "")
+    SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL", "").strip().lower()
+    SUPER_ADMIN_LOGIN = os.getenv("SUPER_ADMIN_LOGIN", "owner").strip().lower()
+    ADMIN_SESSION_HOURS = int(os.getenv("ADMIN_SESSION_HOURS", "12"))
+    ADMIN_PASSWORD_ITERATIONS = int(os.getenv("ADMIN_PASSWORD_ITERATIONS", "260000"))
+
+    GOOGLE_SHEETS_MIRROR_ENABLED = os.getenv("GOOGLE_SHEETS_MIRROR_ENABLED", "false").lower() == "true"
+    GOOGLE_SHEETS_WEBHOOK_URL = os.getenv("GOOGLE_SHEETS_WEBHOOK_URL", "")
+    GOOGLE_SHEETS_WEBHOOK_TOKEN = os.getenv("GOOGLE_SHEETS_WEBHOOK_TOKEN", "")
+
+    ODDS_API_KEY = os.getenv("ODDS_API_KEY", "")
+    API_FOOTBALL_KEY = os.getenv("API_FOOTBALL_KEY", "")
+    ODDS_API_IO_KEY = os.getenv("ODDS_API_IO_KEY", "")
+    PROXY_ENABLED = os.getenv("PROXY_ENABLED", "false").lower() == "true"
+    PROXY_URL = os.getenv("PROXY_URL", "")
+    RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "10"))
+    RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
+    API_MAX_REQUEST_BYTES = int(os.getenv("API_MAX_REQUEST_BYTES", "262144"))
+    API_RATE_LIMIT_REQUESTS = int(os.getenv("API_RATE_LIMIT_REQUESTS", "120"))
+    API_RATE_LIMIT_WINDOW = int(os.getenv("API_RATE_LIMIT_WINDOW", "60"))
+    STATUS_RATE_LIMIT_REQUESTS = int(os.getenv("STATUS_RATE_LIMIT_REQUESTS", "60"))
+    STATUS_RATE_LIMIT_WINDOW = int(os.getenv("STATUS_RATE_LIMIT_WINDOW", "60"))
+    ADMIN_RATE_LIMIT_REQUESTS = int(os.getenv("ADMIN_RATE_LIMIT_REQUESTS", "60"))
+    ADMIN_RATE_LIMIT_WINDOW = int(os.getenv("ADMIN_RATE_LIMIT_WINDOW", "60"))
+    GAMIFICATION_RATE_LIMIT_REQUESTS = int(os.getenv("GAMIFICATION_RATE_LIMIT_REQUESTS", "20"))
+    GAMIFICATION_RATE_LIMIT_WINDOW = int(os.getenv("GAMIFICATION_RATE_LIMIT_WINDOW", "60"))
+    RATE_LIMIT_MAX_KEYS = int(os.getenv("RATE_LIMIT_MAX_KEYS", "20000"))
+    GAMIFICATION_PUBLIC_MUTATIONS_ENABLED = os.getenv("GAMIFICATION_PUBLIC_MUTATIONS_ENABLED", "false").lower() == "true"
+    WALLET_VERIFICATION_AMOUNT_PRIZM = float(os.getenv("WALLET_VERIFICATION_AMOUNT_PRIZM", "1"))
+    WALLET_VERIFICATION_TTL_MINUTES = int(os.getenv("WALLET_VERIFICATION_TTL_MINUTES", "30"))
+    WALLET_VERIFICATION_MIN_CONFIRMATIONS = int(os.getenv("WALLET_VERIFICATION_MIN_CONFIRMATIONS", "0"))
+
+    PINNACLE_LOGIN = os.getenv("PINNACLE_LOGIN", "")
+    PINNACLE_PASSWORD = os.getenv("PINNACLE_PASSWORD", "")
+
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+
+    MIN_BET = float(os.getenv("MIN_BET", "10"))
+    MAX_BET = float(os.getenv("MAX_BET", "30000"))
+    # Official PRIZM epoch from getConstants. Used for tx timestamp decoding.
+    PRIZM_EPOCH = int(os.getenv("PRIZM_EPOCH", "1532715480"))
+
+    # Two-wallet setup:
+    # HOT wallet — receives bets and sends payouts automatically.
+    # Its passphrase is stored AES-256-GCM encrypted in app_config DB table.
+    # The encryption key (PRIZM_MASTER_KEY) lives ONLY in this .env file.
+    PRIZM_MASTER_KEY = os.getenv("PRIZM_MASTER_KEY", "")       # 32-byte base64url key for AES-256-GCM
+    PRIZM_HOT_WALLET = os.getenv("PRIZM_HOT_WALLET", "")       # Hot wallet public address
+    PRIZM_VERIFICATION_WALLET = os.getenv("PRIZM_VERIFICATION_WALLET", "")  # Public address for wallet-proof deposits
+    # ADMIN wallet — finance manager's personal wallet, never used automatically.
+    # Only its public address is stored here for display in the operator cabinet.
+    PRIZM_ADMIN_WALLET = os.getenv("PRIZM_ADMIN_WALLET", "")   # Admin/cold wallet public address
+
+    # ── USDT TRC-20 (TRON) ──────────────────────────────────────
+    USDT_HOT_WALLET = os.getenv("USDT_HOT_WALLET", "")           # TRON base58 address (T...)
+    USDT_PRIVATE_KEY = os.getenv("USDT_PRIVATE_KEY", "")         # Hex private key for auto-payout
+    USDT_CONTRACT = os.getenv("USDT_CONTRACT", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")  # Mainnet USDT
+    TRON_API_URL = os.getenv("TRON_API_URL", "https://api.trongrid.io")
+    TRON_API_KEY = os.getenv("TRON_API_KEY", "")                 # TronGrid API key (free tier: 10 QPS)
+    USDT_MIN_BET = float(os.getenv("USDT_MIN_BET", "5"))        # Min bet in USDT
+    USDT_MAX_BET = float(os.getenv("USDT_MAX_BET", "1000"))     # Max bet in USDT
+    USDT_ENABLED = os.getenv("USDT_ENABLED", "false").lower() == "true"
+
+
+config = Config()

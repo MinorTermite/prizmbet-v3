@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PRIZMBET</string>
+    <string name="error_icon">\u26A1</string>
+    <string name="error_no_connection">Нет подключения к интернету.\nПроверьте сеть и попробуйте снова.</string>
+    <string name="retry">Повторить</string>
+
+    <!-- App Shortcuts -->
+    <string name="shortcut_football_short">Футбол</string>
+    <string name="shortcut_football_long">Матчи Футбол</string>
+    <string name="shortcut_esports_short">Кибер</string>
+    <string name="shortcut_esports_long">Матчи Киберспорт</string>
+    <string name="shortcut_refresh_short">Обновить</string>
+    <string name="shortcut_refresh_long">Обновить матчи</string>
+</resources>

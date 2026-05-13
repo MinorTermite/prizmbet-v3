@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Esports shortcut icon: gamepad -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background circle -->
+    <path
+        android:fillColor="#8b5cf6"
+        android:pathData="M54,54m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+    <!-- Gamepad body -->
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M28,42 Q26,42 26,44 L26,62 Q26,66 30,68 L42,72 Q48,74 54,74 Q60,74 66,72 L78,68 Q82,66 82,62 L82,44 Q82,42 80,42 L68,42 Q64,38 54,38 Q44,38 40,42 Z" />
+    <!-- D-pad vertical -->
+    <path
+        android:fillColor="#6366f1"
+        android:pathData="M38,50 L42,50 L42,62 L38,62 Z" />
+    <!-- D-pad horizontal -->
+    <path
+        android:fillColor="#6366f1"
+        android:pathData="M34,54 L46,54 L46,58 L34,58 Z" />
+    <!-- Right buttons (circles) -->
+    <path
+        android:fillColor="#ec4899"
+        android:pathData="M68,49m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="#22c55e"
+        android:pathData="M76,56m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="#eab308"
+        android:pathData="M60,56m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="#3b82f6"
+        android:pathData="M68,63m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+</vector>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    PrizmBet splash icon — stylised lightning bolt ⚡
+    Rendered on dark background (#06060e) via the splash theme.
+    Size 108×108dp as recommended for the adaptive icon area.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer glow / soft shadow layer (semi-transparent purple) -->
+    <path
+        android:fillColor="#336366f1"
+        android:pathData="M 63,6 L 33,58 L 51,58 L 38,102 L 78,50 L 60,50 Z" />
+
+    <!-- Main bolt — indigo/violet brand colour -->
+    <path
+        android:fillColor="#6366f1"
+        android:pathData="M 62,10 L 35,56 L 52,56 L 40,98 L 74,48 L 57,48 Z" />
+
+    <!-- Highlight — lighter top-left edge for depth -->
+    <path
+        android:fillColor="#818cf8"
+        android:pathData="M 62,10 L 52,10 L 35,56 L 45,56 Z" />
+
+</vector>

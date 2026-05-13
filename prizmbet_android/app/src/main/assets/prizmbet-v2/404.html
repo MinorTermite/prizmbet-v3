@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PrizmBet</title>
+  <script>
+    // GitHub Pages SPA redirect: forward the path to index.html via query string.
+    // slice(0, 2) preserves the repo name segment for project-pages URLs like
+    // /prizmbet-v2/... so the redirect target is /prizmbet-v2/?/... rather than /?/...
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 2).join('/') + '/?/' +
+      l.pathname.slice(1).replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
+    );
+  </script>
+</head>
+<body></body>
+</html>
