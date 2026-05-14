@@ -1,0 +1,108 @@
+name: Deploy wallet cabinet hotfix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/wallet-cabinet-live-stats
+    paths:
+      - ".github/workflows/deploy-wallet-cabinet-hotfix.yml"
+      - "frontend/css/smart-flow.css"
+      - "frontend/index.html"
+      - "frontend/js/app.js"
+      - "frontend/js/modules/bet_slip.js"
+      - "frontend/js/modules/cabinet_v2.js"
+      - "frontend/js/modules/history_ui.js"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-wallet-cabinet-hotfix
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/codex/wallet-cabinet-live-stats'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      SSHPASS: ${{ secrets.VPS_SSH_PASSWORD }}
+      REMOTE_ROOT: /root/prizmbet-v3
+      REMOTE_TMP: /tmp/prizmbet-wallet-cabinet-hotfix-${{ github.sha }}
+
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@v4
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check frontend/js/modules/cabinet_v2.js
+          node --check frontend/js/modules/bet_slip.js
+          node --check frontend/js/modules/history_ui.js
+          node --check frontend/js/app.js
+
+      - name: Install sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Upload hotfix files
+        run: |
+          set -euo pipefail
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=25"
+          sshpass -e ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "rm -rf '$REMOTE_TMP' && mkdir -p '$REMOTE_TMP/frontend/js/modules' '$REMOTE_TMP/frontend/css'"
+          sshpass -e scp $SSH_OPTS \
+            frontend/index.html \
+            "$VPS_USER@$VPS_HOST:$REMOTE_TMP/frontend/index.html"
+          sshpass -e scp $SSH_OPTS \
+            frontend/css/smart-flow.css \
+            "$VPS_USER@$VPS_HOST:$REMOTE_TMP/frontend/css/smart-flow.css"
+          sshpass -e scp $SSH_OPTS \
+            frontend/js/app.js \
+            "$VPS_USER@$VPS_HOST:$REMOTE_TMP/frontend/js/app.js"
+          sshpass -e scp $SSH_OPTS \
+            frontend/js/modules/bet_slip.js \
+            frontend/js/modules/cabinet_v2.js \
+            frontend/js/modules/history_ui.js \
+            "$VPS_USER@$VPS_HOST:$REMOTE_TMP/frontend/js/modules/"
+
+      - name: Apply hotfix on VPS
+        run: |
+          set -euo pipefail
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=25"
+          sshpass -e ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "REMOTE_TMP='$REMOTE_TMP' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd /root/prizmbet-v3
+          ts="$(date -u +%Y%m%d-%H%M%S)"
+          backup="/root/prizmbet-private-backups/github-actions-wallet-cabinet-$ts"
+          mkdir -p "$backup/frontend/js/modules" "$backup/frontend/css"
+
+          for file in \
+            frontend/index.html \
+            frontend/css/smart-flow.css \
+            frontend/js/app.js \
+            frontend/js/modules/bet_slip.js \
+            frontend/js/modules/cabinet_v2.js \
+            frontend/js/modules/history_ui.js
+          do
+            cp "$file" "$backup/$file"
+            cp "$REMOTE_TMP/$file" "$file"
+          done
+
+          grep -n "cv2-live-summary" frontend/js/modules/cabinet_v2.js
+          grep -n "potential_payout_prizm" frontend/js/modules/bet_slip.js
+          grep -n "20260513-wallet-dashboard-v78" frontend/index.html
+          systemctl is-active prizmbet
+          curl -fsS http://127.0.0.1:8081/health
+          echo
+          echo "backup=$backup"
+          REMOTE
+
+      - name: External smoke check
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 25 https://prizmbet.net/ | grep -q "20260513-wallet-dashboard-v78"
+          curl -fsS --connect-timeout 25 "https://prizmbet.net/js/modules/cabinet_v2.js?v=20260513-wallet-dashboard-v78" | grep -q "cv2-live-summary"
