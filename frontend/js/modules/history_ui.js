@@ -3,10 +3,10 @@
  */
 import { clearIntentRecords, getWalletAddress, saveWalletAddress } from './storage.js';
 import { escapeHtml } from './utils.js';
-import { getCabinetData, syncWalletInput } from './bet_slip.js?v=20260508-mobile-operator-notify-v77';
+import { getCabinetData, syncWalletInput } from './bet_slip.js?v=20260513-wallet-dashboard-v78';
 import { showToast } from './notifications.js';
 import { formatNumber, t } from './i18n.js';
-import { initCabinetV2, renderGamification } from './cabinet_v2.js?v=20260508-mobile-operator-notify-v77';
+import { initCabinetV2, renderGamification } from './cabinet_v2.js?v=20260513-wallet-dashboard-v78';
 
 let initialized = false;
 const dom = {};

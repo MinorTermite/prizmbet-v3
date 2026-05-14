@@ -1218,7 +1218,11 @@ function mapDashboardToCabinet(wallet, payload) {
             won: Number(payload.stats?.won || 0),
             lost: Number(payload.stats?.lost || 0),
             turnover_prizm: Number(payload.stats?.turnover_prizm || 0),
+            potential_payout_prizm: Number(payload.stats?.potential_payout_prizm || 0),
+            total_bets: Number(payload.stats?.total_bets || recentBets.length),
             total_intents: Number(payload.stats?.total_intents || recentIntents.length),
+            paid: Number(payload.stats?.paid || 0),
+            refund_pending: Number(payload.stats?.refund_pending || 0),
         },
         feed: feed.slice(0, 12),
     };

@@ -10,7 +10,7 @@
 import { formatNumber, getLanguage } from './i18n.js';
 import { escapeHtml } from './utils.js';
 import { getWalletAddress } from './storage.js';
-import { getApiBase } from './bet_slip.js?v=20260508-betslip-v75';
+import { getApiBase } from './bet_slip.js?v=20260513-wallet-dashboard-v78';
 import { showToast } from './notifications.js';
 import { Wheel } from '../vendor/spin-wheel-esm.js';
 
@@ -186,6 +186,64 @@ function _setRootHtml(html) {
     if (root) root.innerHTML = html;
 }
 
+function _num(value) {
+    const n = Number(value || 0);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function _dashboardStats() {
+    return (_betData && _betData.stats) || {};
+}
+
+function _dashboardRank() {
+    return (_betData && _betData.rank) || {};
+}
+
+function _renderLiveDashboardSummary() {
+    const stats = _dashboardStats();
+    const accepted = _num(stats.accepted);
+    const rejected = _num(stats.rejected);
+    const turnover = _num(stats.turnover_prizm);
+    const potential = _num(stats.potential_payout_prizm);
+    const total = _num(stats.total_bets || stats.total_intents);
+
+    if (!accepted && !rejected && !turnover && !potential && !total) return '';
+
+    const cards = [
+        {
+            label: isEn() ? 'Accepted bets' : 'Принятые ставки',
+            value: formatNumber(accepted, { maximumFractionDigits: 0 }),
+            mod: 'is-positive',
+        },
+        {
+            label: isEn() ? 'Turnover' : 'Оборот',
+            value: `${formatNumber(turnover, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PZM`,
+            mod: 'is-turnover',
+        },
+        {
+            label: isEn() ? 'Potential payout' : 'Потенц. выплата',
+            value: `${formatNumber(potential, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} PZM`,
+            mod: 'is-payout',
+        },
+        {
+            label: isEn() ? 'Rejected' : 'Отклонено',
+            value: formatNumber(rejected, { maximumFractionDigits: 0 }),
+            mod: rejected ? 'is-warning' : '',
+        },
+    ];
+
+    return `
+        <div class="cv2-live-summary" aria-label="${isEn() ? 'Live bet summary' : 'Сводка live-ставок'}">
+            ${cards.map(card => `
+                <div class="cv2-live-card ${card.mod}">
+                    <div class="cv2-live-label">${escapeHtml(card.label)}</div>
+                    <div class="cv2-live-value">${escapeHtml(card.value)}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
 // ── Render all ─────────────────────────────────────────────────────────────────
 
 function _renderAll() {
@@ -194,12 +252,23 @@ function _renderAll() {
 
     const profile    = _profile.profile || {};
     const progress   = profile.level_progress || {};
+    const stats      = _dashboardStats();
+    const rank       = _dashboardRank();
+    const rankNext   = rank.next || {};
     const level      = progress.current_level || 1;
     const levelName  = progress.level_name || 'НАБЛЮДАТЕЛЬ';
-    const wonPrizm   = progress.total_won_prizm || 0;
-    const nextTarget = progress.next_level_turnover || 0;
-    const remaining  = progress.remaining_prizm || 0;
-    const pct        = progress.progress_percent || 0;
+    const accepted   = _num(stats.accepted);
+    const rejected   = _num(stats.rejected);
+    const turnover   = _num(stats.turnover_prizm);
+    const totalBets  = _num(stats.total_bets || stats.total_intents);
+    const hasDashboardStats = Boolean(accepted || rejected || turnover || totalBets);
+    const wonPrizm   = hasDashboardStats ? turnover : _num(progress.total_won_prizm);
+    const nextTarget = _num(rankNext.target_turnover || progress.next_level_turnover);
+    const remaining  = rankNext.remaining_prizm !== undefined ? _num(rankNext.remaining_prizm) : _num(progress.remaining_prizm);
+    const pct        = hasDashboardStats && nextTarget > 0
+        ? Math.max(0, Math.min(100, Math.round((wonPrizm / nextTarget) * 100)))
+        : _num(progress.progress_percent);
+    const hasNextLevel = Boolean(progress.next_level || nextTarget);
     const spins      = profile.roulette_spins || 0;
     const tokens     = profile.raffle_tokens  || 0;
     const emoji      = LEVEL_EMOJI[Math.min(level - 1, LEVEL_EMOJI.length - 1)];
@@ -230,7 +299,7 @@ function _renderAll() {
 
             <!-- Progress bar -->
             <div class="cv2-progress-wrap">
-                ${progress.next_level
+                ${hasNextLevel
                     ? `<div class="cv2-progress-label">
                            <span>${formatNumber(wonPrizm, {maximumFractionDigits: 0})} PRIZM</span>
                            <span>${formatNumber(nextTarget, {maximumFractionDigits: 0})} PRIZM</span>
@@ -244,6 +313,8 @@ function _renderAll() {
                     : `<div class="cv2-progress-hint cv2-max-level">${escapeHtml(S.maxLevel())}</div>`
                 }
             </div>
+
+            ${_renderLiveDashboardSummary()}
 
             ${_renderWalletVerificationPanel()}
 

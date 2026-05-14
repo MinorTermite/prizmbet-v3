@@ -3500,6 +3500,82 @@ button.market-chip:hover {
     padding: 2px 8px;
 }
 
+.cv2-live-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 16px 14px;
+}
+
+.cv2-live-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 15px;
+    padding: 12px 14px;
+    background:
+        linear-gradient(135deg, rgba(6, 182, 212, .12), rgba(15, 23, 42, .54)),
+        rgba(255,255,255,.035);
+}
+
+.cv2-live-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+    transform: translateX(-110%);
+    animation: cv2LiveSweep 5.8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.cv2-live-card.is-positive {
+    border-color: rgba(34,197,94,.26);
+}
+
+.cv2-live-card.is-turnover {
+    border-color: rgba(20,184,166,.32);
+}
+
+.cv2-live-card.is-payout {
+    border-color: rgba(168,85,247,.32);
+}
+
+.cv2-live-card.is-warning {
+    border-color: rgba(248,113,113,.34);
+}
+
+.cv2-live-label {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 6px;
+    color: rgba(255,255,255,.5);
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.cv2-live-value {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: -.02em;
+}
+
+@keyframes cv2LiveSweep {
+    0%, 68% { transform: translateX(-110%); opacity: 0; }
+    78% { opacity: 1; }
+    100% { transform: translateX(110%); opacity: 0; }
+}
+
+@media (max-width: 520px) {
+    .cv2-live-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Progress bar */
 .cv2-progress-wrap {
     padding: 0 20px 14px;
